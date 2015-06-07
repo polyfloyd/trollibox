@@ -1,0 +1,14 @@
+{
+  "name": "trollibox",
+  "version": "0.0.0",
+  "authors": [
+    "PolyFloyd <floyd@polyfloyd.net>"
+  ],
+  "private": true,
+  "dependencies": {
+    "bootstrap": "~3.3.2",
+    "jquery": "~2.1.3",
+    "underscore": "~1.8.3",
+    "backbone": "~1.2.1"
+  }
+}

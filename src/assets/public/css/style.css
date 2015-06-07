@@ -1,0 +1,7 @@
+body {
+	padding-top: 51px; /* Make room for the navbar */
+}
+
+.browser-player {
+	background-color: red;
+}

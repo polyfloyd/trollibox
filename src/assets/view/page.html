@@ -1,0 +1,61 @@
+{{ define "meta-title" }}Trollibox{{ end }}
+
+{{ define "page" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+
+	<title>{{ template "meta-title" . }} | {{ template "title" . }}</title>
+
+	<script>
+		window.URLROOT = '{{ .urlroot }}';
+	</script>
+
+	{{ range .assets.css }}
+		<link rel="stylesheet" href="{{ . }}" />
+	{{ end }}
+
+	{{ template "head" . }}
+</head>
+<body>
+	<nav class="navbar navbar-default navbar-fixed-top page-navbar">
+		<div class="container-fluid">
+			<div class="navbar-header">
+				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".page-navbar .navbar-collapse">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+				<a class="navbar-brand" href="/">Trollibox</a>
+			</div>
+
+			<div class="collapse navbar-collapse">
+				<ul class="nav navbar-nav" role="tablist">
+					<li class="nav-item-browser"><a href="/">Browser</a></li>
+				</ul>
+				<script>
+					document.getElementsByClassName('nav-item-{{ template "pagename" . }}')[0].classList.add('active');
+				</script>
+
+				<ul class="nav navbar-nav navbar-right">
+					<p>Trollibox {{ .version }}
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	{{ template "content" . }}
+
+	{{ range .assets.js }}
+		<script src="{{ . }}"></script>
+	{{ end }}
+	{{ template "init" . }}
+</body>
+</html>
+{{ end }}
+
+{{ define "head" }}{{ end }}
+{{ define "init" }}{{ end }}
