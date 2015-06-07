@@ -1,0 +1,11 @@
+~*
+*~
+*.sw*
+/config.json
+/trollibox
+/bower_components/
+/node_modules/
+/src/assets-go/
+/src/assets/_BUILD
+/src/assets/_VERSION
+/src/assets/public/00-dep/
