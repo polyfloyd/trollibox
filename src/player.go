@@ -9,6 +9,20 @@ import (
 	mpd "github.com/jteeuwen/go-pkg-mpd"
 )
 
+var eventNames = map[mpd.SubSystem][]string{
+	mpd.DatabaseSystem:       { },
+	mpd.UpdateSystem:         { "update" },
+	mpd.StoredPlaylistSystem: { },
+	mpd.PlaylistSystem:       { "queue" },
+	mpd.PlayerSystem:         { "progress", "current" },
+	mpd.MixerSystem:          { "volume" },
+	mpd.OutputSystem:         { },
+	mpd.StickerSystem:        { },
+	mpd.SubscriptionSystem:   { },
+	mpd.MessageSystem:        { },
+}
+
+
 type Track struct {
 	Id       string  `json:"id"`
 	Artist   string  `json:"artist"`
@@ -39,6 +53,10 @@ type Player struct {
 	// Commands may be coming in concurrently. We have to make sure that
 	// only one calling routine has exclusive access.
 	mpdLock sync.Mutex
+
+	listeners     map[uint64]chan string
+	listenersEnum uint64
+	listenersLock sync.Mutex
 }
 
 func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
@@ -60,9 +78,10 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	}
 
 	player := &Player{
-		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
-		mpd:     client,
-		mpdIdle: clientIdle,
+		rand:      rand.New(rand.NewSource(time.Now().UnixNano())),
+		mpd:       client,
+		mpdIdle:   clientIdle,
+		listeners: map[uint64]chan string{},
 	}
 
 	go player.pingloop()
@@ -114,9 +133,30 @@ func (this *Player) idleloop() {
 			continue
 		}
 
-		// TODO: fire events
-		_ = sub
+		this.listenersLock.Lock()
+		for _, l := range this.listeners {
+			for _, event := range eventNames[sub] {
+				l <- event
+			}
+		}
+		this.listenersLock.Unlock()
 	}
+}
+
+func (this *Player) Listen(listener chan string) uint64 {
+	this.listenersLock.Lock()
+	defer this.listenersLock.Unlock()
+
+	this.listenersEnum++
+	this.listeners[this.listenersEnum] = listener
+	return this.listenersEnum
+}
+
+func (this *Player) Unlisten(handle uint64) {
+	this.listenersLock.Lock()
+	defer this.listenersLock.Unlock()
+
+	delete(this.listeners, handle)
 }
 
 func (this *Player) Queue(path string) error {
