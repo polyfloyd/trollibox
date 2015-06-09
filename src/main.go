@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -39,6 +40,12 @@ var (
 type Config struct {
 	Address string `json:"listen-address"`
 	URLRoot string `json:"url-root"`
+
+	Mpd struct {
+		Host     string  `json:"host"`
+		Port     int     `json:"port"`
+		Password *string `json:"password"`
+	} `json:"mpd"`
 }
 
 
@@ -55,15 +62,24 @@ func (h *AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 func main() {
 	log.Printf("Version: %v (%v)\n", VERSION, BUILD)
 
+	// Prevent blocking routines to lock up the whole program
+	runtime.GOMAXPROCS(8)
+
 	if in, err := os.Open(CONFFILE); err != nil {
 		log.Fatal(err)
 	} else if err := json.NewDecoder(in).Decode(&config); err != nil {
 		log.Fatal(err)
 	}
 
+	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	r := mux.NewRouter()
 	rCached := mux.NewRouter()
 
+	static = getStaticAssets(assets.AssetNames())
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, PUBLIC) {
 			continue
@@ -71,8 +87,6 @@ func main() {
 		urlPath := strings.TrimPrefix(file, PUBLIC)
 		rCached.Path(urlPath).Handler(&AssetServeHandler{name: file})
 	}
-
-	static = getStaticAssets(assets.AssetNames())
 
 	rCached.Path("/").HandlerFunc(htBrowserPage())
 
