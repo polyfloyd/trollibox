@@ -7,10 +7,7 @@ var Player = Backbone.Model.extend({
 		this.on('change:current', this.reloadProgressUpdater, this);
 		this.on('change:state', this.reloadProgressUpdater, this);
 
-		this.reloadCurrent(function() {
-			this.trigger('ready');
-		});
-
+		this.on('server-connect', this.reload, this);
 		this.connectEventSocket();
 	},
 
@@ -23,6 +20,7 @@ var Player = Backbone.Model.extend({
 			self.sock.onerror = function() {
 				self.sock.close();
 			};
+			self.trigger('server-connect');
 		};
 		this.sock.onclose = function() {
 			setTimeout(function() {
@@ -33,6 +31,10 @@ var Player = Backbone.Model.extend({
 		this.sock.onmessage = function(event) {
 			self.trigger('server-event:'+event.data);
 		};
+	},
+
+	reload: function() {
+		this.reloadCurrent();
 	},
 
 	reloadProgressUpdater: function() {
