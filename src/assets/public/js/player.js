@@ -107,7 +107,11 @@ var Player = Backbone.Model.extend({
 			dataType: 'json',
 			context:  this,
 			success:  function(data) {
-				this.setInternal('playlist', data.tracks);
+				this.setInternal('playlist', data.tracks.filter(function(track) {
+					return !!track.id;
+				}).map(function(track) {
+					return this.fillMissingTrackFields(track);
+				}, this));
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
