@@ -133,12 +133,21 @@ func (this *Player) queueLoop(listener chan string) {
 				fmt.Println(err)
 				continue
 			} else if track == nil {
-				this.QueueRandom()
 				this.mpdLock.Lock()
-				if err := this.mpd.Play(0); err != nil {
-					log.Println(err)
-				}
+				err := this.mpd.Clear()
 				this.mpdLock.Unlock()
+				if err != nil {
+					log.Println(err)
+					continue
+				}
+				if err := this.QueueRandom(); err != nil {
+					log.Println(err)
+					continue
+				}
+				if err = this.SetState("playing"); err != nil {
+					log.Println(err)
+					continue
+				}
 			}
 		}
 	}
