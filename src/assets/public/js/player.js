@@ -21,6 +21,7 @@ var Player = Backbone.Model.extend({
 		});
 
 		this.on('server-event:player', this.reloadCurrent, this);
+		this.on('server-event:playlist', this.reloadPlaylist, this);
 		this.on('change:current', this.reloadProgressUpdater, this);
 		this.on('change:state', this.reloadProgressUpdater, this);
 
@@ -63,6 +64,7 @@ var Player = Backbone.Model.extend({
 
 	reload: function() {
 		this.reloadCurrent();
+		this.reloadPlaylist();
 	},
 
 	reloadProgressUpdater: function() {
@@ -91,6 +93,21 @@ var Player = Backbone.Model.extend({
 				this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
 				this.setInternal('progress', data.progress);
 				this.setInternal('state',    data.state);
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
+
+	reloadPlaylist: function() {
+		$.ajax({
+			url:      URLROOT+'data/track/playlist',
+			method:   'GET',
+			dataType: 'json',
+			context:  this,
+			success:  function(data) {
+				this.setInternal('playlist', data.tracks);
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
