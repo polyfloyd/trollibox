@@ -20,8 +20,7 @@ var Player = Backbone.Model.extend({
 			});
 		});
 
-		//this.on('server-event:progress', this.reloadCurrent, this);
-		this.on('server-event:current', this.reloadCurrent, this);
+		this.on('server-event:player', this.reloadCurrent, this);
 		this.on('change:current', this.reloadProgressUpdater, this);
 		this.on('change:state', this.reloadProgressUpdater, this);
 

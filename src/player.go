@@ -9,20 +9,6 @@ import (
 	mpd "github.com/jteeuwen/go-pkg-mpd"
 )
 
-var eventNames = map[mpd.SubSystem][]string{
-	mpd.DatabaseSystem:       { },
-	mpd.UpdateSystem:         { "update" },
-	mpd.StoredPlaylistSystem: { },
-	mpd.PlaylistSystem:       { "queue" },
-	mpd.PlayerSystem:         { "progress", "current" },
-	mpd.MixerSystem:          { "volume" },
-	mpd.OutputSystem:         { },
-	mpd.StickerSystem:        { },
-	mpd.SubscriptionSystem:   { },
-	mpd.MessageSystem:        { },
-}
-
-
 type Track struct {
 	Id       string  `json:"id"`
 	Artist   string  `json:"artist"`
@@ -98,7 +84,7 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	queueListener := make(chan string, 16)
 	go player.queueLoop(queueListener)
 	player.Listen(queueListener)
-	queueListener <- "current" // Bootstrap the cycle
+	queueListener <- "player" // Bootstrap the cycle
 
 	go player.pingLoop()
 	go player.idleLoop()
@@ -120,6 +106,19 @@ func (this *Player) pingLoop() {
 }
 
 func (this *Player) idleLoop() {
+	var eventNames = map[mpd.SubSystem]string{
+		mpd.DatabaseSystem:       "database",
+		mpd.MessageSystem:        "message",
+		mpd.MixerSystem:          "volume",
+		mpd.OutputSystem:         "output",
+		mpd.PlayerSystem:         "player",
+		mpd.PlaylistSystem:       "playlist",
+		mpd.StickerSystem:        "sticker",
+		mpd.StoredPlaylistSystem: "stored-playlist",
+		mpd.SubscriptionSystem:   "subscription",
+		mpd.UpdateSystem:         "update",
+	}
+
 	for {
 		sub, err := this.mpdIdle.Idle()
 		if err != nil {
@@ -129,9 +128,7 @@ func (this *Player) idleLoop() {
 
 		this.listenersLock.Lock()
 		for _, l := range this.listeners {
-			for _, event := range eventNames[sub] {
-				l <- event
-			}
+			l <- eventNames[sub]
 		}
 		this.listenersLock.Unlock()
 	}
@@ -139,7 +136,7 @@ func (this *Player) idleLoop() {
 
 func (this *Player) queueLoop(listener chan string) {
 	for {
-		if event := <- listener; event == "current" {
+		if event := <- listener; event == "player" {
 			if track, _, err := this.CurrentTrack(); err != nil {
 				fmt.Println(err)
 				continue
