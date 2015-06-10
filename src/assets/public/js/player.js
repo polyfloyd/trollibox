@@ -88,7 +88,7 @@ var Player = Backbone.Model.extend({
 			dataType: 'json',
 			context:  this,
 			success:  function(data) {
-				this.setInternal('current',  this.fillMissingTrackFields(data.track));
+				this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
 				this.setInternal('progress', data.progress);
 				this.setInternal('state',    data.state);
 			},
