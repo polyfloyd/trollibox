@@ -84,25 +84,24 @@ var PlayerView = Backbone.View.extend({
 		'<div class="player-now-playing">'+
 			'<div class="track-art"></div>'+
 			'<p class="track-album"></p>'+
-			'<p>'+
-				'<span class="track-artist"></span> - <span class="track-title"></span>'+
-			'</p>'+
+			'<p class="track-title"></p>'+
+			'<p class="track-artist"></p>'+
 			'<p class="track-duration">'+
 				'<span class="current"></span> / <span class="total"></span>'+
 			'</p>'+
 		'</div>'+
 
 		'<div class="player-controls">'+
-			'<button class="player-do-pause glyphicon glyphicon-pause"></button>'+
-			'<button class="player-do-play glyphicon glyphicon-play"></button>'+
-			'<button class="glyphicon glyphicon-forward"></button>'+
+			'<button class="btn btn-default player-do-pause glyphicon glyphicon-pause"></button>'+
+			'<button class="btn btn-default player-do-play glyphicon glyphicon-play"></button>'+
+			'<button class="btn btn-default glyphicon glyphicon-forward"></button>'+
 		'</div>'+
 
-		'<ol class="player-playlist"></ol>'
+		'<ul class="player-playlist"></ul>'
 	),
 	playlistTemplate: _.template(
-		'<li>'+
-			'<button class="glyphicon glyphicon-remove"></button>'+
+		'<li class="queuedby-<%= addedby %>">'+
+			'<button class="do-remove glyphicon glyphicon-remove"></button>'+
 			'<span class="track-artist"><%- artist %></span> - <span class="track-name"><%- title %></span>'+
 		'</li>'
 	),

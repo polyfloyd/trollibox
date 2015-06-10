@@ -1,0 +1,75 @@
+.player {
+	padding: 15px;
+	color: #eee;
+	background-color: #222;
+}
+
+.player-now-playing {
+	font-size: 1.2em;
+}
+
+.player-now-playing .track-art {
+	width: 200px;
+	height: 200px;
+	margin: 0 auto 5px auto;
+	background-size: cover;
+}
+
+.player-now-playing .track-album {
+	text-align: center;
+}
+
+.player-now-playing .track-title {
+	margin-bottom: 0;
+	font-size: 1.3em;
+}
+
+.player-now-playing .track-artist {
+	font-size: 0.8em;
+}
+
+.player-now-playing .track-art.album-art-default {
+	background-image: url('../img/default-album-art.svg');
+}
+
+.track-artist:empty:before,
+.track-title:empty:before {
+	content: "None";
+	opacity: 0.7;
+}
+
+.track-duration .current:empty:before,
+.track-duration .total:empty:before {
+	content: "0:00";
+	opacity: 0.7;
+}
+
+.player-controls {
+	margin-bottom: 15px;
+}
+
+.player.player-playing .player-do-play,
+.player.player-paused .player-do-pause {
+	display: none;
+}
+
+.player-playlist {
+	padding-left: 0;
+	font-size: 1.1em;
+	list-style-type: none;
+}
+
+.player-playlist li {
+	padding-left: 30px;
+}
+
+.player-playlist li .do-remove {
+	width: 30px;
+	margin-left: -30px;
+	border: none;
+	background: none;
+}
+
+.player-playlist li.queuedby-human .do-remove {
+	color: #f60;
+}
