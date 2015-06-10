@@ -19,11 +19,29 @@ var Player = Backbone.Model.extend({
 				},
 			});
 		});
+		this.on('change:volume', function(obj, volume, options) {
+			if (options.sender === this) {
+				return;
+			}
+			$.ajax({
+				url:      URLROOT+'data/player/volume',
+				method:   'POST',
+				dataType: 'json',
+				data:     JSON.stringify({
+					volume: volume,
+				}),
+				context:  this,
+				error:    function() {
+					this.trigger('error');
+				},
+			});
+		});
 
-		this.on('server-event:player', this.reloadCurrent, this);
+		this.on('server-event:player',   this.reloadCurrent, this);
 		this.on('server-event:playlist', this.reloadPlaylist, this);
-		this.on('change:current', this.reloadProgressUpdater, this);
-		this.on('change:state', this.reloadProgressUpdater, this);
+		this.on('server-event:volume',   this.reloadVolume, this);
+		this.on('change:current',        this.reloadProgressUpdater, this);
+		this.on('change:state',          this.reloadProgressUpdater, this);
 
 		this.on('server-connect', this.reload, this);
 		this.connectEventSocket();
@@ -65,6 +83,7 @@ var Player = Backbone.Model.extend({
 	reload: function() {
 		this.reloadCurrent();
 		this.reloadPlaylist();
+		this.reloadVolume();
 	},
 
 	reloadProgressUpdater: function() {
@@ -112,6 +131,21 @@ var Player = Backbone.Model.extend({
 				}).map(function(track) {
 					return this.fillMissingTrackFields(track);
 				}, this));
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
+
+	reloadVolume: function() {
+		$.ajax({
+			url:      URLROOT+'/data/player/volume',
+			method:   'GET',
+			dataType: 'json',
+			context:  this,
+			success:  function(data) {
+				this.setInternal('volume', data.volume);
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);

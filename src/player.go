@@ -200,6 +200,35 @@ func (this *Player) QueueRandom() error {
 	return this.Queue(files[this.rand.Intn(len(files))].Id)
 }
 
+func (this *Player) Volume() (float32, error) {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	status, err := this.mpd.Status()
+	if err != nil {
+		return 0, err
+	}
+	// Here, the volume scale is form 0 to 255...
+	return float32(status.Volume) / 255, nil
+}
+
+func (this *Player) SetVolume(vol float32) error {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	if vol > 1 {
+		vol = 1
+	} else if vol < 0 {
+		vol = 0
+	}
+
+	// ...And here, the volume scale is form 0 to 100!
+	if err := this.mpd.Volume(byte(vol * 100), false); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (this *Player) ListTracks(path string) ([]Track, error) {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()

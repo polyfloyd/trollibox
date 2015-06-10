@@ -29,6 +29,8 @@ func socketHandler(player *Player) func(*ws.Conn) {
 func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(player))
 	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(player))
+	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(player))
+	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(player))
 	r.Path("/track/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/playlist").Methods("GET").HandlerFunc(htPlayerPlaylist(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
@@ -59,6 +61,43 @@ func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Re
 		}
 
 		if err := player.SetState(data.State); err != nil {
+			panic(err)
+		}
+
+		if _, err := res.Write([]byte("{}")); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htPlayerGetVolume(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		volume, err := player.Volume()
+		if err != nil {
+			panic(err)
+		}
+
+		err = json.NewEncoder(res).Encode(map[string]interface{}{
+			"volume": volume,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htPlayerSetVolume(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		var data struct {
+			Volume float32 `json:"volume"`
+		}
+
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			panic(err)
+		}
+
+		if err := player.SetVolume(data.Volume); err != nil {
 			panic(err)
 		}
 
