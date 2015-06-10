@@ -4,17 +4,21 @@
 
 {{ define "content" }}
 	<div class="browser">
-		<div class="browser-view">
-			<p>THIS IS BROWSER<p>
+		<div class="col-xs-12 col-sm-8 col-lg-9 browser-view">
 		</div>
-		<div class="hidden-xs col-sm-3 col-lg-2 browser-player">
-			<p>THIS IS PLAYER<p>
-		</div>
+		<div class="hidden-xs col-sm-4 col-lg-3 browser-player"></div>
 	</div>
 {{ end }}
 
 {{ define "init" }}
 	<script>
-		initBrowser();
+		var player = new Player();
+		player.on('error', function(err) {
+			console.error(err);
+		});
+		var playerView = new PlayerView({
+			model: player,
+		});
+		$('.browser-player').append(playerView.$el);
 	</script>
 {{ end }}
