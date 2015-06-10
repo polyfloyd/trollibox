@@ -234,6 +234,17 @@ func (this *Player) CurrentTrack() (*Track, int, error) {
 	}
 }
 
+func (this *Player) Next() error {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	err := this.mpd.Delete(0)
+	if err != nil {
+		return err
+	}
+	return this.mpd.Next()
+}
+
 func (this *Player) State() (string, error) {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()

@@ -69,4 +69,16 @@ var Player = Backbone.Model.extend({
 			},
 		});
 	},
+
+	next: function() {
+		$.ajax({
+			url:      URLROOT+'data/player/next',
+			method:   'POST',
+			dataType: 'json',
+			context:  this,
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
 });

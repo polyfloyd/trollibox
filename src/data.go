@@ -28,9 +28,22 @@ func socketHandler(player *Player) func(*ws.Conn) {
 
 func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(player))
+	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(player))
 	r.Path("/track/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
+}
+
+func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		if err := player.Next(); err != nil {
+			panic(err)
+		}
+
+		if _, err := res.Write([]byte("{}")); err != nil {
+			panic(err)
+		}
+	}
 }
 
 func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Request) {
