@@ -89,13 +89,13 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	player.Listen(queueListener)
 	queueListener <- "current" // Bootstrap the cycle
 
-	go player.pingloop()
-	go player.idleloop()
+	go player.pingLoop()
+	go player.idleLoop()
 
 	return player, nil
 }
 
-func (this *Player) pingloop() {
+func (this *Player) pingLoop() {
 	for {
 		this.mpdLock.Lock()
 
@@ -108,7 +108,7 @@ func (this *Player) pingloop() {
 	}
 }
 
-func (this *Player) idleloop() {
+func (this *Player) idleLoop() {
 	for {
 		sub, err := this.mpdIdle.Idle()
 		if err != nil {
