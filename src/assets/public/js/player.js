@@ -60,7 +60,7 @@ var Player = Backbone.Model.extend({
 			dataType: 'json',
 			context:  this,
 			success:  function(data) {
-				this.set('current',  data.track);
+				this.set('current',  this.fillMissingTrackFields(data.track));
 				this.set('progress', data.progress);
 				this.set('state',    data.state);
 			},
@@ -80,5 +80,19 @@ var Player = Backbone.Model.extend({
 				this.trigger('error', err);
 			},
 		});
+	},
+
+	fillMissingTrackFields: function(track) {
+		if (!track.title || !track.artist) {
+			var artistAndTitle = track.id.match(/.*\/(.+)\s+-\s+(.+)\.\w+/);
+			if (artistAndTitle) {
+				track.artist = track.artist || artistAndTitle[1];
+				track.title  = track.title  || artistAndTitle[2];
+			} else {
+				var title = track.id.match(/.*\/(.+)\.\w+/);
+				track.title = title ? title[1] : '';
+			}
+		}
+		return track;
 	},
 });
