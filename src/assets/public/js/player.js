@@ -2,6 +2,24 @@
 
 var Player = Backbone.Model.extend({
 	initialize: function() {
+		this.on('change:state', function(obj, volume, options) {
+			if (options.sender === this) {
+				return;
+			}
+			$.ajax({
+				url:      URLROOT+'data/player/state',
+				method:   'POST',
+				dataType: 'json',
+				data:     JSON.stringify({
+					state: this.get('state'),
+				}),
+				context:  this,
+				error:    function(req, str, err) {
+					this.trigger('error', err);
+				},
+			});
+		});
+
 		//this.on('server-event:progress', this.reloadCurrent, this);
 		this.on('server-event:current', this.reloadCurrent, this);
 		this.on('change:current', this.reloadProgressUpdater, this);
