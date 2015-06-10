@@ -84,30 +84,13 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 		listeners: map[uint64]chan string{},
 	}
 
+	queueListener := make(chan string, 16)
+	go player.queueLoop(queueListener)
+	player.Listen(queueListener)
+	queueListener <- "current" // Bootstrap the cycle
+
 	go player.pingloop()
 	go player.idleloop()
-
-	player.mpdLock.Lock()
-	if err := player.mpd.Clear(); err != nil {
-		player.mpdLock.Unlock()
-		return nil, err
-	}
-	player.mpdLock.Unlock()
-
-	if err := player.QueueRandom(); err != nil {
-		return nil, err
-	}
-
-	player.mpdLock.Lock()
-	if err := player.mpd.Play(0); err != nil {
-		player.mpdLock.Unlock()
-		return nil, err
-	}
-	player.mpdLock.Unlock()
-
-	if err := player.Play(); err != nil {
-		return nil, err
-	}
 
 	return player, nil
 }
@@ -140,6 +123,24 @@ func (this *Player) idleloop() {
 			}
 		}
 		this.listenersLock.Unlock()
+	}
+}
+
+func (this *Player) queueLoop(listener chan string) {
+	for {
+		if event := <- listener; event == "current" {
+			if track, _, err := this.CurrentTrack(); err != nil {
+				fmt.Println(err)
+				continue
+			} else if track == nil {
+				this.QueueRandom()
+				this.mpdLock.Lock()
+				if err := this.mpd.Play(0); err != nil {
+					log.Println(err)
+				}
+				this.mpdLock.Unlock()
+			}
+		}
 	}
 }
 
