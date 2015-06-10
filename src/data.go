@@ -36,10 +36,13 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 	return func(res http.ResponseWriter, req *http.Request) {
 		if track, progress, err := player.CurrentTrack(); err != nil {
 			panic(err)
+		} else if state, err := player.State(); err != nil {
+			panic(err)
 		} else {
 			err := json.NewEncoder(res).Encode(map[string]interface{}{
 				"progress": progress,
 				"track":    track,
+				"state":    state,
 			})
 			if err != nil {
 				panic(err)

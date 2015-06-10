@@ -246,3 +246,19 @@ func (this *Player) CurrentTrack() (*Track, int, error) {
 		return nil, 0, nil
 	}
 }
+
+func (this *Player) State() (string, error) {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	status, err := this.mpd.Status()
+	if err != nil {
+		return "", err
+	}
+
+	return map[mpd.PlayState]string{
+		mpd.Paused:  "paused",
+		mpd.Playing: "playing",
+		mpd.Stopped: "stopped",
+	}[status.State], nil
+}
