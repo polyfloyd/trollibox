@@ -42,6 +42,17 @@ func TrackFromMpdSong(song *mpd.Song, track *Track) {
 }
 
 
+type PlaylistTrack struct {
+	Track
+	AddedBy string `json:"addedby"`
+}
+
+func PlaylistTrackFromMpdSong(song *mpd.Song, track *PlaylistTrack) {
+	TrackFromMpdSong(song, &track.Track)
+	track.AddedBy = "robot" // TODO: Store and look this up
+}
+
+
 type Player struct {
 	rand *rand.Rand
 	mpd  *mpd.Client
@@ -208,6 +219,22 @@ func (this *Player) ListTracks(path string) ([]Track, error) {
 	tracks := make([]Track, len(songs))
 	for i, song := range songs {
 		TrackFromMpdSong(song, &tracks[i])
+	}
+	return tracks, nil
+}
+
+func (this *Player) Playlist() ([]PlaylistTrack, error) {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	songs, err := this.mpd.PlaylistInfo(-1)
+	if err != nil {
+		return nil, err
+	}
+
+	tracks := make([]PlaylistTrack, len(songs))
+	for i, song := range songs {
+		PlaylistTrackFromMpdSong(song, &tracks[i])
 	}
 	return tracks, nil
 }

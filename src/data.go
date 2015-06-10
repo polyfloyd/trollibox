@@ -30,6 +30,7 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(player))
 	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(player))
 	r.Path("/track/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
+	r.Path("/track/playlist").Methods("GET").HandlerFunc(htPlayerPlaylist(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
@@ -82,6 +83,22 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 			if err != nil {
 				panic(err)
 			}
+		}
+	}
+}
+
+func htPlayerPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		tracks, err := player.Playlist()
+		if err != nil {
+			panic(err)
+		}
+
+		err = json.NewEncoder(res).Encode(map[string]interface{}{
+			"tracks": tracks,
+		})
+		if err != nil {
+			panic(err)
 		}
 	}
 }
