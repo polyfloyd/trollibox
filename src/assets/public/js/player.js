@@ -33,6 +33,17 @@ var Player = Backbone.Model.extend({
 		};
 	},
 
+	/**
+	 * Like the regular Backbone.Model#set(), but propagates a flag to change
+	 * listeners so they can differentiate between events fired from external
+	 * (e.g. view) and internal (e.g. reload*).
+	 */
+	setInternal: function(key, value, options) {
+		options = options || {};
+		options.sender = this;
+		return Backbone.Model.prototype.set.call(this, key, value, options);
+	},
+
 	reload: function() {
 		this.reloadCurrent();
 	},
@@ -45,7 +56,7 @@ var Player = Backbone.Model.extend({
 
 		if (this.get('current') && this.get('state') === 'playing') {
 			this.progressUpdater = setInterval(function() {
-				self.set('progress', self.get('progress') + 1);
+				self.setInternal('progress', self.get('progress') + 1);
 			}, 1000);
 			this.progressTimeout = setTimeout(function() {
 				self.reloadCurrent();
@@ -60,9 +71,9 @@ var Player = Backbone.Model.extend({
 			dataType: 'json',
 			context:  this,
 			success:  function(data) {
-				this.set('current',  this.fillMissingTrackFields(data.track));
-				this.set('progress', data.progress);
-				this.set('state',    data.state);
+				this.setInternal('current',  this.fillMissingTrackFields(data.track));
+				this.setInternal('progress', data.progress);
+				this.setInternal('state',    data.state);
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
