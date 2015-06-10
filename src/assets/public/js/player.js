@@ -53,7 +53,7 @@ var Player = Backbone.Model.extend({
 		}
 	},
 
-	reloadCurrent: function(cb) {
+	reloadCurrent: function() {
 		$.ajax({
 			url:      URLROOT+'data/track/current',
 			method:   'GET',
@@ -63,7 +63,6 @@ var Player = Backbone.Model.extend({
 				this.set('current',  data.track);
 				this.set('progress', data.progress);
 				this.set('state',    data.state);
-				if (cb) cb.call(this);
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
