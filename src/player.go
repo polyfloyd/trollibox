@@ -183,20 +183,6 @@ func (this *Player) QueueRandom() error {
 	return this.Queue(files[this.rand.Intn(len(files))].Id)
 }
 
-func (this *Player) Play() error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	return this.mpd.Pause(false)
-}
-
-func (this *Player) Pause() error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	return this.mpd.Pause(true)
-}
-
 func (this *Player) ListTracks(path string) ([]Track, error) {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()
@@ -262,4 +248,28 @@ func (this *Player) State() (string, error) {
 		mpd.Playing: "playing",
 		mpd.Stopped: "stopped",
 	}[status.State], nil
+}
+
+func (this *Player) SetState(state string) (error) {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	switch state {
+	case "paused":
+		return this.mpd.Pause(true)
+	case "playing":
+		if status, err := this.mpd.Status(); err != nil {
+			return err
+		} else if status.State == mpd.Stopped {
+			this.mpd.Play(0)
+		} else {
+			return this.mpd.Pause(false)
+		}
+	case "stopped":
+		return this.mpd.Stop()
+	default:
+		return fmt.Errorf("Unknown play state %v", state)
+	}
+
+	return nil
 }
