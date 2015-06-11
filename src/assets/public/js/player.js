@@ -51,20 +51,25 @@ var Player = Backbone.Model.extend({
 		var self = this;
 
 		var wsRoot = URLROOT.replace(/^http/, 'ws');
-		this.sock = new WebSocket(wsRoot+'data/listen');
-		this.sock.onopen = function() {
+		var sock = new WebSocket(wsRoot+'data/listen');
+		sock.onopen = function() {
+			self.sock = sock;
 			self.sock.onerror = function() {
 				self.sock.close();
 			};
 			self.trigger('server-connect');
 		};
-		this.sock.onclose = function() {
+		sock.onclose = function() {
+			if (self.sock) {
+				self.trigger('error', new Error('Socket connection lost'));
+			}
+			self.sock = null;
 			setTimeout(function() {
 				self.connectEventSocket();
 			}, 1000 * 4);
 		};
 
-		this.sock.onmessage = function(event) {
+		sock.onmessage = function(event) {
 			self.trigger('server-event:'+event.data);
 		};
 	},
