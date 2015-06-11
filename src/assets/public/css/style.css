@@ -29,8 +29,8 @@ body {
 	border: none;
 }
 
-.btn + .btn {
-	margin-left: 2px;
+.btn {
+	margin: 0 1px;
 }
 
 /* Navbar */

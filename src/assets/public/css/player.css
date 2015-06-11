@@ -48,8 +48,8 @@
 	margin-bottom: 15px;
 }
 
-.player.player-playing .player-do-play,
-.player.player-paused .player-do-pause {
+.player.player-playing .do-play,
+.player.player-paused .do-pause {
 	display: none;
 }
 

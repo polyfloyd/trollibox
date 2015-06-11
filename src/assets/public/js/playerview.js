@@ -4,14 +4,22 @@ var PlayerView = Backbone.View.extend({
 	tagName:   'div',
 	className: 'player',
 
-	initialize: function() {
-		this.$el.html(this.template());
+	events: {
+		'click .do-next':  'doNext',
+		'click .do-pause': 'doPause',
+		'click .do-play':  'doPlay',
+	},
 
+	initialize: function() {
 		this.listenTo(this.model, 'change:current',  this.renderCurrent);
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
 		this.listenTo(this.model, 'change:progress', this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);
+		this.render();
+	},
 
+	render: function() {
+		this.$el.html(this.template());
 		this.renderCurrent();
 		this.renderPlaylist();
 		this.renderProgress();
@@ -61,6 +69,18 @@ var PlayerView = Backbone.View.extend({
 			}, this));
 	},
 
+	doNext: function() {
+		this.model.next();
+	},
+
+	doPause: function() {
+		this.model.set('state', 'paused');
+	},
+
+	doPlay: function() {
+		this.model.set('state', 'playing');
+	},
+
 	durationToString: function(seconds) {
 		var s = '';
 		var hasHours = seconds > 3600;
@@ -92,9 +112,9 @@ var PlayerView = Backbone.View.extend({
 		'</div>'+
 
 		'<div class="player-controls">'+
-			'<button class="btn btn-default player-do-pause glyphicon glyphicon-pause"></button>'+
-			'<button class="btn btn-default player-do-play glyphicon glyphicon-play"></button>'+
-			'<button class="btn btn-default glyphicon glyphicon-forward"></button>'+
+			'<button class="btn btn-default glyphicon glyphicon-pause do-pause"></button>'+
+			'<button class="btn btn-default glyphicon glyphicon-play do-play"></button>'+
+			'<button class="btn btn-default glyphicon glyphicon-forward do-next"></button>'+
 		'</div>'+
 
 		'<ul class="player-playlist"></ul>'
