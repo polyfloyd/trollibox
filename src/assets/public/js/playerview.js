@@ -9,6 +9,7 @@ var PlayerView = Backbone.View.extend({
 		'click .do-toggle-state':  'doToggleState',
 		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
+		'input .do-set-progress':  'doSetProgress',
 	},
 
 	initialize: function() {
@@ -44,6 +45,7 @@ var PlayerView = Backbone.View.extend({
 		this.$('.track-artist').text(cur.artist || '');
 		this.$('.track-title').text(cur.title || '');
 		this.$('.track-duration .total').text(cur.duration ? this.durationToString(cur.duration) : '');
+		this.$('.do-set-progress').attr('max', cur.duration);
 	},
 
 	renderProgress: function() {
@@ -102,6 +104,10 @@ var PlayerView = Backbone.View.extend({
 		this.model.set('volume', vol === 0 ? this.oldVolume || 0.01 : 0);
 	},
 
+	doSetProgress: function() {
+		this.model.set('progress', parseInt(this.$('.do-set-progress').val(), 10));
+	},
+
 	doSetVolume: function() {
 		var $input = this.$('.do-set-volume');
 		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
@@ -133,9 +139,12 @@ var PlayerView = Backbone.View.extend({
 			'<p class="track-album"></p>'+
 			'<p class="track-title"></p>'+
 			'<p class="track-artist"></p>'+
-			'<p class="track-duration">'+
-				'<span class="current"></span> / <span class="total"></span>'+
-			'</p>'+
+			'<div class="input-group">'+
+				'<p class="input-group-addon track-duration">'+
+					'<span class="current"></span> / <span class="total"></span>'+
+				'</p>'+
+				'<input class="do-set-progress" type="range" min="0" max="100" />'+
+			'</div>'+
 		'</div>'+
 
 		'<div class="player-controls">'+
