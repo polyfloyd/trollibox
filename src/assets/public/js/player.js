@@ -2,6 +2,23 @@
 
 var Player = Backbone.Model.extend({
 	initialize: function() {
+		this.on('change:progress', function(obj, progress, options) {
+			if (options.sender === this) {
+				return;
+			}
+			$.ajax({
+				url:      URLROOT+'data/player/progress',
+				method:   'POST',
+				dataType: 'json',
+				data:     JSON.stringify({
+					progress: progress,
+				}),
+				context:  this,
+				error:    function() {
+					this.trigger('error');
+				},
+			});
+		});
 		this.on('change:state', function(obj, volume, options) {
 			if (options.sender === this) {
 				return;

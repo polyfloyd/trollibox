@@ -296,6 +296,18 @@ func (this *Player) CurrentTrack() (*Track, int, error) {
 	}
 }
 
+func (this *Player) SetProgress(progress int) error {
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	status, err := this.mpd.Status()
+	if err != nil {
+		return err
+	}
+
+	return this.mpd.SeekId(status.SongId, progress)
+}
+
 func (this *Player) Next() error {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()

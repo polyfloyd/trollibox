@@ -29,6 +29,7 @@ func socketHandler(player *Player) func(*ws.Conn) {
 func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(player))
 	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(player))
+	r.Path("/player/progress").Methods("POST").HandlerFunc(htPlayerProgress(player))
 	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(player))
 	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(player))
 	r.Path("/track/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
@@ -40,6 +41,27 @@ func htDataAttach(r *mux.Router, player *Player) {
 func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		if err := player.Next(); err != nil {
+			panic(err)
+		}
+
+		if _, err := res.Write([]byte("{}")); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htPlayerProgress(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		var data struct {
+			Progress int `json:"progress"`
+		}
+
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			panic(err)
+		}
+
+		if err := player.SetProgress(data.Progress); err != nil {
 			panic(err)
 		}
 
