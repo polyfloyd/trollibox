@@ -38,6 +38,14 @@
 	opacity: 0.7;
 }
 
+.player .input-group-addon {
+	padding: 0;
+	border: none;
+	font-size: inherit;
+	color: inherit;
+	background: none;
+}
+
 .track-duration .current:empty:before,
 .track-duration .total:empty:before {
 	content: "0:00";
@@ -51,6 +59,10 @@
 .player.player-playing .do-play,
 .player.player-paused .do-pause {
 	display: none;
+}
+
+.player .do-set-volume {
+	display: inline-block;
 }
 
 .player-playlist {

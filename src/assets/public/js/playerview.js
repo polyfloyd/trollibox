@@ -5,9 +5,10 @@ var PlayerView = Backbone.View.extend({
 	className: 'player',
 
 	events: {
-		'click .do-next':  'doNext',
-		'click .do-pause': 'doPause',
-		'click .do-play':  'doPlay',
+		'click .do-next':          'doNext',
+		'click .do-toggle-state':  'doToggleState',
+		'click .do-toggle-volume': 'doToggleVolume',
+		'input .do-set-volume':    'doSetVolume',
 	},
 
 	initialize: function() {
@@ -15,6 +16,7 @@ var PlayerView = Backbone.View.extend({
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
 		this.listenTo(this.model, 'change:progress', this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);
+		this.listenTo(this.model, 'change:volume',   this.renderVolume);
 		this.render();
 	},
 
@@ -24,6 +26,7 @@ var PlayerView = Backbone.View.extend({
 		this.renderPlaylist();
 		this.renderProgress();
 		this.renderState();
+		this.renderVolume();
 	},
 
 	renderCurrent: function() {
@@ -53,6 +56,20 @@ var PlayerView = Backbone.View.extend({
 		this.$el.toggleClass('player-paused',  state === 'paused');
 		this.$el.toggleClass('player-playing', state === 'playing');
 		this.$el.toggleClass('player-stopped', state === 'stopped');
+
+		this.$('.do-toggle-state')
+			.toggleClass('glyphicon-pause', state === 'playing')
+			.toggleClass('glyphicon-play',  state !== 'playing');
+	},
+
+	renderVolume: function() {
+		var vol = this.model.get('volume') || 0;
+		this.$('.do-toggle-volume')
+			.toggleClass('glyphicon-volume-off', vol === 0)
+			.toggleClass('glyphicon-volume-up', vol > 0);
+
+		var $setVol = this.$('.do-set-volume');
+		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
 	},
 
 	renderPlaylist: function() {
@@ -69,16 +86,26 @@ var PlayerView = Backbone.View.extend({
 			}, this));
 	},
 
+	doToggleState: function() {
+		this.model.set('state', this.model.get('state') !== 'playing' ? 'playing' : 'paused');
+	},
+
 	doNext: function() {
 		this.model.next();
 	},
 
-	doPause: function() {
-		this.model.set('state', 'paused');
+	doToggleVolume: function() {
+		var vol = this.model.get('volume');
+		if (vol !== 0) {
+			this.oldVolume = vol;
+		}
+		this.model.set('volume', vol === 0 ? this.oldVolume || 0.01 : 0);
 	},
 
-	doPlay: function() {
-		this.model.set('state', 'playing');
+	doSetVolume: function() {
+		var $input = this.$('.do-set-volume');
+		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
+		this.model.set('volume', vol);
 	},
 
 	durationToString: function(seconds) {
@@ -112,9 +139,18 @@ var PlayerView = Backbone.View.extend({
 		'</div>'+
 
 		'<div class="player-controls">'+
-			'<button class="btn btn-default glyphicon glyphicon-pause do-pause"></button>'+
-			'<button class="btn btn-default glyphicon glyphicon-play do-play"></button>'+
-			'<button class="btn btn-default glyphicon glyphicon-forward do-next"></button>'+
+			'<div class="input-group">'+
+				'<span class="input-group-btn">'+
+					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state"></button>'+
+				'</span>'+
+				'<span class="input-group-btn">'+
+					'<button class="btn btn-default glyphicon glyphicon-forward do-next"></button>'+
+				'</span>'+
+				'<span class="input-group-btn">'+
+					'<button class="btn btn-default glyphicon glyphicon-volume-off do-toggle-volume"></button>'+
+				'</span>'+
+				'<input class="do-set-volume" type="range" min="0" max="100" value="0" />'+
+			'</div>'+
 		'</div>'+
 
 		'<ul class="player-playlist"></ul>'
