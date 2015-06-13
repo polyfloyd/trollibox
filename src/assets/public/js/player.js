@@ -54,9 +54,10 @@ var Player = Backbone.Model.extend({
 			});
 		});
 
-		this.on('server-event:player',   this.reloadCurrent, this);
+		this.on('server-event:player',   this.reloadCurrent,  this);
 		this.on('server-event:playlist', this.reloadPlaylist, this);
-		this.on('server-event:volume',   this.reloadVolume, this);
+		this.on('server-event:update',   this.reloadTracks,   this);
+		this.on('server-event:volume',   this.reloadVolume,   this);
 		this.on('change:current',        this.reloadProgressUpdater, this);
 		this.on('change:state',          this.reloadProgressUpdater, this);
 
@@ -105,6 +106,7 @@ var Player = Backbone.Model.extend({
 	reload: function() {
 		this.reloadCurrent();
 		this.reloadPlaylist();
+		this.reloadTracks();
 		this.reloadVolume();
 	},
 
@@ -153,6 +155,21 @@ var Player = Backbone.Model.extend({
 				}).map(function(track) {
 					return this.fillMissingTrackFields(track);
 				}, this));
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
+
+	reloadTracks: function() {
+		$.ajax({
+			url:      URLROOT+'data/track/browse/',
+			method:   'GET',
+			dataType: 'json',
+			context:  this,
+			success:  function(data) {
+				this.setInternal('tracks', data.tracks);
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
