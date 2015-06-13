@@ -51,6 +51,7 @@ var PlayerView = Backbone.View.extend({
 	renderProgress: function() {
 		var pr = this.model.get('progress');
 		this.$('.track-duration .current').text(pr ? this.durationToString(pr) : '');
+		this.$('.do-set-progress').val(pr);
 	},
 
 	renderState: function() {
