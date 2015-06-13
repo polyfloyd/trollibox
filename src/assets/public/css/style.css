@@ -17,6 +17,10 @@ body {
 	border: none;
 }
 
+.player-container {
+	margin: 15px;
+}
+
 .btn.btn-default {
 	background-color: #f60;
 	border: none;

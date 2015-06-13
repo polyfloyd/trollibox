@@ -89,6 +89,7 @@ func main() {
 	}
 
 	rCached.Path("/").HandlerFunc(htBrowserPage())
+	rCached.Path("/player").HandlerFunc(htPlayerPage())
 	htDataAttach(r.PathPrefix("/data/").Subrouter(), player)
 
 	// 404

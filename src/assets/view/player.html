@@ -1,0 +1,21 @@
+{{ define "title" }}Player{{ end }}
+
+{{ define "pagename" }}player{{ end }}
+
+{{ define "content" }}
+	<div class="player-container"></div>
+{{ end }}
+
+{{ define "init" }}
+	<script>
+		var player = new Player();
+		player.on('error', function(err) {
+			console.error(err);
+		});
+		var playerView = new PlayerView({
+			model: player,
+		});
+		$('.player-container').append(playerView.$el);
+	</script>
+{{ end }}
+

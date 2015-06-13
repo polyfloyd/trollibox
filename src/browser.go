@@ -14,3 +14,14 @@ func htBrowserPage() func(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 }
+
+func htPlayerPage() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		params := GetBaseParamMap()
+
+		err := RenderPage("view/player.html", res, params)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
