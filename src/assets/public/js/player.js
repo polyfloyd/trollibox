@@ -217,4 +217,32 @@ var Player = Backbone.Model.extend({
 		}
 		return track;
 	},
+
+	/**
+	 * Search the entire library for tracks matching a word in the query string.
+	 */
+	search: function(query) {
+		if (!query) {
+			return [];
+		}
+
+		var keywords = query.toLowerCase().split(/\s+/g).filter(function(keyword) {
+			return !!keyword;
+		});
+		if (!keywords.length) {
+			return [];
+		}
+
+		return this.get('tracks').filter(function(track) {
+			return keywords.every(function(keyword) {
+				return ['artist', 'title', 'album'].some(function(attr) {
+					var val = track[attr];
+					if (typeof val === 'undefined') {
+						return false;
+					}
+					return val.toLowerCase().indexOf(keyword) !== -1;
+				});
+			});
+		});
+	},
 });
