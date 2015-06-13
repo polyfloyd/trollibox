@@ -136,28 +136,41 @@ func (this *Player) idleLoop() {
 
 func (this *Player) queueLoop(listener chan string) {
 	for {
-		if event := <- listener; event == "player" {
-			if track, _, err := this.CurrentTrack(); err != nil {
-				fmt.Println(err)
+		if event := <- listener; event != "player" {
+			continue
+		}
+
+		if track, _, err := this.CurrentTrack(); err != nil {
+			log.Println(err)
+			continue
+		} else if track == nil {
+			if err := this.QueueRandom(); err != nil {
+				log.Println(err)
 				continue
-			} else if track == nil {
-				this.mpdLock.Lock()
-				err := this.mpd.Clear()
-				this.mpdLock.Unlock()
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-				if err := this.QueueRandom(); err != nil {
-					log.Println(err)
-					continue
-				}
-				if err = this.SetState("playing"); err != nil {
-					log.Println(err)
-					continue
-				}
+			}
+			if err = this.SetState("playing"); err != nil {
+				log.Println(err)
+				continue
 			}
 		}
+
+		this.mpdLock.Lock()
+		status, err := this.mpd.Status()
+		this.mpdLock.Unlock()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		// Remove played tracks form the queue.
+		this.mpdLock.Lock()
+		for i := 0; i < status.Song; i++ {
+			err := this.mpd.Delete(0)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+		this.mpdLock.Unlock()
 	}
 }
 
@@ -312,11 +325,11 @@ func (this *Player) Next() error {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()
 
-	err := this.mpd.Delete(0)
-	if err != nil {
+	if err := this.mpd.Next(); err != nil {
 		return err
 	}
-	return this.mpd.Next()
+
+	return this.mpd.Delete(0)
 }
 
 func (this *Player) State() (string, error) {
