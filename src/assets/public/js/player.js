@@ -53,6 +53,25 @@ var Player = Backbone.Model.extend({
 				},
 			});
 		});
+		this.on('change:playlist', function(obj, playlist, options) {
+			if (options.sender === this) {
+				return;
+			}
+			$.ajax({
+				url:      URLROOT+'data/player/playlist',
+				method:   'POST',
+				dataType: 'json',
+				data:     JSON.stringify({
+					'track-ids': this.get('playlist').map(function(track) {
+						return track.id;
+					}),
+				}),
+				context:  this,
+				error:    function() {
+					this.trigger('error');
+				},
+			});
+		});
 
 		this.on('server-event:player',   this.reloadCurrent,  this);
 		this.on('server-event:playlist', this.reloadPlaylist, this);
@@ -244,5 +263,24 @@ var Player = Backbone.Model.extend({
 				});
 			});
 		});
+	},
+
+	appendToPlaylist: function(track) {
+		var mutTrack = {};
+		for (var k in track) mutTrack[k] = track[k];
+
+		mutTrack.addedby = 'human';
+		this.set('playlist', this.get('playlist').concat([mutTrack]));
+	},
+
+	removeFromPlaylist: function(removeTrack) {
+		// Remove a track by index.
+		if (typeof removeTrack === 'number') {
+			removeTrack = this.get('playlist')[removeTrack];
+		}
+
+		this.set('playlist', this.get('playlist').filter(function(track) {
+			return removeTrack.id !== track.id;
+		}));
 	},
 });

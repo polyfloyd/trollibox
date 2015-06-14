@@ -85,8 +85,14 @@ var PlayerView = Backbone.View.extend({
 
 		this.$('.player-playlist')
 			.empty()
-			.append(playlist.map(function(track) {
-				return this.playlistTemplate(track);
+			.append(playlist.map(function(track, i) {
+				var self = this;
+				var $li = $(this.playlistTemplate(track));
+				$li.find('.do-remove').on('click', function() {
+					// Index +1 to exclude the current track.
+					self.model.removeFromPlaylist(i + 1);
+				});
+				return $li;
 			}, this));
 	},
 
