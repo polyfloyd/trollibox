@@ -128,7 +128,7 @@ var Player = Backbone.Model.extend({
 
 	reloadCurrent: function() {
 		$.ajax({
-			url:      URLROOT+'data/track/current',
+			url:      URLROOT+'data/player/current',
 			method:   'GET',
 			dataType: 'json',
 			context:  this,
@@ -145,7 +145,7 @@ var Player = Backbone.Model.extend({
 
 	reloadPlaylist: function() {
 		$.ajax({
-			url:      URLROOT+'data/track/playlist',
+			url:      URLROOT+'data/player/playlist',
 			method:   'GET',
 			dataType: 'json',
 			context:  this,

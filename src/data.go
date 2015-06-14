@@ -32,8 +32,8 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/progress").Methods("POST").HandlerFunc(htPlayerProgress(player))
 	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(player))
 	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(player))
-	r.Path("/track/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
-	r.Path("/track/playlist").Methods("GET").HandlerFunc(htPlayerPlaylist(player))
+	r.Path("/player/playlist").Methods("GET").HandlerFunc(htPlayerPlaylist(player))
+	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
