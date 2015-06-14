@@ -278,6 +278,43 @@ func (this *Player) Playlist() ([]PlaylistTrack, error) {
 	return tracks, nil
 }
 
+func (this *Player) SetPlaylistIds(trackIds []string) error {
+	playlist, err := this.Playlist()
+	if err != nil {
+		return err
+	}
+
+	this.mpdLock.Lock()
+	defer this.mpdLock.Unlock()
+
+	// First, clear the playlist except the currently playing track.
+	for i := 0; i < len(playlist) - 1; i++ {
+		if err := this.mpd.Delete(1); err != nil {
+			return err
+		}
+	}
+
+	// Playing track is not the first track of the new list? Remove it so we
+	// can overwrite it.
+	if playlist[0].Id != trackIds[0] {
+		if err := this.mpd.Delete(0); err != nil {
+			return err
+		}
+	} else {
+		// Don't queue the first track twice.
+		trackIds = trackIds[1:]
+	}
+
+	// Queue the new tracks.
+	for _, id := range trackIds {
+		if err := this.mpd.Add(id); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Returns the currently playing track as well as its progress in seconds
 func (this *Player) CurrentTrack() (*Track, int, error) {
 	this.mpdLock.Lock()

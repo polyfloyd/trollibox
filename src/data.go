@@ -32,7 +32,8 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/progress").Methods("POST").HandlerFunc(htPlayerProgress(player))
 	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(player))
 	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(player))
-	r.Path("/player/playlist").Methods("GET").HandlerFunc(htPlayerPlaylist(player))
+	r.Path("/player/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(player))
+	r.Path("/player/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(player))
 	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
@@ -148,7 +149,7 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 	}
 }
 
-func htPlayerPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		tracks, err := player.Playlist()
 		if err != nil {
@@ -159,6 +160,27 @@ func htPlayerPlaylist(player *Player) func(res http.ResponseWriter, req *http.Re
 			"tracks": tracks,
 		})
 		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		var data struct {
+			TrackIds []string `json:"track-ids"`
+		}
+
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			panic(err)
+		}
+
+		if err := player.SetPlaylistIds(data.TrackIds); err != nil {
+			panic(err)
+		}
+
+		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
 	}
