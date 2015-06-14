@@ -188,7 +188,7 @@ func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 
 func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tracks, err := player.ListTracks(mux.Vars(req)["path"])
+		tracks, err := player.ListTracks(mux.Vars(req)["path"], true)
 		if err != nil {
 			panic(err)
 		}
