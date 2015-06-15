@@ -1,6 +1,7 @@
 * {
 	border-radius: 0 !important;
 	font-family: Liberation Sans;
+	color: #ddd;
 }
 
 html,
@@ -19,6 +20,14 @@ body {
 
 .player-container {
 	margin: 15px;
+}
+
+.panel {
+	border: none;
+}
+
+.panel.panel-default > .panel-body {
+	background-color: #222;
 }
 
 .btn.btn-default {
@@ -40,6 +49,29 @@ body {
 
 .input-group > .input-group-btn {
 	padding: 0 2px;
+}
+
+.form-control {
+	background-color: #222;
+	border-color: #f60;
+	color: #f60;
+}
+
+.form-control:focus {
+	border-color: #f60;
+	background-color: #333;
+	box-shadow: none;
+}
+
+.input-group-addon {
+	color: #222;
+	background-color: #f60;
+	border: none;
+}
+
+.input-group-addon .glyphicon {
+	color: #222;
+	font-size: 1.4em;
 }
 
 input[type="range"] {

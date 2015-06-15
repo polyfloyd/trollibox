@@ -1,0 +1,92 @@
+.browser {
+	min-height: 100%;
+}
+
+.browser .browser-views {
+	padding: 0;
+	min-height: 100%;
+}
+
+.browser .browser-player {
+	min-height: 100%;
+	padding: 15px;
+	padding-left: 0;
+}
+
+.browser-categories {
+	margin: 0;
+	padding: 0;
+	float: left;
+	list-style-type: none;
+	background-color: #222;
+}
+
+.browser-categories li {
+	width: 60px;
+	height: 60px;
+}
+
+.browser-categories li.active {
+	background-color: #f60;
+}
+
+.browser-categories li .glyphicon {
+	padding: 15px;
+}
+
+.browser-categories li .glyphicon {
+	font-size: 30px;
+	color: #f60;
+}
+
+.browser-categories li.active .glyphicon {
+	color: #222;
+}
+
+.browser-content {
+	width: calc(100% - 60px);
+	float: left;
+	padding: 15px;
+}
+
+ul.result-list {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+
+ul.result-list li:hover {
+	background-color: #333;
+	cursor: pointer;
+}
+
+ul.result-list:empty:before {
+	content: "No results";
+}
+
+ul.result-list.all-shown + .do-show-more,
+ul.result-list:empty + .do-show-more {
+	display: none;
+}
+
+ul.result-list li .track-artist:after {
+	content: " - ";
+}
+
+ul.result-list li .track-album {
+	float: right;
+	color: #aaa;
+}
+
+ul.result-list li .track-duration {
+	margin-left: 0.5em;
+	color: #aaa;
+}
+
+ul.result-list li .track-duration:before {
+	content: "(";
+}
+
+ul.result-list li .track-duration:after {
+	content: ")";
+}
