@@ -269,7 +269,7 @@ var Player = Backbone.Model.extend({
 		var mutTrack = {};
 		for (var k in track) mutTrack[k] = track[k];
 
-		mutTrack.addedby = 'human';
+		mutTrack.queuedby = 'user';
 		this.set('playlist', this.get('playlist').concat([mutTrack]));
 	},
 

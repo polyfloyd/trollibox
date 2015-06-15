@@ -38,7 +38,7 @@ type Track struct {
 
 type PlaylistTrack struct {
 	Track
-	AddedBy string `json:"addedby"`
+	QueuedBy string `json:"queuedby"`
 }
 
 
@@ -190,7 +190,7 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 
 func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack) {
 	this.trackFromMpdSong(song, &track.Track)
-	track.AddedBy = "robot" // TODO: Store and look this up
+	track.AddedBy = "system" // TODO: Store and look this up
 }
 
 func (this *Player) Listen(listener chan string) uint64 {

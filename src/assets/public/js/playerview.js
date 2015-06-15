@@ -154,7 +154,7 @@ var PlayerView = Backbone.View.extend({
 		'<ul class="player-playlist"></ul>'
 	),
 	playlistTemplate: _.template(
-		'<li class="queuedby-<%= addedby %>">'+
+		'<li class="queuedby-<%= queuedby %>">'+
 			'<button class="do-remove glyphicon glyphicon-remove"></button>'+
 			'<span class="track-artist"><%- artist %></span> - <span class="track-name"><%- title %></span>'+
 		'</li>'

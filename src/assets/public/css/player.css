@@ -82,6 +82,6 @@
 	background: none;
 }
 
-.player-playlist li.queuedby-human .do-remove {
+.player-playlist li.queuedby-user .do-remove {
 	color: #f60;
 }
