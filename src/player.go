@@ -36,9 +36,14 @@ type Track struct {
 }
 
 
+type QueueAttrs struct {
+	QueuedBy string `json:"queuedby"`
+}
+
+
 type PlaylistTrack struct {
 	Track
-	QueuedBy string `json:"queuedby"`
+	QueueAttrs
 }
 
 
@@ -57,6 +62,9 @@ type Player struct {
 	listeners     map[uint64]chan string
 	listenersEnum uint64
 	listenersLock sync.Mutex
+
+	// A map containing properties related to tracks currently in the queue.
+	queueAttrs map[string]QueueAttrs
 }
 
 func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
@@ -84,12 +92,18 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 		mpd:        client,
 		mpdWatcher: clientWatcher,
 		listeners:  map[uint64]chan string{},
+		queueAttrs: map[string]QueueAttrs{},
 	}
 
 	queueListener := make(chan string, 16)
 	go player.queueLoop(queueListener)
 	player.Listen(queueListener)
 	queueListener <- "player" // Bootstrap the cycle
+
+	playlistListener := make(chan string, 16)
+	go player.playlistLoop(playlistListener)
+	player.Listen(playlistListener)
+	playlistListener <- "playlist" // Bootstrap the cycle
 
 	go player.pingLoop()
 	go player.idleLoop()
@@ -158,6 +172,50 @@ func (this *Player) queueLoop(listener chan string) {
 	}
 }
 
+func (this *Player) playlistLoop(listener chan string) {
+	for {
+		if event := <- listener; event != "playlist" {
+			continue
+		}
+
+		this.mpdLock.Lock()
+
+		songs, err := this.mpd.PlaylistInfo(-1, -1)
+		if err != nil {
+			this.mpdLock.Unlock()
+			log.Println(err)
+			continue
+		}
+
+		// Synchronize queue attributes.
+		// Remove tracks that are no longer in the list
+		trackRemoveLoop: for id := range this.queueAttrs {
+			for _, song := range songs {
+				if song["file"] == id {
+					continue trackRemoveLoop
+				}
+			}
+			delete(this.queueAttrs, id)
+		}
+
+		// Initialize tracks that were wiped due to restarts or not added using
+		// Trollibox.
+		trackInitLoop: for _, song := range songs {
+			for id := range this.queueAttrs {
+				if song["file"] == id {
+					continue trackInitLoop
+				}
+			}
+			this.queueAttrs[song["file"]] = QueueAttrs{
+				// Assume the track was queued by a human.
+				QueuedBy: "user",
+			}
+		}
+
+		this.mpdLock.Unlock()
+	}
+}
+
 func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 	if dir, ok := (*song)["directory"]; ok {
 		track.isDir = true
@@ -190,7 +248,7 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 
 func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack) {
 	this.trackFromMpdSong(song, &track.Track)
-	track.AddedBy = "system" // TODO: Store and look this up
+	track.QueueAttrs = this.queueAttrs[track.Id]
 }
 
 func (this *Player) Listen(listener chan string) uint64 {
@@ -209,9 +267,13 @@ func (this *Player) Unlisten(handle uint64) {
 	delete(this.listeners, handle)
 }
 
-func (this *Player) Queue(path string) error {
+func (this *Player) Queue(path string, queuedBy string) error {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()
+
+	this.queueAttrs[path] = QueueAttrs{
+		QueuedBy: queuedBy,
+	}
 
 	return this.mpd.Add(path)
 }
@@ -234,7 +296,7 @@ func (this *Player) QueueRandom() error {
 	}
 
 	// TODO: Implement selection bias
-	return this.Queue(tracks[this.rand.Intn(len(tracks))].Id)
+	return this.Queue(tracks[this.rand.Intn(len(tracks))].Id, "system")
 }
 
 func (this *Player) Volume() (float32, error) {
