@@ -44,6 +44,9 @@ var PlayerView = Backbone.View.extend({
 		this.$('.track-album').text(cur.album || '');
 		this.$('.track-artist').text(cur.artist || '');
 		this.$('.track-title').text(cur.title || '');
+		this.$('.player-now-playing')
+			.removeClass('queuedby-system queuedby-user')
+			.addClass('queuedby-'+cur.queuedby);
 		this.$('.track-duration .total').text(cur.duration ? durationToString(cur.duration) : '');
 		this.$('.do-set-progress').attr('max', cur.duration);
 	},

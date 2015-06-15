@@ -28,6 +28,12 @@
 	font-size: 0.8em;
 }
 
+.player-now-playing.queuedby-user .track-title:after {
+	content: "*";
+	margin-left: 0.3em;
+	color: #f60;
+}
+
 .player-now-playing .track-art.album-art-default {
 	background-image: url('../img/default-album-art.svg');
 }
@@ -79,9 +85,12 @@
 	width: 30px;
 	margin-left: -30px;
 	border: none;
+	color: #f60;
 	background: none;
 }
 
-.player-playlist li.queuedby-user .do-remove {
+.player-playlist li.queuedby-user:after {
+	content: "*";
+	margin-left: 0.3em;
 	color: #f60;
 }
