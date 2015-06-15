@@ -24,6 +24,7 @@ func attrsInt(attrs *mpd.Attrs, key string) int {
 	return int(intVal)
 }
 
+
 type Track struct {
 	isDir    bool
 	Id       string  `json:"id"`
@@ -35,45 +36,9 @@ type Track struct {
 }
 
 
-func TrackFromMpdSong(song *mpd.Attrs, track *Track) {
-	if dir, ok := (*song)["directory"]; ok {
-		track.isDir = true
-		track.Id = dir
-	} else {
-		track.isDir = false
-		track.Id = (*song)["file"]
-	}
-
-	track.Artist = (*song)["Artist"]
-	track.Title  = (*song)["Title"]
-	track.Album  = (*song)["Album"]
-	track.Art    = nil
-
-	// Who the fuck thought it was a good idea to mix capitals and lowercase
-	// for the time?!
-	var timeStr string
-	if str, ok := (*song)["Time"]; ok {
-		timeStr = str
-	} else if str, ok := (*song)["time"]; ok {
-		timeStr = str
-	}
-
-	if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
-		panic(err)
-	} else {
-		track.Duration = int(duration)
-	}
-}
-
-
 type PlaylistTrack struct {
 	Track
 	AddedBy string `json:"addedby"`
-}
-
-func PlaylistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack) {
-	TrackFromMpdSong(song, &track.Track)
-	track.AddedBy = "robot" // TODO: Store and look this up
 }
 
 
@@ -193,6 +158,41 @@ func (this *Player) queueLoop(listener chan string) {
 	}
 }
 
+func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
+	if dir, ok := (*song)["directory"]; ok {
+		track.isDir = true
+		track.Id = dir
+	} else {
+		track.isDir = false
+		track.Id = (*song)["file"]
+	}
+
+	track.Artist = (*song)["Artist"]
+	track.Title  = (*song)["Title"]
+	track.Album  = (*song)["Album"]
+	track.Art    = nil
+
+	// Who the fuck thought it was a good idea to mix capitals and lowercase
+	// for the time?!
+	var timeStr string
+	if str, ok := (*song)["Time"]; ok {
+		timeStr = str
+	} else if str, ok := (*song)["time"]; ok {
+		timeStr = str
+	}
+
+	if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
+		panic(err)
+	} else {
+		track.Duration = int(duration)
+	}
+}
+
+func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack) {
+	this.trackFromMpdSong(song, &track.Track)
+	track.AddedBy = "robot" // TODO: Store and look this up
+}
+
 func (this *Player) Listen(listener chan string) uint64 {
 	this.listenersLock.Lock()
 	defer this.listenersLock.Unlock()
@@ -287,7 +287,7 @@ func (this *Player) ListTracks(path string, recursive bool) ([]Track, error) {
 
 	tracks := make([]Track, len(songs))
 	for i, song := range songs {
-		TrackFromMpdSong(&song, &tracks[i])
+		this.trackFromMpdSong(&song, &tracks[i])
 	}
 
 	return tracks, nil
@@ -304,7 +304,7 @@ func (this *Player) Playlist() ([]PlaylistTrack, error) {
 
 	tracks := make([]PlaylistTrack, len(songs))
 	for i, song := range songs {
-		PlaylistTrackFromMpdSong(&song, &tracks[i])
+		this.playlistTrackFromMpdSong(&song, &tracks[i])
 	}
 
 	return tracks, nil
