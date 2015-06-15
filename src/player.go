@@ -40,6 +40,7 @@ func TrackFromMpdSong(song *mpd.Attrs, track *Track) {
 		track.isDir = true
 		track.Id = dir
 	} else {
+		track.isDir = false
 		track.Id = (*song)["file"]
 	}
 
@@ -226,9 +227,15 @@ func (this *Player) QueueRandom() error {
 		return nil
 	}
 
+	tracks := make([]Track, len(files))[0:0]
+	for _, file := range files {
+		if !file.isDir {
+			tracks = append(tracks, file)
+		}
+	}
+
 	// TODO: Implement selection bias
-	// TODO: Directories should not be used
-	return this.Queue(files[this.rand.Intn(len(files))].Id)
+	return this.Queue(tracks[this.rand.Intn(len(tracks))].Id)
 }
 
 func (this *Player) Volume() (float32, error) {
