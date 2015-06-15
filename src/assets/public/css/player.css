@@ -79,6 +79,11 @@
 
 .player-playlist li {
 	padding-left: 30px;
+	cursor: move;
+}
+
+.player-playlist li.sortable-placeholder {
+	height: 21px;
 }
 
 .player-playlist li .do-remove {

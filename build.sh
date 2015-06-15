@@ -22,6 +22,7 @@ ln -s "$DIR_BOWER/jquery/dist/jquery.js"                                   "$ASS
 ln -s "$DIR_BOWER/underscore/underscore.js"                                "$ASSETS/public/00-dep/js/00-underscore.js"
 ln -s "$DIR_BOWER/backbone/backbone.js"                                    "$ASSETS/public/00-dep/js/01-backbone.js"
 ln -s "$DIR_BOWER/bootstrap/dist/js/bootstrap.js"                          "$ASSETS/public/00-dep/js/bootstrap.js"
+ln -s "$DIR_BOWER/html.sortable/dist/html.sortable.js"                     "$ASSETS/public/00-dep/js/html.sortable.js"
 ln -s "$DIR_BOWER/bootstrap/dist/fonts/glyphicons-halflings-regular.eot"   "$ASSETS/public/00-dep/fonts/glyphicons-halflings-regular.eot"
 ln -s "$DIR_BOWER/bootstrap/dist/fonts/glyphicons-halflings-regular.svg"   "$ASSETS/public/00-dep/fonts/glyphicons-halflings-regular.svg"
 ln -s "$DIR_BOWER/bootstrap/dist/fonts/glyphicons-halflings-regular.ttf"   "$ASSETS/public/00-dep/fonts/glyphicons-halflings-regular.ttf"

@@ -22,12 +22,22 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	render: function() {
+		var self = this;
+
 		this.$el.html(this.template());
 		this.renderCurrent();
 		this.renderPlaylist();
 		this.renderProgress();
 		this.renderState();
 		this.renderVolume();
+
+		var sortable = this.$('.player-playlist').sortable({
+			forcePlaceholderSize: true,
+			items:                'li',
+		});
+		sortable.bind('sortupdate', function(event, update) {
+			self.doReorderPlaylist(event, update);
+		});
 	},
 
 	renderCurrent: function() {
@@ -86,17 +96,18 @@ var PlayerView = Backbone.View.extend({
 			playlist = playlist.slice(1);
 		}
 
-		this.$('.player-playlist')
-			.empty()
-			.append(playlist.map(function(track, i) {
-				var self = this;
-				var $li = $(this.playlistTemplate(track));
-				$li.find('.do-remove').on('click', function() {
-					// Index +1 to exclude the current track.
-					self.model.removeFromPlaylist(i + 1);
-				});
-				return $li;
-			}, this));
+		var $pl = this.$('.player-playlist');
+		$pl.empty();
+		$pl.append(playlist.map(function(track, i) {
+			var self = this;
+			var $li = $(this.playlistTemplate(track));
+			$li.find('.do-remove').on('click', function() {
+				// Index +1 to exclude the current track.
+				self.model.removeFromPlaylist(i + 1);
+			});
+			return $li;
+		}, this));
+		$pl.sortable('reload');
 	},
 
 	doToggleState: function() {
@@ -123,6 +134,17 @@ var PlayerView = Backbone.View.extend({
 		var $input = this.$('.do-set-volume');
 		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
 		this.model.set('volume', vol);
+	},
+
+	doReorderPlaylist: function(event, update) {
+		var pl = this.model.get('playlist');
+		var moved = pl.splice(update.oldindex + 1, 1);
+		pl.splice(update.item.index() + 1, 0, moved[0]);
+		this.model.set('playlist', pl);
+		// Stupid JS can't figure out that our playlist array is truly
+		// different so Backbone won't fire a change event. We'll just have to
+		// do it manually.
+		this.model.trigger('change:playlist', this.model, pl, {});
 	},
 
 	template: _.template(
