@@ -389,7 +389,7 @@ func (this *Player) SetProgress(progress int) error {
 		return err
 	}
 
-	return this.mpd.SeekId(int(attrsInt(&status, "songid")), progress)
+	return this.mpd.SeekID(int(attrsInt(&status, "songid")), progress)
 }
 
 func (this *Player) Next() error {
