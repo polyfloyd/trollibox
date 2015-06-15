@@ -30,6 +30,7 @@ type Track struct {
 	Id       string  `json:"id"`
 	Artist   string  `json:"artist"`
 	Title    string  `json:"title"`
+	Genre    string  `json:"genre"`
 	Album    string  `json:"album"`
 	Art      *string `json:"art"`
 	Duration int     `json:"duration"`
@@ -227,6 +228,7 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 
 	track.Artist = (*song)["Artist"]
 	track.Title  = (*song)["Title"]
+	track.Genre  = (*song)["Genre"]
 	track.Album  = (*song)["Album"]
 	track.Art    = nil
 
