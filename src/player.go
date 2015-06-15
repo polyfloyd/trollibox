@@ -164,8 +164,17 @@ func (this *Player) queueLoop(listener chan string) {
 			continue
 		}
 
+		var songIndex int
+		if str, ok := status["song"]; ok {
+			if song64, err := strconv.ParseInt(str, 10, 32); err != nil {
+				songIndex = 0
+			} else {
+				songIndex = int(song64)
+			}
+		}
+
 		// Remove played tracks form the queue.
-		if err := this.mpd.Delete(0, attrsInt(&status, "song")); err != nil {
+		if err := this.mpd.Delete(0, songIndex); err != nil {
 			log.Println(err)
 		}
 
@@ -424,10 +433,10 @@ func (this *Player) CurrentTrack() (*PlaylistTrack, int, error) {
 
 		elapsed, err := strconv.ParseFloat(status["elapsed"], 32)
 		if err != nil {
-			return nil, 0, err
+			elapsed = 0
 		}
 
-		return &playlist[0], int(elapsed), err
+		return &playlist[0], int(elapsed), nil
 
 	} else {
 		return nil, 0, nil
