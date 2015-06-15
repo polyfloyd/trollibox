@@ -44,13 +44,13 @@ var PlayerView = Backbone.View.extend({
 		this.$('.track-album').text(cur.album || '');
 		this.$('.track-artist').text(cur.artist || '');
 		this.$('.track-title').text(cur.title || '');
-		this.$('.track-duration .total').text(cur.duration ? this.durationToString(cur.duration) : '');
+		this.$('.track-duration .total').text(cur.duration ? durationToString(cur.duration) : '');
 		this.$('.do-set-progress').attr('max', cur.duration);
 	},
 
 	renderProgress: function() {
 		var pr = this.model.get('progress');
-		var text = this.model.get('current') ? this.durationToString(pr) : '';
+		var text = this.model.get('current') ? durationToString(pr) : '';
 		this.$('.track-duration .current').text(text);
 		this.$('.do-set-progress').val(pr || 0);
 	},
@@ -120,25 +120,6 @@ var PlayerView = Backbone.View.extend({
 		var $input = this.$('.do-set-volume');
 		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
 		this.model.set('volume', vol);
-	},
-
-	durationToString: function(seconds) {
-		var s = '';
-		var hasHours = seconds > 3600;
-		if (hasHours) {
-			s += Math.round(seconds / 3600)+':';
-			seconds %= 3600;
-		}
-		var min = Math.round(seconds / 60 - 0.5);
-		if (min < 10 && hasHours) {
-			s += '0';
-		}
-		s += min+':';
-		var sec = seconds % 60;
-		if (sec < 10) {
-			s += '0';
-		}
-		return s + sec;
 	},
 
 	template: _.template(
