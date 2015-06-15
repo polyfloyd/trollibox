@@ -213,7 +213,6 @@ func (this *Player) Queue(path string) error {
 	this.mpdLock.Lock()
 	defer this.mpdLock.Unlock()
 
-	log.Printf("Queueing \"%v\"", path)
 	return this.mpd.Add(path)
 }
 
