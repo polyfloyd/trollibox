@@ -73,10 +73,10 @@ var Player = Backbone.Model.extend({
 			});
 		});
 
+		this.on('server-event:mixer',    this.reloadVolume,   this);
 		this.on('server-event:player',   this.reloadCurrent,  this);
 		this.on('server-event:playlist', this.reloadPlaylist, this);
 		this.on('server-event:update',   this.reloadTracks,   this);
-		this.on('server-event:volume',   this.reloadVolume,   this);
 		this.on('change:current',        this.reloadProgressUpdater, this);
 		this.on('change:state',          this.reloadProgressUpdater, this);
 
