@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 	"strconv"
-	mpd "github.com/fhs/gompd/mpd"
+	mpd "github.com/polyfloyd/gompd/mpd"
 )
 
 
@@ -56,6 +56,10 @@ type Player struct {
 	// Sometimes, the volume returned by MDP is invalid, so we have to take
 	// care of that ourselves.
 	lastVolume float32
+
+	// We use this value to determine wether the currently playing track has
+	// changed.
+	lastTrack string
 }
 
 func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
@@ -215,6 +219,27 @@ func (this *Player) playlistLoop(listener chan string) {
 			this.queueAttrs[song["file"]] = QueueAttrs{
 				// Assume the track was queued by a human.
 				QueuedBy: "user",
+			}
+		}
+
+		if len(songs) > 0 {
+			var current Track
+			this.trackFromMpdSong(&songs[0], &current)
+			// TODO: If one track is followed by another track with the same
+			// ID, the next block will not be executed, leaving the playcount
+			// unchanged.
+			if this.lastTrack != current.Id {
+
+				// Increment the playcount for this track
+				var playCount int64
+				if str, err := this.mpd.StickerGet(current.Id, "play-count"); err == nil {
+					playCount, _ = strconv.ParseInt(str, 10, 32)
+				}
+				if err := this.mpd.StickerSet(current.Id, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
+					log.Println(err)
+				}
+
+				this.lastTrack = current.Id
 			}
 		}
 
