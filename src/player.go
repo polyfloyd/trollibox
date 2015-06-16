@@ -132,10 +132,40 @@ func (this *Player) queueLoop(listener chan string) {
 			continue
 		}
 
-		if track, _, err := this.CurrentTrack(); err != nil {
+		// Remove played tracks form the queue.
+		this.mpdLock.Lock()
+		status, err := this.mpd.Status()
+		if err != nil {
+			this.mpdLock.Unlock()
 			log.Println(err)
 			continue
-		} else if track == nil {
+		}
+		songIndex := 0
+		if str, ok := status["song"]; ok {
+			if song64, err := strconv.ParseInt(str, 10, 32); err == nil {
+				songIndex = int(song64)
+			} else {
+				log.Println(err)
+			}
+		} else if status["state"] == "stop" {
+			// Quick fix to make sure the previous track is not played twice.
+			// TODO: Some funny stuff happens when MPD receives a stop command.
+			songIndex = 1
+		}
+		if songIndex != 0 {
+			if err := this.mpd.Delete(0, songIndex); err != nil {
+				log.Println(err)
+			}
+		}
+		this.mpdLock.Unlock()
+
+		// Queue a new track if nothing is playing.
+		track, _, err := this.CurrentTrack()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		if track == nil {
 			if err := this.QueueRandom(); err != nil {
 				log.Println(err)
 				continue
@@ -145,31 +175,6 @@ func (this *Player) queueLoop(listener chan string) {
 				continue
 			}
 		}
-
-		this.mpdLock.Lock()
-
-		status, err := this.mpd.Status()
-		if err != nil {
-			this.mpdLock.Unlock()
-			log.Println(err)
-			continue
-		}
-
-		var songIndex int
-		if str, ok := status["song"]; ok {
-			if song64, err := strconv.ParseInt(str, 10, 32); err != nil {
-				songIndex = 0
-			} else {
-				songIndex = int(song64)
-			}
-		}
-
-		// Remove played tracks form the queue.
-		if err := this.mpd.Delete(0, songIndex); err != nil {
-			log.Println(err)
-		}
-
-		this.mpdLock.Unlock()
 	}
 }
 
