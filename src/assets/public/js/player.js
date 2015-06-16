@@ -273,14 +273,19 @@ var Player = Backbone.Model.extend({
 		this.set('playlist', this.get('playlist').concat([mutTrack]));
 	},
 
-	removeFromPlaylist: function(removeTrack) {
-		// Remove a track by index.
-		if (typeof removeTrack === 'number') {
-			removeTrack = this.get('playlist')[removeTrack];
+	removeFromPlaylist: function(trackIndex) {
+		// Remove a track by id.
+		if (typeof trackIndex !== 'number') {
+			trackIndex = this.get('playlist').findIndex(function(elem) {
+				return elem.id === trackIndex.id;
+			});
+		}
+		if (trackIndex === -1) {
+			return;
 		}
 
-		this.set('playlist', this.get('playlist').filter(function(track) {
-			return removeTrack.id !== track.id;
+		this.set('playlist', this.get('playlist').filter(function(t, i) {
+			return i !== trackIndex;
 		}));
 	},
 });
