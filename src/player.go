@@ -10,20 +10,6 @@ import (
 	mpd "github.com/fhs/gompd/mpd"
 )
 
-func attrsInt(attrs *mpd.Attrs, key string) int {
-	strVal, ok := (*attrs)[key]
-	if !ok {
-		panic(fmt.Errorf("Unknown key \"%v\" in %v", key, *attrs))
-	}
-
-	intVal, err := strconv.ParseInt(strVal, 10, 32)
-	if err != nil {
-		panic(err)
-	}
-
-	return int(intVal)
-}
-
 
 type Track struct {
 	isDir    bool
@@ -66,6 +52,10 @@ type Player struct {
 
 	// A map containing properties related to tracks currently in the queue.
 	queueAttrs map[string]QueueAttrs
+
+	// Sometimes, the volume returned by MDP is invalid, so we have to take
+	// care of that ourselves.
+	lastVolume float32
 }
 
 func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
@@ -320,7 +310,23 @@ func (this *Player) Volume() (float32, error) {
 		return 0, err
 	}
 
-	return float32(attrsInt(&status, "volume")) / 100, nil
+	volStr, ok := status["volume"]
+	if !ok {
+		// Volume should always be present
+		return 0, fmt.Errorf("No volume property is present in the MPD status")
+	}
+
+	rawVol, err := strconv.ParseInt(volStr, 10, 32)
+	if err != nil {
+		return 0, err
+	}
+
+	vol := float32(rawVol) / 100
+	// Happens sometimes when nothing is playing
+	if vol < 0 {
+		vol = this.lastVolume
+	}
+	return vol, nil
 }
 
 func (this *Player) SetVolume(vol float32) error {
@@ -332,6 +338,8 @@ func (this *Player) SetVolume(vol float32) error {
 	} else if vol < 0 {
 		vol = 0
 	}
+
+	this.lastVolume = vol
 
 	if err := this.mpd.SetVolume(int(vol * 100)); err != nil {
 		return err
