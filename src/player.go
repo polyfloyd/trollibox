@@ -455,7 +455,14 @@ func (this *Player) SetProgress(progress int) error {
 		return err
 	}
 
-	return this.mpd.SeekID(int(attrsInt(&status, "songid")), progress)
+	if str, ok := status["songid"]; !ok {
+		// No track is currently being played.
+		return nil
+	} else if id, err := strconv.ParseInt(str, 10, 32); err != nil {
+		return err
+	} else {
+		return this.mpd.SeekID(int(id), progress)
+	}
 }
 
 func (this *Player) Next() error {
