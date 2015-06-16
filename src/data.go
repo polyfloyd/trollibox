@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"io"
 	"net/http"
 	"time"
 	ws "golang.org/x/net/websocket"
@@ -36,6 +37,7 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(player))
 	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
+	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
 
@@ -197,6 +199,25 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 			"tracks": tracks,
 		})
 		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htTrackArt(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		tracks, err := player.ListTracks(mux.Vars(req)["path"], false)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(tracks) != 1 || tracks[0].Art == nil {
+			res.Write([]byte("Unavailable"))
+			return
+		}
+		if artStream := tracks[0].GetArt(); artStream == nil {
+			res.Write([]byte("Unavailable"))
+		} else if _, err := io.Copy(res, artStream); err != nil {
 			panic(err)
 		}
 	}

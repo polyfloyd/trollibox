@@ -1,18 +1,23 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 	mpd "github.com/polyfloyd/gompd/mpd"
 )
 
 
 type Track struct {
-	isDir    bool
+	player  *Player
+	isDir   bool
+
 	Id       string  `json:"id"`
 	Artist   string  `json:"artist"`
 	Title    string  `json:"title"`
@@ -20,6 +25,16 @@ type Track struct {
 	Album    string  `json:"album"`
 	Art      *string `json:"art"`
 	Duration int     `json:"duration"`
+}
+
+func (this *Track) GetArt() io.Reader {
+	this.player.mpdLock.Lock()
+	defer this.player.mpdLock.Unlock()
+
+	if b64Data, err := this.player.mpd.StickerGet(this.Id, "image"); err == nil {
+		return base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(b64Data)))
+	}
+	return nil
 }
 
 
@@ -248,6 +263,8 @@ func (this *Player) playlistLoop(listener chan string) {
 }
 
 func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
+	track.player = this
+
 	if dir, ok := (*song)["directory"]; ok {
 		track.isDir = true
 		track.Id = dir
@@ -275,6 +292,11 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 		panic(err)
 	} else {
 		track.Duration = int(duration)
+	}
+
+	if val, err := this.mpd.StickerGet(track.Id, "has-image"); err == nil && val == "1" {
+		url := "/data/track/art/"+track.Id
+		track.Art = &url
 	}
 }
 
