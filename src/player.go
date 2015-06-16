@@ -429,29 +429,26 @@ func (this *Player) SetPlaylistIds(trackIds []string) error {
 
 // Returns the currently playing track as well as its progress in seconds
 func (this *Player) CurrentTrack() (*PlaylistTrack, int, error) {
-	playlist, err := this.Playlist()
+	this.mpdLock.Lock()
+	status, err := this.mpd.Status()
+	this.mpdLock.Unlock()
 	if err != nil {
 		return nil, 0, err
 	}
 
-	if len(playlist) > 0 {
-		this.mpdLock.Lock()
-		status, err := this.mpd.Status()
-		this.mpdLock.Unlock()
-		if err != nil {
-			return nil, 0, err
-		}
-
-		elapsed, err := strconv.ParseFloat(status["elapsed"], 32)
-		if err != nil {
-			elapsed = 0
-		}
-
-		return &playlist[0], int(elapsed), nil
-
-	} else {
+	if st, ok := status["state"]; !ok || st == "stop" {
 		return nil, 0, nil
 	}
+
+	playlist, err := this.Playlist()
+	if err != nil {
+		return nil, 0, err
+	}
+	elapsed, err := strconv.ParseFloat(status["elapsed"], 32)
+	if err != nil {
+		elapsed = 0
+	}
+	return &playlist[0], int(elapsed), nil
 }
 
 func (this *Player) SetProgress(progress int) error {
