@@ -198,7 +198,7 @@ var Player = Backbone.Model.extend({
 
 	reloadVolume: function() {
 		$.ajax({
-			url:      URLROOT+'/data/player/volume',
+			url:      URLROOT+'data/player/volume',
 			method:   'GET',
 			dataType: 'json',
 			context:  this,
