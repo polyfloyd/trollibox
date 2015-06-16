@@ -160,6 +160,7 @@ func (this *Player) queueLoop(listener chan string) {
 
 		status, err := this.mpd.Status()
 		if err != nil {
+			this.mpdLock.Unlock()
 			log.Println(err)
 			continue
 		}
