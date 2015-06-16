@@ -404,16 +404,18 @@ func (this *Player) SetPlaylistIds(trackIds []string) error {
 	}
 
 	// Clear the playlist
-	this.mpd.Delete(delStart, len(playlist))
-
-	// Queue the new tracks.
-	for _, id := range trackIds {
-		if err := this.mpd.Add(id); err != nil {
+	if delStart != len(playlist) {
+		if err := this.mpd.Delete(delStart, len(playlist)); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	// Queue the new tracks.
+	cmd := this.mpd.BeginCommandList()
+	for _, id := range trackIds {
+		cmd.Add(id)
+	}
+	return cmd.End()
 }
 
 // Returns the currently playing track as well as its progress in seconds
