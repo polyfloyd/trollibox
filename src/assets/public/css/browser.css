@@ -69,6 +69,11 @@ ul.result-list:empty + .do-show-more {
 	display: none;
 }
 
+ul.result-list li em {
+	color: #f60;
+	font-style: normal;
+}
+
 ul.result-list li .track-artist:after {
 	content: " - ";
 }

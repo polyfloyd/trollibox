@@ -42,14 +42,29 @@ var BrowserSearchView = Backbone.View.extend({
 			$list.removeClass('all-shown');
 		}
 
+		var highlightExp = query.split(/\s+/).filter(function(kw) {
+			return !!kw;
+		}).map(function(kw) {
+			// Escape the keyword into a HTML and then Regex safe string so it
+			// won't cause any funny stuff.
+			var safe = $('<span>').text(kw).html()
+				.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
+			return new RegExp('(>[^<>]*?)('+safe+')([^<>]*?<)', 'gi');
+		});
+
 		$list.append(results.map(function(track) {
 			var self = this;
-			var $el = $(this.resultTemplate({
+
+			var html = this.resultTemplate({
 				album:    track.album,
 				title:    track.title,
 				artist:   track.artist,
 				duration: durationToString(track.duration),
-			}));
+			});
+			var $el = $(highlightExp.reduce(function(html, re) {
+				return html.replace(re, '$1<em>$2</em>$3');
+			}, html));
+
 			$el.on('click', function() {
 				self.model.appendToPlaylist(track);
 			});
