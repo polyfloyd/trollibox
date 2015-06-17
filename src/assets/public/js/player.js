@@ -265,10 +265,16 @@ var Player = Backbone.Model.extend({
 		});
 	},
 
-	appendToPlaylist: function(track) {
-		var mutTrack = Object.create(track);
-		mutTrack.queuedby = 'user';
-		this.set('playlist', this.get('playlist').concat([mutTrack]));
+	appendToPlaylist: function(tracks) {
+		if (!Array.isArray(tracks)) {
+			tracks = [tracks];
+		}
+
+		this.set('playlist', this.get('playlist').concat(tracks.map(function(track) {
+			var mutTrack = Object.create(track);
+			mutTrack.queuedby = 'user';
+			return mutTrack;
+		})));
 	},
 
 	removeFromPlaylist: function(trackIndex) {
