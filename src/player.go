@@ -23,7 +23,6 @@ type Track struct {
 	Title    string  `json:"title"`
 	Genre    string  `json:"genre"`
 	Album    string  `json:"album"`
-	Art      *string `json:"art"`
 	Duration int     `json:"duration"`
 }
 
@@ -282,7 +281,6 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Cl
 	track.Title  = (*song)["Title"]
 	track.Genre  = (*song)["Genre"]
 	track.Album  = (*song)["Album"]
-	track.Art    = nil
 
 	// Who the fuck thought it was a good idea to mix capitals and lowercase
 	// for the time?!
@@ -297,11 +295,6 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Cl
 		panic(err)
 	} else {
 		track.Duration = int(duration)
-	}
-
-	if _, err := mpdc.StickerGet(track.Id, "image-nchunks"); err == nil {
-		url := "/data/track/art/"+track.Id
-		track.Art = &url
 	}
 }
 

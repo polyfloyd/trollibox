@@ -211,14 +211,14 @@ func htTrackArt(player *Player) func(res http.ResponseWriter, req *http.Request)
 			panic(err)
 		}
 
-		if len(tracks) != 1 || tracks[0].Art == nil {
-			res.Write([]byte("Unavailable"))
-			return
+		if len(tracks) == 1 {
+			if artStream := tracks[0].GetArt(); artStream != nil {
+				res.Header().Set("Content-Type", "image/jpg")
+				io.Copy(res, artStream)
+				return
+			}
 		}
-		if artStream := tracks[0].GetArt(); artStream == nil {
-			res.Write([]byte("Unavailable"))
-		} else if _, err := io.Copy(res, artStream); err != nil {
-			panic(err)
-		}
+
+		http.NotFound(res, req)
 	}
 }

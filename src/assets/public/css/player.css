@@ -8,13 +8,6 @@
 	font-size: 1.2em;
 }
 
-.player-now-playing .track-art {
-	width: 200px;
-	height: 200px;
-	margin: 0 auto 5px auto;
-	background-size: cover;
-}
-
 .player-now-playing .track-album {
 	text-align: center;
 }
@@ -28,14 +21,20 @@
 	font-size: 0.8em;
 }
 
+.player-now-playing .track-art {
+	width: 200px;
+	height: 200px;
+	margin: 0 auto 5px auto;
+	background-image: url('../img/default-album-art.svg');
+	background-size: cover;
+	background-position: 50%;
+	background-repeat: no-repeat;
+}
+
 .player-now-playing.queuedby-user .track-title:after {
 	content: "*";
 	margin-left: 0.3em;
 	color: #f60;
-}
-
-.player-now-playing .track-art.album-art-default {
-	background-image: url('../img/default-album-art.svg');
 }
 
 .track-artist:empty:before,
