@@ -402,7 +402,7 @@ func (this *Player) Volume() (vol float32, err error) {
 			return
 		}
 
-		vol := float32(rawVol) / 100
+		vol = float32(rawVol) / 100
 		// Happens sometimes when nothing is playing
 		if vol < 0 {
 			vol = this.lastVolume
