@@ -15,8 +15,8 @@ import (
 
 
 type Track struct {
-	player  *Player
-	isDir   bool
+	player *Player
+	isDir  bool
 
 	Id       string  `json:"id"`
 	Artist   string  `json:"artist"`
@@ -27,14 +27,29 @@ type Track struct {
 	Duration int     `json:"duration"`
 }
 
-func (this *Track) GetArt() io.Reader {
-	this.player.mpdLock.Lock()
-	defer this.player.mpdLock.Unlock()
+func (this *Track) GetArt() (image io.Reader) {
+	this.player.withMpd(func(mpdc *mpd.Client) {
+		numChunks := 0
+		if strNum, err := this.player.mpd.StickerGet(this.Id, "image-nchunks"); err == nil {
+			if num, err := strconv.ParseInt(strNum, 10, 32); err == nil {
+				numChunks = int(num)
+			}
+		}
+		if numChunks == 0 {
+			return
+		}
 
-	if b64Data, err := this.player.mpd.StickerGet(this.Id, "image"); err == nil {
-		return base64.NewDecoder(base64.StdEncoding, bytes.NewReader([]byte(b64Data)))
-	}
-	return nil
+		var chunks []io.Reader
+		for i := 0; i < numChunks; i++ {
+			if b64Data, err := this.player.mpd.StickerGet(this.Id, fmt.Sprintf("image-%v", i)); err != nil {
+				return
+			} else {
+				chunks = append(chunks, bytes.NewReader([]byte(b64Data)))
+			}
+		}
+		image = base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...))
+	})
+	return
 }
 
 

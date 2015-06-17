@@ -13,7 +13,7 @@ import re
 MPD_HOST = 'localhost'
 MPD_PORT = 6600
 MPD_CONF = '~/.mpdconf'
-IMG_SIZE = (120, 120)
+IMG_SIZE = (512, 512)
 
 
 def get_mpd_library_dir(f):
@@ -46,6 +46,9 @@ if __name__ == '__main__':
 
 	libdir = get_mpd_library_dir(MPD_CONF)
 
+	total_files_updated = 0
+	total_image_size    = 0
+
 	for song in client.listallinfo(''):
 		if not 'file' in song:
 			continue
@@ -55,20 +58,31 @@ if __name__ == '__main__':
 		img_data = get_art_base64(file_abs, IMG_SIZE)
 
 		if img_data is None:
-			print('Skipping %s' % file_rel)
 			continue
 		print('Updating %s, size=%s' % (file_rel, len(img_data)))
 
-		# TODO: Increase the image size without shitting up the MPD network connection.
-		# If the size of the image is too big, MPD will tell us to fuck off when its input buffer is saturated.
-		# We could get around this issue:
-		# - Split the image across multiple stickers.
+		total_files_updated += 1
+		total_image_size += len(img_data)
+
+		# If the size of the image is too big, MPD will tell us to fuck off
+		# when its input buffer is saturated.
+		# This has been solved by splitting the image data into smaller chunks.
+		# Alternatives:
 		# - Compile MPD ourselves with a bigger buffer.
 		# - Modify MPD's sqlite sticker database without using MPD and hope the
 		#   transmitbuffer is bigger.
 		# - Start a webserver and just save an URL in the sticker
-		client.sticker_set('song', file_rel, 'image', img_data)
-		client.sticker_set('song', file_rel, 'has-image', '1')
+		chunks = []
+		chunk_size = 6 * 1024
+		for i in range(0, len(img_data), chunk_size):
+			chunks.append(img_data[i: i+chunk_size if i+chunk_size <= len(img_data) else -1])
+
+		client.sticker_set('song', file_rel, 'image-nchunks', str(len(chunks)))
+		for (i, chunk) in enumerate(chunks):
+			client.sticker_set('song', file_rel, 'image-'+str(i), chunk)
 
 	client.close()
 	client.disconnect()
+
+	print('%s files updated' % total_files_updated)
+	print('%s KB total image size' % (round(total_image_size / 1024, 2)))
