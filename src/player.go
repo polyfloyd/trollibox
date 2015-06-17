@@ -171,8 +171,8 @@ func (this *Player) queueLoop() {
 				} else {
 					log.Println(err)
 				}
-			} else if status["state"] == "stop" {
-				// Quick fix to make sure the previous track is not played twice.
+			} else if status["state"] == "stop" && status["playlistlength"] != "0" {
+				// Fix to make sure the previous track is not played twice.
 				// TODO: Some funny stuff happens when MPD receives a stop command.
 				songIndex = 1
 			}
