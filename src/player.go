@@ -18,12 +18,14 @@ type Track struct {
 	player *Player
 	isDir  bool
 
-	Id       string  `json:"id"`
-	Artist   string  `json:"artist"`
-	Title    string  `json:"title"`
-	Genre    string  `json:"genre"`
-	Album    string  `json:"album"`
-	Duration int     `json:"duration"`
+	Id          string `json:"id"`
+	Artist      string `json:"artist"`
+	Title       string `json:"title"`
+	Genre       string `json:"genre"`
+	Album       string `json:"album"`
+	AlbumArtist string `json:"albumartist"`
+	AlbumTrack  string `json:"albumtrack"`
+	Duration    int    `json:"duration"`
 }
 
 func (this *Track) GetArt() (image io.Reader) {
@@ -277,10 +279,12 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Cl
 		track.Id = (*song)["file"]
 	}
 
-	track.Artist = (*song)["Artist"]
-	track.Title  = (*song)["Title"]
-	track.Genre  = (*song)["Genre"]
-	track.Album  = (*song)["Album"]
+	track.Artist      = (*song)["Artist"]
+	track.Title       = (*song)["Title"]
+	track.Genre       = (*song)["Genre"]
+	track.Album       = (*song)["Album"]
+	track.AlbumArtist = (*song)["AlbumArtist"]
+	track.AlbumTrack  = (*song)["Track"]
 
 	// Who the fuck thought it was a good idea to mix capitals and lowercase
 	// for the time?!
