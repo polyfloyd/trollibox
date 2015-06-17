@@ -30,7 +30,7 @@ type Track struct {
 func (this *Track) GetArt() (image io.Reader) {
 	this.player.withMpd(func(mpdc *mpd.Client) {
 		numChunks := 0
-		if strNum, err := this.player.mpd.StickerGet(this.Id, "image-nchunks"); err == nil {
+		if strNum, err := mpdc.StickerGet(this.Id, "image-nchunks"); err == nil {
 			if num, err := strconv.ParseInt(strNum, 10, 32); err == nil {
 				numChunks = int(num)
 			}
@@ -41,7 +41,7 @@ func (this *Track) GetArt() (image io.Reader) {
 
 		var chunks []io.Reader
 		for i := 0; i < numChunks; i++ {
-			if b64Data, err := this.player.mpd.StickerGet(this.Id, fmt.Sprintf("image-%v", i)); err != nil {
+			if b64Data, err := mpdc.StickerGet(this.Id, fmt.Sprintf("image-%v", i)); err != nil {
 				return
 			} else {
 				chunks = append(chunks, bytes.NewReader([]byte(b64Data)))
@@ -66,15 +66,10 @@ type PlaylistTrack struct {
 
 type Player struct {
 	rand *rand.Rand
-	mpd  *mpd.Client
 
 	// Running the idle routine on the same connection as the main connection
 	// will fuck things up badly.
 	mpdWatcher *mpd.Watcher
-
-	// Commands may be coming in concurrently. We have to make sure that
-	// only one calling routine has exclusive access.
-	mpdLock sync.Mutex
 
 	addr, passwd string
 
@@ -104,11 +99,6 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 		passwd = ""
 	}
 
-	client, err := mpd.DialAuthenticated("tcp", addr, passwd)
-	if err != nil {
-		return nil, err
-	}
-
 	clientWatcher, err := mpd.NewWatcher("tcp", addr, passwd)
 	if err != nil {
 		return nil, err
@@ -116,18 +106,16 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 
 	player := &Player{
 		rand:       rand.New(rand.NewSource(time.Now().UnixNano())),
-		mpd:        client,
 		mpdWatcher: clientWatcher,
 		listeners:  map[uint64]chan string{},
 		queueAttrs: map[string]QueueAttrs{},
 
-		addr:   addr,
+		addr: addr,
 		passwd: passwd,
 	}
 
 	go player.queueLoop()
 	go player.playlistLoop()
-	go player.pingLoop()
 	go player.idleLoop()
 
 	return player, nil
@@ -142,15 +130,7 @@ func (this *Player) withMpd(fn func(mpd *mpd.Client)) {
 	}
 	defer client.Close()
 	fn(client)
-}
 
-func (this *Player) pingLoop() {
-	for {
-		this.mpdLock.Lock()
-		this.mpd.Ping()
-		this.mpdLock.Unlock()
-		time.Sleep(20 * time.Second)
-	}
 }
 
 func (this *Player) idleLoop() {
@@ -177,49 +157,48 @@ func (this *Player) queueLoop() {
 			continue
 		}
 
-		// Remove played tracks form the queue.
-		this.mpdLock.Lock()
-		status, err := this.mpd.Status()
-		if err != nil {
-			this.mpdLock.Unlock()
-			log.Println(err)
-			continue
-		}
-		songIndex := 0
-		if str, ok := status["song"]; ok {
-			if song64, err := strconv.ParseInt(str, 10, 32); err == nil {
-				songIndex = int(song64)
-			} else {
+		this.withMpd(func(mpdc *mpd.Client) {
+			// Remove played tracks form the queue.
+			status, err := mpdc.Status()
+			if err != nil {
 				log.Println(err)
+				return
 			}
-		} else if status["state"] == "stop" {
-			// Quick fix to make sure the previous track is not played twice.
-			// TODO: Some funny stuff happens when MPD receives a stop command.
-			songIndex = 1
-		}
-		if songIndex != 0 {
-			if err := this.mpd.Delete(0, songIndex); err != nil {
-				log.Println(err)
+			songIndex := 0
+			if str, ok := status["song"]; ok {
+				if song64, err := strconv.ParseInt(str, 10, 32); err == nil {
+					songIndex = int(song64)
+				} else {
+					log.Println(err)
+				}
+			} else if status["state"] == "stop" {
+				// Quick fix to make sure the previous track is not played twice.
+				// TODO: Some funny stuff happens when MPD receives a stop command.
+				songIndex = 1
 			}
-		}
-		this.mpdLock.Unlock()
+			if songIndex != 0 {
+				if err := mpdc.Delete(0, songIndex); err != nil {
+					log.Println(err)
+				}
+			}
 
-		// Queue a new track if nothing is playing.
-		track, _, err := this.CurrentTrack()
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if track == nil {
-			if err := this.QueueRandom(); err != nil {
+			// Queue a new track if nothing is playing.
+			track, _, err := this.CurrentTrack()
+			if err != nil {
 				log.Println(err)
-				continue
+				return
 			}
-			if err = this.SetState("playing"); err != nil {
-				log.Println(err)
-				continue
+			if track == nil {
+				if err := this.QueueRandom(); err != nil {
+					log.Println(err)
+					return
+				}
+				if err = this.SetState("playing"); err != nil {
+					log.Println(err)
+					return
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -232,62 +211,59 @@ func (this *Player) playlistLoop() {
 			continue
 		}
 
-		this.mpdLock.Lock()
+		this.withMpd(func(mpdc *mpd.Client) {
+			songs, err := mpdc.PlaylistInfo(-1, -1)
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-		songs, err := this.mpd.PlaylistInfo(-1, -1)
-		if err != nil {
-			this.mpdLock.Unlock()
-			log.Println(err)
-			continue
-		}
+			// Synchronize queue attributes.
+			// Remove tracks that are no longer in the list
+			trackRemoveLoop: for id := range this.queueAttrs {
+				for _, song := range songs {
+					if song["file"] == id {
+						continue trackRemoveLoop
+					}
+				}
+				delete(this.queueAttrs, id)
+			}
 
-		// Synchronize queue attributes.
-		// Remove tracks that are no longer in the list
-		trackRemoveLoop: for id := range this.queueAttrs {
-			for _, song := range songs {
-				if song["file"] == id {
-					continue trackRemoveLoop
+			// Initialize tracks that were wiped due to restarts or not added using
+			// Trollibox.
+			trackInitLoop: for _, song := range songs {
+				for id := range this.queueAttrs {
+					if song["file"] == id {
+						continue trackInitLoop
+					}
+				}
+				this.queueAttrs[song["file"]] = QueueAttrs{
+					// Assume the track was queued by a human.
+					QueuedBy: "user",
 				}
 			}
-			delete(this.queueAttrs, id)
-		}
 
-		// Initialize tracks that were wiped due to restarts or not added using
-		// Trollibox.
-		trackInitLoop: for _, song := range songs {
-			for id := range this.queueAttrs {
-				if song["file"] == id {
-					continue trackInitLoop
+			if len(songs) > 0 {
+				var current Track
+				this.trackFromMpdSong(&songs[0], &current, mpdc)
+				// TODO: If one track is followed by another track with the same
+				// ID, the next block will not be executed, leaving the playcount
+				// unchanged.
+				if this.lastTrack != current.Id {
+
+					// Increment the playcount for this track
+					var playCount int64
+					if str, err := mpdc.StickerGet(current.Id, "play-count"); err == nil {
+						playCount, _ = strconv.ParseInt(str, 10, 32)
+					}
+					if err := mpdc.StickerSet(current.Id, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
+						log.Println(err)
+					}
+
+					this.lastTrack = current.Id
 				}
 			}
-			this.queueAttrs[song["file"]] = QueueAttrs{
-				// Assume the track was queued by a human.
-				QueuedBy: "user",
-			}
-		}
-
-		if len(songs) > 0 {
-			var current Track
-			this.trackFromMpdSong(&songs[0], &current, this.mpd)
-			// TODO: If one track is followed by another track with the same
-			// ID, the next block will not be executed, leaving the playcount
-			// unchanged.
-			if this.lastTrack != current.Id {
-
-				// Increment the playcount for this track
-				var playCount int64
-				if str, err := this.mpd.StickerGet(current.Id, "play-count"); err == nil {
-					playCount, _ = strconv.ParseInt(str, 10, 32)
-				}
-				if err := this.mpd.StickerSet(current.Id, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
-					log.Println(err)
-				}
-
-				this.lastTrack = current.Id
-			}
-		}
-
-		this.mpdLock.Unlock()
+		})
 	}
 }
 
