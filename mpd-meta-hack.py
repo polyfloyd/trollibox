@@ -81,7 +81,11 @@ if __name__ == '__main__':
 		chunks = []
 		chunk_size = 6 * 1024
 		for i in range(0, len(img_data), chunk_size):
-			chunks.append(img_data[i: i+chunk_size if i+chunk_size <= len(img_data) else -1])
+			if i+chunk_size <= len(img_data):
+				chunk = img_data[i:i+chunk_size]
+			else:
+				chunk = img_data[i:]
+			chunks.append(chunk)
 
 		client.sticker_set('song', file_rel, 'image-nchunks', str(len(chunks)))
 		for (i, chunk) in enumerate(chunks):
