@@ -47,6 +47,7 @@ func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Reques
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
@@ -68,6 +69,7 @@ func htPlayerProgress(player *Player) func(res http.ResponseWriter, req *http.Re
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
@@ -89,6 +91,7 @@ func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Re
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
@@ -102,6 +105,7 @@ func htPlayerGetVolume(player *Player) func(res http.ResponseWriter, req *http.R
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
 			"volume": volume,
 		})
@@ -126,6 +130,7 @@ func htPlayerSetVolume(player *Player) func(res http.ResponseWriter, req *http.R
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
@@ -139,6 +144,7 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 		} else if state, err := player.State(); err != nil {
 			panic(err)
 		} else {
+			res.Header().Set("Content-Type", "application/json")
 			err := json.NewEncoder(res).Encode(map[string]interface{}{
 				"progress": progress,
 				"track":    track,
@@ -158,6 +164,7 @@ func htPlayerGetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
 			"tracks": tracks,
 		})
@@ -182,6 +189,7 @@ func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
@@ -195,6 +203,7 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
 			"tracks": tracks,
 		})
