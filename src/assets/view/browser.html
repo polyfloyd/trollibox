@@ -6,8 +6,11 @@
 	<div class="browser">
 		<div class="col-xs-12 col-sm-8 col-lg-9 browser-views">
 			<ul class="browser-categories">
-				<li role="presentation" class="active" id="browser-show-search">
+				<li role="presentation" id="browser-show-search">
 					<a class="glyphicon glyphicon-search" title="Search Everything" href="#"></a>
+				</li>
+				<li role="presentation" id="browser-show-albums">
+					<a class="glyphicon glyphicon-cd" title="Browse Albums" href="#"></a>
 				</li>
 			</ul>
 
@@ -29,13 +32,22 @@
 			search: new BrowserSearchView({
 				model: player,
 			}),
+			albums: new BrowserAlbumsView({
+				model: player,
+			}),
 		};
 
 		Object.keys(browserViews).forEach(function(name, i) {
 			var view = browserViews[name];
-			view.$el.toggleClass('hidden', i !== 0);
+			view.$el.addClass('hidden', i !== 0);
+			if (i == 0) {
+				view.$el.removeClass('hidden', i !== 0);
+				$('#browser-show-'+name).addClass('active');
+			}
 			$('.browser-content').append(view.$el);
 			$('#browser-show-'+name).on('click', function() {
+				$('.browser-categories li').removeClass('active');
+				$(this).addClass('active');
 				$('.browser-view').addClass('hidden');
 				view.$el.removeClass('hidden');
 			});

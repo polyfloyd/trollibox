@@ -25,10 +25,6 @@
 	width: 200px;
 	height: 200px;
 	margin: 0 auto 5px auto;
-	background-image: url('../img/default-album-art.svg');
-	background-size: cover;
-	background-position: 50%;
-	background-repeat: no-repeat;
 }
 
 .player-now-playing.queuedby-user .track-title:after {
@@ -41,6 +37,13 @@
 .track-title:empty:before {
 	content: "None";
 	opacity: 0.7;
+}
+
+.track-art {
+	background-image: url('../img/default-album-art.svg');
+	background-size: cover;
+	background-position: 50%;
+	background-repeat: no-repeat;
 }
 
 .player .input-group-addon {

@@ -78,20 +78,59 @@ ul.result-list li .track-artist:after {
 	content: " - ";
 }
 
+ul.result-list li .track-num,
+ul.result-list li .track-num:after {
+	color: #aaa;
+}
+
+ul.result-list li .track-num:not(:empty):after {
+	content: ". ";
+}
+
 ul.result-list li .track-album {
 	float: right;
 	color: #aaa;
 }
 
-ul.result-list li .track-duration {
+.track-duration {
 	margin-left: 0.5em;
 	color: #aaa;
 }
 
-ul.result-list li .track-duration:before {
+.track-duration:before {
 	content: "(";
 }
 
-ul.result-list li .track-duration:after {
+.track-duration:after {
 	content: ")";
+}
+
+.browser-albums .artist-list h2 {
+	margin-top: 0;
+}
+
+.browser-albums .album-view .album-info {
+	cursor: pointer;
+}
+
+.browser-albums .album-view .album-info:hover {
+	background-color: #333;
+}
+
+.browser-albums .album-view .album-title {
+	font-size: 1.4em;
+}
+
+.browser-albums .album-view .album-title {
+	font-size: 1.4em;
+}
+
+.browser-albums .album-view .album-artist {
+	display: block;
+}
+
+.browser-albums .album-view .track-art {
+	float: right;
+	width: 200px;
+	height: 200px;
 }
