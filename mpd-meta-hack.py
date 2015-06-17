@@ -35,7 +35,7 @@ def get_art_base64(f, size):
 		return None
 
 	try:
-		img = Image.open(io.BytesIO(audio_file.tags['APIC:'].data))
+		img = Image.open(io.BytesIO(data))
 		img.thumbnail(size)
 		buf = io.BytesIO()
 		img.save(buf, "JPEG")
