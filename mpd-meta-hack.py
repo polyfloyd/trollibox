@@ -26,8 +26,14 @@ def get_mpd_library_dir(f):
 
 def get_art_base64(f, size):
 	audio_file = mutagen.File(f)
-	if audio_file is None or not 'APIC:' in audio_file.tags:
+	data = None
+	if not audio_file is None and 'APIC:' in audio_file.tags:
+		data = audio_file.tags['APIC:'].data
+	if not audio_file is None and hasattr(audio_file, 'pictures') and len(audio_file.pictures) > 0:
+		data = audio_file.pictures[0].data
+	if data is None:
 		return None
+
 	try:
 		img = Image.open(io.BytesIO(audio_file.tags['APIC:'].data))
 		img.thumbnail(size)
