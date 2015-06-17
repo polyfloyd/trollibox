@@ -105,16 +105,8 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 		queueAttrs: map[string]QueueAttrs{},
 	}
 
-	queueListener := make(chan string, 16)
-	go player.queueLoop(queueListener)
-	player.Listen(queueListener)
-	queueListener <- "player" // Bootstrap the cycle
-
-	playlistListener := make(chan string, 16)
-	go player.playlistLoop(playlistListener)
-	player.Listen(playlistListener)
-	playlistListener <- "playlist" // Bootstrap the cycle
-
+	go player.queueLoop()
+	go player.playlistLoop()
 	go player.pingLoop()
 	go player.idleLoop()
 
@@ -145,7 +137,10 @@ func (this *Player) idleLoop() {
 	}
 }
 
-func (this *Player) queueLoop(listener chan string) {
+func (this *Player) queueLoop() {
+	listener := make(chan string, 16)
+	this.Listen(listener)
+	listener <- "player" // Bootstrap the cycle
 	for {
 		if event := <- listener; event != "player" {
 			continue
@@ -197,7 +192,10 @@ func (this *Player) queueLoop(listener chan string) {
 	}
 }
 
-func (this *Player) playlistLoop(listener chan string) {
+func (this *Player) playlistLoop() {
+	listener := make(chan string, 16)
+	this.Listen(listener)
+	listener <- "playlist" // Bootstrap the cycle
 	for {
 		if event := <- listener; event != "playlist" {
 			continue
