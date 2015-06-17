@@ -61,6 +61,8 @@ type Player struct {
 	// only one calling routine has exclusive access.
 	mpdLock sync.Mutex
 
+	addr, passwd string
+
 	listeners     map[uint64]chan string
 	listenersEnum uint64
 	listenersLock sync.Mutex
@@ -103,6 +105,9 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 		mpdWatcher: clientWatcher,
 		listeners:  map[uint64]chan string{},
 		queueAttrs: map[string]QueueAttrs{},
+
+		addr:   addr,
+		passwd: passwd,
 	}
 
 	go player.queueLoop()
@@ -111,6 +116,17 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	go player.idleLoop()
 
 	return player, nil
+}
+
+func (this *Player) withMpd(fn func(mpd *mpd.Client)) {
+	client, err := mpd.DialAuthenticated("tcp", this.addr, this.passwd)
+	if err != nil {
+		log.Println(err)
+		this.withMpd(fn)
+		return
+	}
+	defer client.Close()
+	fn(client)
 }
 
 func (this *Player) pingLoop() {
@@ -237,7 +253,7 @@ func (this *Player) playlistLoop() {
 
 		if len(songs) > 0 {
 			var current Track
-			this.trackFromMpdSong(&songs[0], &current)
+			this.trackFromMpdSong(&songs[0], &current, this.mpd)
 			// TODO: If one track is followed by another track with the same
 			// ID, the next block will not be executed, leaving the playcount
 			// unchanged.
@@ -260,7 +276,7 @@ func (this *Player) playlistLoop() {
 	}
 }
 
-func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
+func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Client) {
 	track.player = this
 
 	if dir, ok := (*song)["directory"]; ok {
@@ -292,14 +308,14 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 		track.Duration = int(duration)
 	}
 
-	if val, err := this.mpd.StickerGet(track.Id, "has-image"); err == nil && val == "1" {
+	if _, err := mpdc.StickerGet(track.Id, "image-nchunks"); err == nil {
 		url := "/data/track/art/"+track.Id
 		track.Art = &url
 	}
 }
 
-func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack) {
-	this.trackFromMpdSong(song, &track.Track)
+func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack, mpdc *mpd.Client) {
+	this.trackFromMpdSong(song, &track.Track, mpdc)
 	track.QueueAttrs = this.queueAttrs[track.Id]
 }
 
@@ -319,15 +335,14 @@ func (this *Player) Unlisten(handle uint64) {
 	delete(this.listeners, handle)
 }
 
-func (this *Player) Queue(path string, queuedBy string) error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	this.queueAttrs[path] = QueueAttrs{
-		QueuedBy: queuedBy,
-	}
-
-	return this.mpd.Add(path)
+func (this *Player) Queue(path string, queuedBy string) (err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		this.queueAttrs[path] = QueueAttrs{
+			QueuedBy: queuedBy,
+		}
+		err = mpdc.Add(path)
+	})
+	return
 }
 
 func (this *Player) QueueRandom() error {
@@ -351,95 +366,89 @@ func (this *Player) QueueRandom() error {
 	return this.Queue(tracks[this.rand.Intn(len(tracks))].Id, "system")
 }
 
-func (this *Player) Volume() (float32, error) {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
+func (this *Player) Volume() (vol float32, err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		var status mpd.Attrs
+		status, err = mpdc.Status()
+		if err != nil {
+			return
+		}
 
-	status, err := this.mpd.Status()
-	if err != nil {
-		return 0, err
-	}
+		volStr, ok := status["volume"]
+		if !ok {
+			// Volume should always be present
+			err = fmt.Errorf("No volume property is present in the MPD status")
+			return
+		}
 
-	volStr, ok := status["volume"]
-	if !ok {
-		// Volume should always be present
-		return 0, fmt.Errorf("No volume property is present in the MPD status")
-	}
+		var rawVol int64
+		rawVol, err = strconv.ParseInt(volStr, 10, 32)
+		if err != nil {
+			return
+		}
 
-	rawVol, err := strconv.ParseInt(volStr, 10, 32)
-	if err != nil {
-		return 0, err
-	}
-
-	vol := float32(rawVol) / 100
-	// Happens sometimes when nothing is playing
-	if vol < 0 {
-		vol = this.lastVolume
-	}
-	return vol, nil
+		vol := float32(rawVol) / 100
+		// Happens sometimes when nothing is playing
+		if vol < 0 {
+			vol = this.lastVolume
+		}
+	})
+	return
 }
 
-func (this *Player) SetVolume(vol float32) error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
+func (this *Player) SetVolume(vol float32) (err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		if vol > 1 {
+			vol = 1
+		} else if vol < 0 {
+			vol = 0
+		}
 
-	if vol > 1 {
-		vol = 1
-	} else if vol < 0 {
-		vol = 0
-	}
-
-	this.lastVolume = vol
-
-	if err := this.mpd.SetVolume(int(vol * 100)); err != nil {
-		return err
-	}
-	return nil
+		this.lastVolume = vol
+		err = mpdc.SetVolume(int(vol * 100))
+	})
+	return
 }
 
-func (this *Player) ListTracks(path string, recursive bool) ([]Track, error) {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
+func (this *Player) ListTracks(path string, recursive bool) (tracks []Track, err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		if path == "" {
+			path = "/"
+		}
 
-	if path == "" {
-		path = "/"
-	}
+		var songs []mpd.Attrs
+		if recursive {
+			songs, err = mpdc.ListAllInfo(path)
+		} else {
+			songs, err = mpdc.ListInfo(path)
+		}
 
-	var songs []mpd.Attrs
-	var err   error
-	if recursive {
-		songs, err = this.mpd.ListAllInfo(path)
-	} else {
-		songs, err = this.mpd.ListInfo(path)
-	}
+		if err != nil {
+			return
+		}
 
-	if err != nil {
-		return nil, err
-	}
-
-	tracks := make([]Track, len(songs))
-	for i, song := range songs {
-		this.trackFromMpdSong(&song, &tracks[i])
-	}
-
-	return tracks, nil
+		tracks = make([]Track, len(songs))
+		for i, song := range songs {
+			this.trackFromMpdSong(&song, &tracks[i], mpdc)
+		}
+	})
+	return
 }
 
-func (this *Player) Playlist() ([]PlaylistTrack, error) {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
+func (this *Player) Playlist() (tracks []PlaylistTrack, err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		var songs []mpd.Attrs
+		songs, err = mpdc.PlaylistInfo(-1, -1)
+		if err != nil {
+			return
+		}
 
-	songs, err := this.mpd.PlaylistInfo(-1, -1)
-	if err != nil {
-		return nil, err
-	}
-
-	tracks := make([]PlaylistTrack, len(songs))
-	for i, song := range songs {
-		this.playlistTrackFromMpdSong(&song, &tracks[i])
-	}
-
-	return tracks, nil
+		tracks = make([]PlaylistTrack, len(songs))
+		for i, song := range songs {
+			this.playlistTrackFromMpdSong(&song, &tracks[i], mpdc)
+		}
+	})
+	return
 }
 
 func (this *Player) SetPlaylistIds(trackIds []string) error {
@@ -448,125 +457,130 @@ func (this *Player) SetPlaylistIds(trackIds []string) error {
 		return err
 	}
 
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	// Playing track is not the first track of the new list? Remove it so we
-	// can overwrite it.
-	var delStart int
-	if playlist[0].Id == trackIds[0] {
-		// Don't queue the first track twice.
-		delStart = 1
-		trackIds = trackIds[1:]
-	} else {
-		delStart = 0
-	}
-
-	// Clear the playlist
-	if delStart != len(playlist) {
-		if err := this.mpd.Delete(delStart, len(playlist)); err != nil {
-			return err
+	this.withMpd(func(mpd *mpd.Client) {
+		// Playing track is not the first track of the new list? Remove it so we
+		// can overwrite it.
+		var delStart int
+		if playlist[0].Id == trackIds[0] {
+			// Don't queue the first track twice.
+			delStart = 1
+			trackIds = trackIds[1:]
+		} else {
+			delStart = 0
 		}
-	}
 
-	// Queue the new tracks.
-	cmd := this.mpd.BeginCommandList()
-	for _, id := range trackIds {
-		cmd.Add(id)
-	}
-	return cmd.End()
+		// Clear the playlist
+		if delStart != len(playlist) {
+			if err = mpd.Delete(delStart, len(playlist)); err != nil {
+				return
+			}
+		}
+
+		// Queue the new tracks.
+		cmd := mpd.BeginCommandList()
+		for _, id := range trackIds {
+			cmd.Add(id)
+		}
+		err = cmd.End()
+	})
+	return err
 }
 
 // Returns the currently playing track as well as its progress in seconds
-func (this *Player) CurrentTrack() (*PlaylistTrack, int, error) {
-	this.mpdLock.Lock()
-	status, err := this.mpd.Status()
-	this.mpdLock.Unlock()
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if st, ok := status["state"]; !ok || st == "stop" {
-		return nil, 0, nil
-	}
-
-	playlist, err := this.Playlist()
-	if err != nil {
-		return nil, 0, err
-	}
-	elapsed, err := strconv.ParseFloat(status["elapsed"], 32)
-	if err != nil {
-		elapsed = 0
-	}
-	return &playlist[0], int(elapsed), nil
-}
-
-func (this *Player) SetProgress(progress int) error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	status, err := this.mpd.Status()
-	if err != nil {
-		return err
-	}
-
-	if str, ok := status["songid"]; !ok {
-		// No track is currently being played.
-		return nil
-	} else if id, err := strconv.ParseInt(str, 10, 32); err != nil {
-		return err
-	} else {
-		return this.mpd.SeekID(int(id), progress)
-	}
-}
-
-func (this *Player) Next() error {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	if err := this.mpd.Next(); err != nil {
-		return err
-	}
-
-	return this.mpd.Delete(0, 1)
-}
-
-func (this *Player) State() (string, error) {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	status, err := this.mpd.Status()
-	if err != nil {
-		return "", err
-	}
-
-	return map[string]string{
-		"play":  "playing",
-		"pause": "paused",
-		"stop":  "stopped",
-	}[status["state"]], nil
-}
-
-func (this *Player) SetState(state string) (error) {
-	this.mpdLock.Lock()
-	defer this.mpdLock.Unlock()
-
-	switch state {
-	case "paused":
-		return this.mpd.Pause(true)
-	case "playing":
-		if status, err := this.mpd.Status(); err != nil {
-			return err
-		} else if status["state"] == "stop" {
-			this.mpd.Play(0)
-		} else {
-			return this.mpd.Pause(false)
+func (this *Player) CurrentTrack() (track *PlaylistTrack, progress int, err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		var status mpd.Attrs
+		status, err = mpdc.Status()
+		if err != nil {
+			return
 		}
-	case "stopped":
-		return this.mpd.Stop()
-	default:
-		return fmt.Errorf("Unknown play state %v", state)
-	}
 
-	return nil
+		if st, ok := status["state"]; !ok || st == "stop" {
+			return
+		}
+
+		var playlist []PlaylistTrack
+		playlist, err = this.Playlist()
+		if err != nil {
+			return
+		}
+		track = &playlist[0]
+
+		var progressf float64
+		progressf, err = strconv.ParseFloat(status["elapsed"], 32)
+		if err != nil {
+			progressf = 0
+		}
+		progress = int(progressf)
+	})
+	return
+}
+
+func (this *Player) SetProgress(progress int) (err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		var status mpd.Attrs
+		status, err = mpdc.Status()
+		if err != nil {
+			return
+		}
+
+		if str, ok := status["songid"]; !ok {
+			// No track is currently being played.
+		} else if id, perr := strconv.ParseInt(str, 10, 32); err != nil {
+			err = perr
+		} else {
+			err = mpdc.SeekID(int(id), progress)
+		}
+	})
+	return
+}
+
+func (this *Player) Next() (err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		if err = mpdc.Next(); err != nil {
+			return
+		}
+		err = mpdc.Delete(0, 1)
+	})
+	return
+}
+
+func (this *Player) State() (state string, err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		var status mpd.Attrs
+		status, err = mpdc.Status()
+		if err != nil {
+			return
+		}
+
+		state = map[string]string{
+			"play":  "playing",
+			"pause": "paused",
+			"stop":  "stopped",
+		}[status["state"]]
+	})
+	return
+}
+
+func (this *Player) SetState(state string) (err error) {
+	this.withMpd(func(mpdc *mpd.Client) {
+		switch state {
+		case "paused":
+			err = mpdc.Pause(true)
+		case "playing":
+			var status mpd.Attrs
+			if status, err = mpdc.Status(); err == nil {
+				if status["state"] == "stop" {
+					err = mpdc.Play(0)
+				} else {
+					err = mpdc.Pause(false)
+				}
+			}
+		case "stopped":
+			err = mpdc.Stop()
+		default:
+			err = fmt.Errorf("Unknown play state %v", state)
+		}
+	})
+	return
 }
