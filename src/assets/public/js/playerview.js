@@ -44,7 +44,7 @@ var PlayerView = Backbone.View.extend({
 		var cur = this.model.get('current') || {};
 		if (cur.art) {
 			this.$('.track-art')
-				.css('background-image', 'url(\''+cur.art+'\')')
+				.css('background-image', 'url(\''+cur.art.replace('\'', '\\\'')+'\')')
 				.removeClass('album-art-default');
 		} else {
 			this.$('.track-art')
