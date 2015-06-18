@@ -50,10 +50,10 @@ var PlayerView = Backbone.View.extend({
 			this.$('.track-art').css('background-image', art+', '+def);
 		}
 
-		this.$('.track-album').text(cur.album || '');
-		this.$('.track-artist').text(cur.artist || '');
-		this.$('.track-title').text(cur.title || '');
-		this.$('.player-now-playing')
+		this.$('.player-current .track-album').text(cur.album || '');
+		this.$('.player-current .track-artist').text(cur.artist || '');
+		this.$('.player-current .track-title').text(cur.title || '');
+		this.$('.player-current')
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby);
 		this.$('.track-duration .total').text(cur.duration ? durationToString(cur.duration) : '');
@@ -147,20 +147,18 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<div class="player-now-playing">'+
+		'<div class="player-current">'+
 			'<div class="track-art"></div>'+
 			'<p class="track-album"></p>'+
 			'<p class="track-title"></p>'+
 			'<p class="track-artist"></p>'+
+
 			'<div class="input-group">'+
 				'<p class="input-group-addon track-duration">'+
 					'<span class="current"></span> / <span class="total"></span>'+
 				'</p>'+
 				'<input class="do-set-progress" type="range" min="0" max="100" />'+
 			'</div>'+
-		'</div>'+
-
-		'<div class="player-controls">'+
 			'<div class="input-group">'+
 				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state"></button>'+
@@ -180,7 +178,7 @@ var PlayerView = Backbone.View.extend({
 	playlistTemplate: _.template(
 		'<li class="queuedby-<%= queuedby %>">'+
 			'<button class="do-remove glyphicon glyphicon-remove"></button>'+
-			'<span class="track-artist"><%- artist %></span> - <span class="track-name"><%- title %></span>'+
+			'<span class="track-artist"><%- artist %></span> - <span class="track-title"><%- title %></span>'+
 		'</li>'
 	),
 
