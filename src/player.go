@@ -25,6 +25,7 @@ type Track struct {
 	Album       string `json:"album"`
 	AlbumArtist string `json:"albumartist"`
 	AlbumTrack  string `json:"albumtrack"`
+	AlbumDisc   string `json:"albumdisc"`
 	Duration    int    `json:"duration"`
 }
 
@@ -284,6 +285,7 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Cl
 	track.Genre       = (*song)["Genre"]
 	track.Album       = (*song)["Album"]
 	track.AlbumArtist = (*song)["AlbumArtist"]
+	track.AlbumDisc   = (*song)["Disc"]
 	track.AlbumTrack  = (*song)["Track"]
 
 	// Who the fuck thought it was a good idea to mix capitals and lowercase
