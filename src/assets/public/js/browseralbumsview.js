@@ -26,8 +26,8 @@ var BrowserAlbumsView = Backbone.View.extend({
 
 		var $artistList = this.$('.artist-list ul');
 		$artistList.empty();
-		$artistList.append(Object.keys(artistAlbums).reduce(function(results, artistName) {
-			return results.concat(Object.keys(artistAlbums[artistName]).map(function(albumName) {
+		$artistList.append(Object.keys(artistAlbums).sort().reduce(function(results, artistName) {
+			return results.concat(Object.keys(artistAlbums[artistName]).sort().map(function(albumName) {
 				var album = artistAlbums[artistName][albumName];
 				var $el = $(self.artistTemplate({
 					artist:   artistName,
