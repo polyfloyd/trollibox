@@ -63,7 +63,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 			duration: this.albumDurationString(album),
 		}));
 
-		var art = 'url(\''+URLROOT+'data/track/art/'+album[0].id.replace('\'', '\\\'')+'\')';
+		var art = 'url(\''+URLROOT+'data/track/art/'+encodeURIComponent(album[0].id).replace('\'', '\\\'')+'\')';
 		$el.find('.track-art').css('background-image', art);
 
 		$el.find('.result-list li').on('click', function() {

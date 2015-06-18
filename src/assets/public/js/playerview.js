@@ -46,7 +46,7 @@ var PlayerView = Backbone.View.extend({
 		if (cur.id) {
 			this.$('.track-art').css('background-image', '');
 			var def = this.$('.track-art').css('background-image');
-			var art = 'url(\''+URLROOT+'data/track/art/'+cur.id.replace('\'', '\\\'')+'\')';
+			var art = 'url(\''+URLROOT+'data/track/art/'+encodeURIComponent(cur.id).replace('\'', '\\\'')+'\')';
 			this.$('.track-art').css('background-image', art+', '+def);
 		}
 
