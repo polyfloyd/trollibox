@@ -113,8 +113,19 @@ ul.result-list li .track-album {
 	cursor: pointer;
 }
 
-.browser-albums .album-view .album-info:hover {
+.browser-albums .album-view .album-info:hover,
+.browser-albums .album-view .disc-title:hover {
 	background-color: #333;
+}
+
+.browser-albums .album-view .disc-title {
+	margin: 0.4em 0 0 0;
+	font-size: 1.2em;
+	cursor: pointer;
+}
+
+.browser-albums .album-view .disc-title:before {
+	content: "Disc ";
 }
 
 .browser-albums .album-view .album-title {

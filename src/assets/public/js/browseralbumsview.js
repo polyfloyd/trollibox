@@ -51,26 +51,45 @@ var BrowserAlbumsView = Backbone.View.extend({
 			: 0;
 		});
 
+		// Sort tracks into discs. If no disc data is available, all tracks are
+		// stuffed into one disc.
+		var discsObj = album.reduce(function(discs, track, i) {
+			var disc = discs[track.albumdisc || ''] || (discs[track.albumdisc || ''] = []);
+			var mutTrack = Object.create(track);
+			mutTrack.duration = durationToString(track.duration);
+			mutTrack.selectionIndex = i; // Used for queuing the track when clicked.
+			disc.push(mutTrack);
+			return discs;
+		}, {});
+
+		// Make the disc data easier to process.
+		var discs = Object.keys(discsObj).map(function(discTitle, i, discTitles) {
+			return {
+				// If only one disc is detected, why even bother showing the label?
+				title:  discTitles.length > 1 ? discTitle : null,
+				tracks: discsObj[discTitle],
+			};
+		});
+
 		var $el = this.$('.album-view');
 		$el.html(this.albumTemplate({
-			tracks:   album.map(function(track) {
-				var mutTrack = Object.create(track);
-				mutTrack.duration = durationToString(track.duration);
-				return mutTrack;
-			}),
 			title:    album[0].album,
 			artist:   album[0].albumartist,
 			duration: this.albumDurationString(album),
+			discs:    discs,
 		}));
 
 		var art = 'url(\''+URLROOT+'data/track/art/'+encodeURIComponent(album[0].id).replace('\'', '\\\'')+'\')';
 		$el.find('.track-art').css('background-image', art);
 
-		$el.find('.result-list li').on('click', function() {
-			self.model.appendToPlaylist(album[$(this).index()]);
-		});
 		$el.find('.album-info').on('click', function() {
 			self.model.appendToPlaylist(album);
+		});
+		$el.find('.disc-title').on('click', function() {
+			self.model.appendToPlaylist(discs[$(this).attr('data-index')].tracks);
+		});
+		$el.find('.result-list li').on('click', function() {
+			self.model.appendToPlaylist(album[$(this).attr('data-index')]);
 		});
 	},
 
@@ -109,15 +128,20 @@ var BrowserAlbumsView = Backbone.View.extend({
 				'<span class="album-artist"><%- artist %></span>'+
 			'</p>'+
 		'</div>'+
-		'<ul class="result-list">'+
-		'<% tracks.forEach(function(track) { %>'+
-			'<li>'+
-				'<span class="track-num"><%- track.albumtrack %></span>'+
-				'<span class="track-artist"><%- track.artist %></span>'+
-				'<span class="track-title"><%- track.title %></span>'+
-				'<span class="track-duration"><%- track.duration %></span>'+
-			'</li>'+
-		'<% }) %>'+
-		'</ul>'
+		'<% discs.forEach(function(disc, di) { %>'+
+			'<% if (disc.title) { %>'+
+				'<p class="disc-title" data-index="<%= di %>"><%- disc.title %></p>'+
+			'<% } %>'+
+			'<ul class="result-list">'+
+			'<% disc.tracks.forEach(function(track) { %>'+
+				'<li data-index="<%= track.selectionIndex %>">'+
+					'<span class="track-num"><%- track.albumtrack %></span>'+
+					'<span class="track-artist"><%- track.artist %></span>'+
+					'<span class="track-title"><%- track.title %></span>'+
+					'<span class="track-duration"><%- track.duration %></span>'+
+				'</li>'+
+			'<% }) %>'+
+			'</ul>'+
+		'<% }) %>'
 	),
 });
