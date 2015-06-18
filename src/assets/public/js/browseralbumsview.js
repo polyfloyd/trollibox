@@ -13,7 +13,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 		var self = this;
 
 		this.$el.html(this.template());
-		var albumTracks = (this.model.get('tracks') || []).filter(function(track) {
+		var albumTracks = this.model.get('tracks').filter(function(track) {
 			return !!track.album && !!track.albumartist;
 		});
 

@@ -1,6 +1,15 @@
 'use strict';
 
 var Player = Backbone.Model.extend({
+	defaults: {
+		'current':  null,
+		'playlist': [],
+		'progress': 0,
+		'state':    'stopped',
+		'tracks':   [],
+		'volume':   0,
+	},
+
 	initialize: function() {
 		this.on('change:progress', function(obj, progress, options) {
 			if (options.sender === this) {

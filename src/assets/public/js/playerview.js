@@ -79,7 +79,7 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	renderVolume: function() {
-		var vol = this.model.get('volume') || 0;
+		var vol = this.model.get('volume');
 		this.$('.do-toggle-volume')
 			.toggleClass('glyphicon-volume-off', vol === 0)
 			.toggleClass('glyphicon-volume-up', vol > 0);
@@ -89,7 +89,7 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	renderPlaylist: function() {
-		var playlist = this.model.get('playlist') || [];
+		var playlist = this.model.get('playlist');
 		if (playlist.length > 0) {
 			// Slice off the currently playing track
 			playlist = playlist.slice(1);
