@@ -12,6 +12,9 @@
 				<li role="presentation" id="browser-show-albums">
 					<a class="glyphicon glyphicon-cd" title="Browse Albums" href="#"></a>
 				</li>
+				<li role="presentation" id="browser-show-browse">
+					<a class="glyphicon glyphicon-music" title="Browse Albums" href="#"></a>
+				</li>
 			</ul>
 
 			<div class="browser-content"></div>
@@ -33,6 +36,9 @@
 				model: player,
 			}),
 			albums: new BrowserAlbumsView({
+				model: player,
+			}),
+			browse: new BrowserBrowseView({
 				model: player,
 			}),
 		};
