@@ -115,7 +115,7 @@ ul.result-list li .track-album {
 	content: ")";
 }
 
-.browser-albums .artist-list h2 {
+.browser-view h2:first-child {
 	margin-top: 0;
 }
 
