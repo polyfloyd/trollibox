@@ -58,8 +58,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 		var discsObj = album.reduce(function(discs, track, i) {
 			var disc = discs[track.albumdisc || ''] || (discs[track.albumdisc || ''] = []);
 			var mutTrack = Object.create(track);
-			mutTrack.duration = durationToString(track.duration);
-			mutTrack.selectionIndex = i; // Used for queuing the track when clicked.
+			mutTrack.selectionIndex = i; // Used for queueing the track when clicked.
 			disc.push(mutTrack);
 			return discs;
 		}, {});
@@ -140,7 +139,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 					'<span class="track-num"><%- track.albumtrack %></span>'+
 					'<span class="track-artist"><%- track.artist %></span>'+
 					'<span class="track-title"><%- track.title %></span>'+
-					'<span class="track-duration"><%- track.duration %></span>'+
+					'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
 				'</li>'+
 			'<% }) %>'+
 			'</ul>'+

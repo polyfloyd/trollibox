@@ -55,15 +55,9 @@ var BrowserSearchView = Backbone.View.extend({
 		$list.append(results.map(function(track) {
 			var self = this;
 
-			var html = this.resultTemplate({
-				album:    track.album,
-				title:    track.title,
-				artist:   track.artist,
-				duration: durationToString(track.duration),
-			});
 			var $el = $(highlightExp.reduce(function(html, re) {
 				return html.replace(re, '$1<em>$2</em>$3');
-			}, html));
+			}, this.resultTemplate(track)));
 
 			$el.on('click', function() {
 				self.model.appendToPlaylist(track);
@@ -98,7 +92,7 @@ var BrowserSearchView = Backbone.View.extend({
 		'<li>'+
 			'<span class="track-artist"><%- artist %></span>'+
 			'<span class="track-title"><%- title %></span>'+
-			'<span class="track-duration"><%- duration %></span>'+
+			'<span class="track-duration"><%- durationToString(duration) %></span>'+
 			'<span class="track-album"><%- album %></span>'+
 		'</li>'
 	),
