@@ -35,6 +35,8 @@ var BrowserAlbumsView = Backbone.View.extend({
 					duration: self.albumDurationString(album),
 				}));
 				$el.on('click', function() {
+					$artistList.find('li.active').removeClass('active');
+					$el.addClass('active');
 					self.renderAlbum(album);
 				});
 				return $el;

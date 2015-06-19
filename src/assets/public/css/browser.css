@@ -60,6 +60,16 @@ ul.result-list li:hover {
 	cursor: pointer;
 }
 
+ul.result-list li.active {
+	background-color: #333;
+	color: #f60;
+}
+
+ul.result-list li.active .track-title,
+ul.result-list li.active .track-artist {
+	color: #f60;
+}
+
 ul.result-list:empty:before {
 	content: "No results";
 }
