@@ -29,11 +29,14 @@ var BrowserAlbumsView = Backbone.View.extend({
 		$artistList.append(Object.keys(artistAlbums).sort().reduce(function(results, artistName) {
 			return results.concat(Object.keys(artistAlbums[artistName]).sort().map(function(albumName) {
 				var album = artistAlbums[artistName][albumName];
-				var $el = $(self.artistTemplate({
+				var $el = $(self.albumPreviewTemplate({
 					artist:   artistName,
 					title:    albumName,
-					duration: self.albumDurationString(album),
+					duration: self.albumDuration(album),
 				}));
+				showTrackArt($el.find('.track-art'), album[0], function(success) {
+					$el.toggleClass('show-details', !success);
+				});
 				$el.on('click', function() {
 					$artistList.find('li.active').removeClass('active');
 					$el.addClass('active');
@@ -76,13 +79,11 @@ var BrowserAlbumsView = Backbone.View.extend({
 		$el.html(this.albumTemplate({
 			title:    album[0].album,
 			artist:   album[0].albumartist,
-			duration: this.albumDurationString(album),
+			duration: this.albumDuration(album),
 			discs:    discs,
 		}));
 
-		var art = 'url(\''+URLROOT+'data/track/art/'+encodeURIComponent(album[0].id).replace('\'', '\\\'')+'\')';
-		$el.find('.track-art').css('background-image', art);
-
+		showTrackArt($el.find('.album-art'), album[0]);
 		$el.find('.album-info').on('click', function() {
 			self.model.appendToPlaylist(album);
 		});
@@ -94,10 +95,10 @@ var BrowserAlbumsView = Backbone.View.extend({
 		});
 	},
 
-	albumDurationString: function(tracks) {
-		return durationToString(tracks.reduce(function(total, track) {
+	albumDuration: function(tracks) {
+		return tracks.reduce(function(total, track) {
 			return total + track.duration;
-		}, 0));
+		}, 0);
 	},
 
 	template: _.template(
@@ -113,19 +114,20 @@ var BrowserAlbumsView = Backbone.View.extend({
 			'</div>'+
 		'</div>'
 	),
-	artistTemplate:_.template(
-		'<li>'+
-			'<span class="track-artist"><%- artist %></span>'+
-			'<span class="track-title"><%- title %></span>'+
-			'<span class="track-duration"><%- duration %></span>'+
+	albumPreviewTemplate:_.template(
+		'<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">'+
+			'<div class="track-art">'+
+				'<span class="album-artist"><%- artist %></span>'+
+				'<span class="album-title"><%- title %></span>'+
+			'</div>'+
 		'</li>'
 	),
 	albumTemplate:_.template(
-		'<div class="track-art"></div>'+
+		'<div class="album-art"></div>'+
 		'<div class="album-info">'+
 			'<p>'+
 				'<span class="album-title"><%- title %></span>'+
-				'<span class="album-duration track-duration"><%- duration %></span>'+
+				'<span class="album-duration track-duration"><%- durationToString(duration) %></span>'+
 				'<span class="album-artist"><%- artist %></span>'+
 			'</p>'+
 		'</div>'+
