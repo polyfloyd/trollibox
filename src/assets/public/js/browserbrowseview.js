@@ -76,15 +76,9 @@ var BrowserBrowseView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<div class="panel panel-default">'+
-			'<div class="panel-body">'+
-				'<div class="row">'+
-					'<div class="col-md-4 genre-tab"></div>'+
-					'<div class="col-md-4 artist-tab"></div>'+
-					'<div class="col-md-4 track-tab"></div>'+
-				'</div>'+
-			'</div>'+
-		'</div>'
+		'<div class="genre-tab"></div>'+
+		'<div class="artist-tab"></div>'+
+		'<div class="track-tab"></div>'
 	),
 	genreTabTemplate: _.template(
 		'<h2>Genres</h2>'+

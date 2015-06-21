@@ -5,7 +5,7 @@ var BrowserSearchView = Backbone.View.extend({
 	className: 'browser-view browser-search',
 
 	events: {
-		'input .search-input': 'doSearch',
+		'input .search-input input': 'doSearch',
 		'click .do-show-more': 'doShowMore',
 	},
 
@@ -16,15 +16,15 @@ var BrowserSearchView = Backbone.View.extend({
 
 	render: function() {
 		this.$el.html(this.template());
-		this.$('search-input').focus();
+		this.$('search-input input').focus();
 	},
 
 	doSearch: function() {
-		this.showResults(this.$('.search-input').val(), false);
+		this.showResults(this.$('.search-input input').val(), false);
 	},
 
 	doShowMore: function() {
-		this.showResults(this.$('.search-input').val(), true);
+		this.showResults(this.$('.search-input input').val(), true);
 	},
 
 	showResults: function(query, showAll) {
@@ -67,26 +67,22 @@ var BrowserSearchView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<div class="panel panel-default">'+
-			'<div class="panel-body">'+
-				'<div class="input-group">'+
-					'<span class="input-group-addon">'+
-						'<span class="glyphicon glyphicon-search"></span>'+
-					'</span>'+
-					'<input '+
-						'autofocus '+
-						'class="form-control input-lg search-input" '+
-						'type="text" '+
-						'placeholder="Search Everything" />'+
-				'</div>'+
+		'<div class="search-input">'+
+			'<div class="input-group">'+
+				'<span class="input-group-addon">'+
+					'<span class="glyphicon glyphicon-search"></span>'+
+				'</span>'+
+				'<input '+
+					'autofocus '+
+					'class="form-control input-lg" '+
+					'type="text" '+
+					'placeholder="Search Everything" />'+
 			'</div>'+
 		'</div>'+
-		'<div class="panel panel-default">'+
-			'<div class="panel-body">'+
-				'<ul class="result-list"></ul>'+
-				'<button class="btn btn-default do-show-more">More</button>'+
-			'</div>'+
-		'</div>'
+		'<ul class="result-list search-results"></ul>'+
+		'<button class="btn btn-default do-show-more">'+
+			'<span class="glyphicon glyphicon-option-horizontal"></span>'+
+		'</button>'
 	),
 	resultTemplate: _.template(
 		'<li>'+

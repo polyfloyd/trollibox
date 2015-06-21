@@ -4,7 +4,7 @@
 
 {{ define "content" }}
 	<div class="browser">
-		<div class="col-xs-12 col-sm-8 col-lg-9 browser-views">
+		<div class="browser-views">
 			<ul class="browser-categories">
 				<li role="presentation" id="browser-show-search">
 					<a class="glyphicon glyphicon-search" title="Search Everything" href="#"></a>
@@ -17,10 +17,10 @@
 				</li>
 			</ul>
 
-			<div class="browser-content"></div>
+			<div class="browser-views-content"></div>
 		</div>
 
-		<div class="hidden-xs col-sm-4 col-lg-3 browser-player"></div>
+		<div class="browser-player hidden-xs"></div>
 	</div>
 {{ end }}
 
@@ -50,7 +50,7 @@
 				view.$el.removeClass('hidden', i !== 0);
 				$('#browser-show-'+name).addClass('active');
 			}
-			$('.browser-content').append(view.$el);
+			$('.browser-views-content').append(view.$el);
 			$('#browser-show-'+name).on('click', function() {
 				$('.browser-categories li').removeClass('active');
 				$(this).addClass('active');
