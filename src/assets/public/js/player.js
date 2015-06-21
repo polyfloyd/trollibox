@@ -11,84 +11,46 @@ var Player = Backbone.Model.extend({
 	},
 
 	initialize: function() {
-		this.on('change:progress', function(obj, progress, options) {
-			if (options.sender === this) {
-				return;
-			}
-			$.ajax({
-				url:      URLROOT+'data/player/progress',
-				method:   'POST',
-				dataType: 'json',
-				data:     JSON.stringify({
-					progress: progress,
-				}),
-				context:  this,
-				error:    function() {
-					this.trigger('error');
-				},
-			});
+		this.reloaders = {};
+
+		this.attachServerReloader('server-event:mixer', 'data/player/volume', function(data) {
+			this.setInternal('volume', data.volume);
 		});
-		this.on('change:state', function(obj, volume, options) {
-			if (options.sender === this) {
-				return;
-			}
-			$.ajax({
-				url:      URLROOT+'data/player/state',
-				method:   'POST',
-				dataType: 'json',
-				data:     JSON.stringify({
-					state: this.get('state'),
-				}),
-				context:  this,
-				error:    function(req, str, err) {
-					this.trigger('error', err);
-				},
-			});
+		this.attachServerReloader('server-event:player', 'data/player/current', function(data) {
+			this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
+			this.setInternal('progress', data.progress);
+			this.setInternal('state',    data.state);
 		});
-		this.on('change:volume', function(obj, volume, options) {
-			if (options.sender === this) {
-				return;
-			}
-			$.ajax({
-				url:      URLROOT+'data/player/volume',
-				method:   'POST',
-				dataType: 'json',
-				data:     JSON.stringify({
-					volume: volume,
-				}),
-				context:  this,
-				error:    function() {
-					this.trigger('error');
-				},
-			});
+		this.attachServerReloader('server-event:playlist', 'data/player/playlist', function(data) {
+			this.setInternal('playlist', data.tracks.filter(function(track) {
+				return !!track.id;
+			}).map(function(track) {
+				return this.fillMissingTrackFields(track);
+			}, this));
 		});
-		this.on('change:playlist', function(obj, playlist, options) {
-			if (options.sender === this) {
-				return;
-			}
-			$.ajax({
-				url:      URLROOT+'data/player/playlist',
-				method:   'POST',
-				dataType: 'json',
-				data:     JSON.stringify({
-					'track-ids': this.get('playlist').map(function(track) {
-						return track.id;
-					}),
-				}),
-				context:  this,
-				error:    function() {
-					this.trigger('error');
-				},
-			});
+		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
+			this.setInternal('tracks', data.tracks);
 		});
 
-		this.on('server-event:mixer',    this.reloadVolume,   this);
-		this.on('server-event:player',   this.reloadCurrent,  this);
-		this.on('server-event:playlist', this.reloadPlaylist, this);
-		this.on('server-event:update',   this.reloadTracks,   this);
-		this.on('change:current',        this.reloadProgressUpdater, this);
-		this.on('change:state',          this.reloadProgressUpdater, this);
+		this.attachServerUpdater('progress', 'data/player/progress', function(value) {
+			return { progress: value };
+		});
+		this.attachServerUpdater('state', 'data/player/state', function(value) {
+			return { state: value };
+		});
+		this.attachServerUpdater('volume', 'data/player/volume', function(value) {
+			return { volume: value };
+		});
+		this.attachServerUpdater('playlist', 'data/player/playlist', function(value) {
+			return {
+				'track-ids': value.map(function(track) {
+					return track.id;
+				}),
+			};
+		});
 
+		this.on('change:current', this.reloadProgressUpdater, this);
+		this.on('change:state',   this.reloadProgressUpdater, this);
 		this.on('server-connect', this.reload, this);
 		this.connectEventSocket();
 	},
@@ -120,6 +82,61 @@ var Player = Backbone.Model.extend({
 		};
 	},
 
+	attachServerReloader: function(event, path, handle) {
+		var reload = function() {
+			$.ajax({
+				url:      URLROOT+path,
+				method:   'GET',
+				dataType: 'json',
+				context:  this,
+				success:  function(data) {
+					handle.call(this, data);
+				},
+				error:    function(req, str, err) {
+					this.trigger('error', err);
+				},
+			});
+		};
+		this.on(event, reload, this);
+		this.reloaders[event] = reload;
+	},
+
+	attachServerUpdater: function(name, path, getUpdateData) {
+		var waiting   = false;
+		var nextValue = undefined;
+		this.on('change:'+name, function(obj, value, options) {
+			if (options.sender === this) {
+				return;
+			}
+			if (!waiting) {
+				$.ajax({
+					url:      URLROOT+path,
+					method:   'POST',
+					dataType: 'json',
+					data:     JSON.stringify(getUpdateData.call(this, value)),
+					context:  this,
+					success:  function() {
+						var self = this;
+						setTimeout(function() {
+							waiting = false;
+							if (typeof nextValue !== 'undefined') {
+								self.set(name, nextValue);
+								nextValue = undefined;
+							}
+						}, 200);
+					},
+					error:    function() {
+						this.trigger('error');
+					},
+				});
+				waiting = true;
+
+			} else {
+				nextValue = value;
+			}
+		});
+	},
+
 	/**
 	 * Like the regular Backbone.Model#set(), but propagates a flag to change
 	 * listeners so they can differentiate between events fired from external
@@ -131,11 +148,14 @@ var Player = Backbone.Model.extend({
 		return Backbone.Model.prototype.set.call(this, key, value, options);
 	},
 
-	reload: function() {
-		this.reloadCurrent();
-		this.reloadPlaylist();
-		this.reloadTracks();
-		this.reloadVolume();
+	reload: function(name) {
+		if (typeof name !== 'string') {
+			for (var k in this.reloaders) {
+				this.reloaders[k].call(this);
+			}
+		} else {
+			this.reloaders[name].call(this);
+		}
 	},
 
 	reloadProgressUpdater: function() {
@@ -149,75 +169,9 @@ var Player = Backbone.Model.extend({
 				self.setInternal('progress', self.get('progress') + 1);
 			}, 1000);
 			this.progressTimeout = setTimeout(function() {
-				self.reloadCurrent();
+				self.reload('server-event:player');
 			}, 1000 * (this.get('current').duration - this.get('progress')));
 		}
-	},
-
-	reloadCurrent: function() {
-		$.ajax({
-			url:      URLROOT+'data/player/current',
-			method:   'GET',
-			dataType: 'json',
-			context:  this,
-			success:  function(data) {
-				this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
-				this.setInternal('progress', data.progress);
-				this.setInternal('state',    data.state);
-			},
-			error:    function(req, str, err) {
-				this.trigger('error', err);
-			},
-		});
-	},
-
-	reloadPlaylist: function() {
-		$.ajax({
-			url:      URLROOT+'data/player/playlist',
-			method:   'GET',
-			dataType: 'json',
-			context:  this,
-			success:  function(data) {
-				this.setInternal('playlist', data.tracks.filter(function(track) {
-					return !!track.id;
-				}).map(function(track) {
-					return this.fillMissingTrackFields(track);
-				}, this));
-			},
-			error:    function(req, str, err) {
-				this.trigger('error', err);
-			},
-		});
-	},
-
-	reloadTracks: function() {
-		$.ajax({
-			url:      URLROOT+'data/track/browse/',
-			method:   'GET',
-			dataType: 'json',
-			context:  this,
-			success:  function(data) {
-				this.setInternal('tracks', data.tracks);
-			},
-			error:    function(req, str, err) {
-				this.trigger('error', err);
-			},
-		});
-	},
-
-	reloadVolume: function() {
-		$.ajax({
-			url:      URLROOT+'data/player/volume',
-			method:   'GET',
-			dataType: 'json',
-			context:  this,
-			success:  function(data) {
-				this.setInternal('volume', data.volume);
-			},
-			error:    function(req, str, err) {
-				this.trigger('error', err);
-			},
-		});
 	},
 
 	next: function() {
