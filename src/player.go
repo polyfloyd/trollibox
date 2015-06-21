@@ -499,7 +499,7 @@ func (this *Player) CurrentTrack() (track *PlaylistTrack, progress int, err erro
 
 		var playlist []PlaylistTrack
 		playlist, err = this.Playlist()
-		if err != nil {
+		if err != nil || len(playlist) == 0 {
 			return
 		}
 		track = &playlist[0]
