@@ -54,6 +54,14 @@ func (this *Track) GetArt() (image io.Reader) {
 	return
 }
 
+func (this *Track) HasArt() (hasArt bool) {
+	this.player.withMpd(func(mpdc *mpd.Client) {
+		_, err := mpdc.StickerGet(this.Id, "image-nchunks")
+		hasArt = err == nil
+	})
+	return
+}
+
 
 type QueueAttrs struct {
 	QueuedBy string `json:"queuedby"`

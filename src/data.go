@@ -38,6 +38,7 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(player))
+	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
 
@@ -229,5 +230,18 @@ func htTrackArt(player *Player) func(res http.ResponseWriter, req *http.Request)
 		}
 
 		http.NotFound(res, req)
+	}
+}
+
+func htTrackArtProbe(player *Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		tracks, err := player.ListTracks(mux.Vars(req)["path"], false)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(tracks) != 1 || !tracks[0].HasArt() {
+			http.NotFound(res, req)
+		}
 	}
 }

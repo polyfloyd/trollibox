@@ -40,3 +40,22 @@ function durationToString(seconds) {
 	}
 	return s + sec;
 }
+
+function showTrackArt($elem, track, cb) {
+	$elem.css('background-image', ''); // Reset to default.
+	if (!track || !track.id) {
+		return;
+	}
+
+	var url = URLROOT+'data/track/art/'+encodeURIComponent(track.id);
+	$.ajax({
+		method:   'HEAD',
+		url:      url,
+		complete: function(xhr, state) {
+			if (state !== 'error') {
+				$elem.css('background-image', 'url(\''+url.replace('\'', '\\\'')+'\')');
+			}
+			if (cb) cb(state !== 'error');
+		},
+	});
+}

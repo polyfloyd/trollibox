@@ -43,13 +43,7 @@ var PlayerView = Backbone.View.extend({
 	renderCurrent: function() {
 		var cur = this.model.get('current') || {};
 
-		if (cur.id) {
-			this.$('.track-art').css('background-image', '');
-			var def = this.$('.track-art').css('background-image');
-			var art = 'url(\''+URLROOT+'data/track/art/'+encodeURIComponent(cur.id).replace('\'', '\\\'')+'\')';
-			this.$('.track-art').css('background-image', art+', '+def);
-		}
-
+		showTrackArt(this.$('.track-art'), cur);
 		this.$('.player-current .track-album').text(cur.album || '');
 		this.$('.player-current .track-artist').text(cur.artist || '');
 		this.$('.player-current .track-title').text(cur.title || '');
