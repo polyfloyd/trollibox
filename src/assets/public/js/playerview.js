@@ -50,14 +50,14 @@ var PlayerView = Backbone.View.extend({
 		this.$('.player-current')
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby);
-		this.$('.track-duration .total').text(cur.duration ? durationToString(cur.duration) : '');
+		this.$('.track-duration-total').text(cur.duration ? durationToString(cur.duration) : '');
 		this.$('.do-set-progress').attr('max', cur.duration);
 	},
 
 	renderProgress: function() {
 		var pr = this.model.get('progress');
 		var text = this.model.get('current') ? durationToString(pr) : '';
-		this.$('.track-duration .current').text(text);
+		this.$('.track-duration-current').text(text);
 		this.$('.do-set-progress').val(pr || 0);
 	},
 
@@ -148,8 +148,10 @@ var PlayerView = Backbone.View.extend({
 			'<p class="track-artist"></p>'+
 
 			'<div class="input-group">'+
-				'<p class="input-group-addon track-duration">'+
-					'<span class="current"></span> / <span class="total"></span>'+
+				'<p class="input-group-addon">'+
+					'<span class="track-duration-current"></span>'+
+					' / '+
+					'<span class="track-duration-total"></span>'+
 				'</p>'+
 				'<input class="do-set-progress" type="range" min="0" max="100" />'+
 			'</div>'+

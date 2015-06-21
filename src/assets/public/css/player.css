@@ -55,8 +55,8 @@
 	background: none;
 }
 
-.track-duration .current:empty:before,
-.track-duration .total:empty:before {
+.track-duration-current:empty:before,
+.track-duration-total:empty:before {
 	content: "0:00";
 	opacity: 0.7;
 }
