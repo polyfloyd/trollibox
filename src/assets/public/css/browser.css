@@ -140,22 +140,12 @@ ul.result-list li .track-artist:after {
 	flex-shrink: 0;
 }
 
-.browser-view.browser-search .do-show-more > .glyphicon {
-	font-size: 2em;
-	color: #000;
-}
-
-ul.result-list.all-shown + .do-show-more,
-ul.result-list:empty + .do-show-more {
-	display: none;
-}
-
 
 .browser-view.browser-albums {
 	display: flex;
 }
 
-.browser-view.browser-albums .artist-list {
+.browser-view.browser-albums .album-list {
 	width: 50%;
 	display: flex;
 	flex-direction: column;
@@ -165,7 +155,7 @@ ul.result-list:empty + .do-show-more {
 	width: 50%;
 }
 
-.browser-view.browser-albums .artist-list h2 {
+.browser-view.browser-albums .album-list h2 {
 	flex-shrink: 0;
 }
 
@@ -190,7 +180,7 @@ ul.result-list:empty + .do-show-more {
 	cursor: pointer;
 }
 
-.browser-albums .artist-list li {
+.browser-albums .album-list li {
 	width: 160px;
 	height: 160px;
 	display: inline-block;

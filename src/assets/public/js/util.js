@@ -22,6 +22,16 @@ Array.prototype.findIndex =  Array.prototype.findIndex || function(predicate) {
 	return -1;
 };
 
+$.fn.lazyLoad = function(callback, thisArg) {
+	thisArg = thisArg || this;
+	var $el = this;
+	this.on('scroll mousewheel DOMMouseScroll', function(event) {
+		if ($el.scrollTop() == $el[0].scrollHeight - $el.innerHeight()) {
+			callback.call(thisArg, event);
+		}
+	});
+}
+
 function durationToString(seconds) {
 	var s = '';
 	var hasHours = seconds > 3600;

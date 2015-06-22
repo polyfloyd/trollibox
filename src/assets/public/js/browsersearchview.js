@@ -6,7 +6,6 @@ var BrowserSearchView = Backbone.View.extend({
 
 	events: {
 		'input .search-input input': 'doSearch',
-		'click .do-show-more': 'doShowMore',
 	},
 
 	initialize: function(options) {
@@ -17,32 +16,30 @@ var BrowserSearchView = Backbone.View.extend({
 	render: function() {
 		this.$el.html(this.template());
 		this.$('search-input input').focus();
+		this.$('.result-list').lazyLoad(this.doLazyLoad, this);
 	},
 
 	doSearch: function() {
-		this.showResults(this.$('.search-input input').val(), false);
+		this.query   = this.$('.search-input input').val();
+		this.results = this.model.search(this.query);
+		this.$('.result-list').empty();
+		this.appendResults(60);
 	},
 
-	doShowMore: function() {
-		this.showResults(this.$('.search-input input').val(), true);
+	doLazyLoad: function() {
+		this.appendResults(20);
 	},
 
-	showResults: function(query, showAll) {
+	appendResults: function(count) {
 		var $list = this.$('.result-list');
-		$list.empty();
 
-		if (!query) {
+		var numChildren = $list.children().length;
+		var results = this.results.slice(numChildren, numChildren + count);
+		if (!results.length) {
 			return;
 		}
 
-		$list.addClass('all-shown');
-		var results = this.model.search(query);
-		if (results.length > 32 && !showAll) {
-			results = results.slice(0, 32);
-			$list.removeClass('all-shown');
-		}
-
-		var highlightExp = query.split(/\s+/).filter(function(kw) {
+		var highlightExp = this.query.split(/\s+/).filter(function(kw) {
 			return !!kw;
 		}).map(function(kw) {
 			// Escape the keyword into a HTML and then Regex safe string so it
@@ -79,10 +76,7 @@ var BrowserSearchView = Backbone.View.extend({
 					'placeholder="Search Everything" />'+
 			'</div>'+
 		'</div>'+
-		'<ul class="result-list search-results"></ul>'+
-		'<button class="btn btn-default do-show-more">'+
-			'<span class="glyphicon glyphicon-option-horizontal"></span>'+
-		'</button>'
+		'<ul class="result-list search-results"></ul>'
 	),
 	resultTemplate: _.template(
 		'<li>'+

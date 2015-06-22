@@ -10,13 +10,14 @@ var BrowserAlbumsView = Backbone.View.extend({
 	},
 
 	render: function() {
-		var self = this;
-
 		this.$el.html(this.template());
+
+		// Get a list of tracks which belong to an album.
 		var albumTracks = this.model.get('tracks').filter(function(track) {
 			return !!track.album && !!track.albumartist;
 		});
 
+		// Sort tracks into an artist/album tree structure.
 		var artistAlbums = {};
 		albumTracks.forEach(function(track) {
 			var artist = artistAlbums[track.albumartist] || (artistAlbums[track.albumartist] = {});
@@ -24,27 +25,21 @@ var BrowserAlbumsView = Backbone.View.extend({
 			album.push(track);
 		});
 
-		var $artistList = this.$('.artist-list ul');
-		$artistList.empty();
-		$artistList.append(Object.keys(artistAlbums).sort().reduce(function(results, artistName) {
-			return results.concat(Object.keys(artistAlbums[artistName]).sort().map(function(albumName) {
-				var album = artistAlbums[artistName][albumName];
-				var $el = $(self.albumPreviewTemplate({
-					artist:   artistName,
-					title:    albumName,
-					duration: self.albumDuration(album),
-				}));
-				showTrackArt($el.find('.track-art'), album[0], function(success) {
-					$el.toggleClass('show-details', !success);
-				});
-				$el.on('click', function() {
-					$artistList.find('li.active').removeClass('active');
-					$el.addClass('active');
-					self.renderAlbum(album);
-				});
-				return $el;
+		// Flatten the tree into a list.
+		this.albums = Object.keys(artistAlbums).sort().reduce(function(results, artistName) {
+			return results.concat(Object.keys(artistAlbums[artistName]).sort().map(function(albumTitle) {
+				return {
+					title:  albumTitle,
+					artist: artistName,
+					tracks: artistAlbums[artistName][albumTitle],
+				};
 			}));
-		}, []));
+		}, []);
+
+		this.$('.album-list ul')
+			.empty()
+			.lazyLoad(this.doLazyLoad, this);
+		this.appendAlbums(24);
 	},
 
 	renderAlbum: function(album) {
@@ -95,6 +90,38 @@ var BrowserAlbumsView = Backbone.View.extend({
 		});
 	},
 
+	appendAlbums: function(count) {
+		var self = this;
+
+		var $list = this.$('.album-list ul');
+		var numChildren = $list.children().length;
+		var albums = this.albums.slice(numChildren, numChildren + count);
+		if (!albums.length) {
+			return;
+		}
+
+		$list.append(albums.map(function(album) {
+			var $el = $(this.albumPreviewTemplate({
+				artist:   album.artist,
+				title:    album.title,
+				duration: this.albumDuration(album.tracks),
+			}));
+			showTrackArt($el.find('.track-art'), album.tracks[0], function(success) {
+				$el.toggleClass('show-details', !success);
+			});
+			$el.on('click', function() {
+				$list.find('li.active').removeClass('active');
+				$el.addClass('active');
+				self.renderAlbum(album.tracks);
+			});
+			return $el;
+		}, this));
+	},
+
+	doLazyLoad: function() {
+		this.appendAlbums(8);
+	},
+
 	albumDuration: function(tracks) {
 		return tracks.reduce(function(total, track) {
 			return total + track.duration;
@@ -102,7 +129,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<div class="artist-list">'+
+		'<div class="album-list">'+
 			'<h2>Albums</h2>'+
 			'<ul class="result-list "></ul>'+
 		'</div>'+
