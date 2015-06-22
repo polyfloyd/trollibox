@@ -152,8 +152,8 @@ var BrowserAlbumsView = Backbone.View.extend({
 				'<span class="album-artist"><%- artist %></span>'+
 			'</p>'+
 		'</div>'+
-		'<% discs.forEach(function(disc, di) { %>'+
-			'<ul class="result-list">'+
+		'<ul class="result-list">'+
+			'<% discs.forEach(function(disc, di) { %>'+
 				'<% if (disc.title) { %>'+
 					'<li class="disc-title" data-index="<%= di %>"><%- disc.title %></li>'+
 				'<% } %>'+
@@ -165,7 +165,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 						'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
 					'</li>'+
 				'<% }) %>'+
-			'</ul>'+
-		'<% }) %>'
+			'<% }) %>'+
+		'</ul>'
 	),
 });
