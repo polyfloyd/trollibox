@@ -63,7 +63,7 @@ function showTrackArt($elem, track, cb) {
 		url:      url,
 		complete: function(xhr, state) {
 			if (state !== 'error') {
-				$elem.css('background-image', 'url(\''+url.replace('\'', '\\\'')+'\')');
+				$elem.css('background-image', 'url(\''+url.replace(/'/g, '\\\'')+'\')');
 			}
 			if (cb) cb(state !== 'error');
 		},
