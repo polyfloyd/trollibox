@@ -229,7 +229,7 @@ ul.result-list li .track-artist:after {
 
 .browser-albums .album-view .album-info,
 .browser-albums .album-view .disc-title,
-.browser-albums .album-view .result-list li {
+.browser-albums .album-view .result-list {
 	padding: 0 0.3em;
 	position: relative;
 	z-index: 10;
