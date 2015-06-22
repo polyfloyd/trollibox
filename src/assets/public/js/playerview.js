@@ -153,19 +153,19 @@ var PlayerView = Backbone.View.extend({
 					' / '+
 					'<span class="track-duration-total"></span>'+
 				'</p>'+
-				'<input class="do-set-progress" type="range" min="0" max="100" />'+
+				'<input class="do-set-progress" type="range" min="0" max="100" title="Seek in the current track" />'+
 			'</div>'+
 			'<div class="input-group">'+
 				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state"></button>'+
+					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-forward do-next"></button>'+
+					'<button class="btn btn-default glyphicon glyphicon-forward do-next" title="Skip to the next track"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-volume-off do-toggle-volume"></button>'+
+					'<button class="btn btn-default glyphicon glyphicon-volume-off do-toggle-volume" title="Toggle mute"></button>'+
 				'</span>'+
-				'<input class="do-set-volume" type="range" min="0" max="100" value="0" />'+
+				'<input class="do-set-volume" type="range" min="0" max="100" value="0" title="Set volume level" />'+
 			'</div>'+
 		'</div>'+
 
