@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"flag"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
@@ -65,7 +66,10 @@ func main() {
 	// Prevent blocking routines to lock up the whole program
 	runtime.GOMAXPROCS(8)
 
-	if in, err := os.Open(CONFFILE); err != nil {
+	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
+	flag.Parse()
+
+	if in, err := os.Open(*configFile); err != nil {
 		log.Fatal(err)
 	} else if err := json.NewDecoder(in).Decode(&config); err != nil {
 		log.Fatal(err)
