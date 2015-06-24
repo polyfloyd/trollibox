@@ -4,6 +4,7 @@
 
 from PIL import Image
 from mpd import MPDClient
+import argparse
 import base64
 import io
 import mutagen
@@ -45,6 +46,12 @@ def get_art_base64(f, size):
 
 
 if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-s', '--skip-tagged', action='store_true', help='Skip files that are already tagged')
+	args = parser.parse_args()
+
+	skip_tagged = args.skip_tagged
+
 	client = MPDClient()
 	client.timeout = 10
 	client.idletimeout = None
@@ -60,6 +67,17 @@ if __name__ == '__main__':
 			continue
 
 		file_rel = song['file']
+
+		if skip_tagged:
+			# Awful, I know. But the sticker_find() function did not do much.
+			try:
+				client.sticker_get('song', file_rel, 'image-nchunks')
+				# Track has art, skip it.
+				continue
+			except:
+				# Track has no art.
+				pass
+
 		file_abs = os.path.join(libdir, file_rel)
 		img_data = get_art_base64(file_abs, IMG_SIZE)
 
