@@ -215,17 +215,32 @@ var Player = Backbone.Model.extend({
 			return [];
 		}
 
-		return this.get('tracks').filter(function(track) {
-			return keywords.every(function(keyword) {
-				return ['artist', 'title', 'album'].some(function(attr) {
+		return this.get('tracks').reduce(function(list, track) {
+			var numMatches = 0;
+			var allMatch = keywords.every(function(keyword) {
+				return ['artist', 'title', 'album'].filter(function(attr) {
 					var val = track[attr];
 					if (typeof val === 'undefined') {
 						return false;
 					}
-					return val.toLowerCase().indexOf(keyword) !== -1;
-				});
+					var match = val.toLowerCase().indexOf(keyword) !== -1;
+					numMatches += match ? 1 : 0; //  Meh, no functional for you!
+					return match;
+				}).length > 0;
 			});
-		});
+
+			if (allMatch) {
+				// A concat() would be more correcter from a functional
+				// perspective, but also A LOT slower! :(
+				list.push({
+					matches: numMatches,
+					track:   track,
+				});
+				return list;
+			} else {
+				return list
+			}
+		}, []);
 	},
 
 	appendToPlaylist: function(tracks) {

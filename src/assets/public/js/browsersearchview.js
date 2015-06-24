@@ -21,7 +21,11 @@ var BrowserSearchView = Backbone.View.extend({
 
 	doSearch: function() {
 		this.query   = this.$('.search-input input').val();
-		this.results = this.model.search(this.query);
+		this.results = this.model.search(this.query).sort(function(a, b) {
+			return a.matches > b.matches ? -1
+				: a.matches < b.matches ? 1
+				: stringCompareCaseInsensitive(a.track.title, b.track.title);
+		});
 		this.$('.result-list').empty();
 		this.appendResults(60);
 	},
@@ -49,15 +53,15 @@ var BrowserSearchView = Backbone.View.extend({
 			return new RegExp('(>[^<>]*?)('+safe+')([^<>]*?<)', 'gi');
 		});
 
-		$list.append(results.map(function(track) {
+		$list.append(results.map(function(result) {
 			var self = this;
 
 			var $el = $(highlightExp.reduce(function(html, re) {
 				return html.replace(re, '$1<em>$2</em>$3');
-			}, this.resultTemplate(track)));
+			}, this.resultTemplate(result.track)));
 
 			$el.on('click', function() {
-				self.model.appendToPlaylist(track);
+				self.model.appendToPlaylist(result.track);
 			});
 			return $el;
 		}, this));
