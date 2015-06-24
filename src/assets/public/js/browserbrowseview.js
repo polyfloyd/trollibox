@@ -31,7 +31,7 @@ var BrowserBrowseView = Backbone.View.extend({
 
 		var $tab = this.$('.genre-tab');
 		$tab.html(this.genreTabTemplate({
-			genres: Object.keys(this.genreTree).sort(),
+			genres: Object.keys(this.genreTree).sort(stringCompareCaseInsensitive),
 		}));
 		$tab.find('.result-list li').on('click', function() {
 			$tab.find('.result-list li.active').removeClass('active');
@@ -46,7 +46,7 @@ var BrowserBrowseView = Backbone.View.extend({
 
 		var $tab = this.$('.artist-tab');
 		this.$('.artist-tab').html(this.artistTabTemplate({
-			artists: Object.keys(this.genreTree[genreTitle]).sort(),
+			artists: Object.keys(this.genreTree[genreTitle]).sort(stringCompareCaseInsensitive),
 		}));
 		$tab.find('.result-list li').on('click', function() {
 			$tab.find('.result-list li.active').removeClass('active');
@@ -64,9 +64,7 @@ var BrowserBrowseView = Backbone.View.extend({
 		var $tab = this.$('.track-tab');
 		$tab.html(this.trackTabTemplate({
 			tracks: this.genreTree[genreTitle][artistTitle].sort(function(a, b) {
-				return a.title > b.title ? 1
-				: a.title < b.title ? -1
-				: 0;
+				return stringCompareCaseInsensitive(a.title, b.title);
 			}),
 		}));
 		$tab.find('.result-list li').on('click', function() {

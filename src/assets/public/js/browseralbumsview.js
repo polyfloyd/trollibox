@@ -26,14 +26,18 @@ var BrowserAlbumsView = Backbone.View.extend({
 		});
 
 		// Flatten the tree into a list.
-		this.albums = Object.keys(artistAlbums).sort().reduce(function(results, artistName) {
-			return results.concat(Object.keys(artistAlbums[artistName]).sort().map(function(albumTitle) {
-				return {
-					title:  albumTitle,
-					artist: artistName,
-					tracks: artistAlbums[artistName][albumTitle],
-				};
-			}));
+		this.albums = Object.keys(artistAlbums)
+			.sort(stringCompareCaseInsensitive)
+			.reduce(function(results, artistName) {
+				return results.concat(Object.keys(artistAlbums[artistName])
+					.sort(stringCompareCaseInsensitive)
+					.map(function(albumTitle) {
+						return {
+							title:  albumTitle,
+							artist: artistName,
+							tracks: artistAlbums[artistName][albumTitle],
+						};
+					}));
 		}, []);
 
 		this.$('.album-list ul')
@@ -46,9 +50,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 		var self = this;
 
 		album.sort(function(a, b) {
-			return a.albumtrack > b.albumtrack ? 1
-			: a.albumtrack < b.albumtrack ? -1
-			: 0;
+			return stringCompareCaseInsensitive(a.albumtrack, b.albumtrack);
 		});
 
 		// Sort tracks into discs. If no disc data is available, all tracks are

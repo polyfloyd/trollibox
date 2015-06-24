@@ -30,7 +30,7 @@ $.fn.lazyLoad = function(callback, thisArg) {
 			callback.call(thisArg, event);
 		}
 	});
-}
+};
 
 function durationToString(seconds) {
 	var s = '';
@@ -68,4 +68,16 @@ function showTrackArt($elem, track, cb) {
 			if (cb) cb(state !== 'error');
 		},
 	});
+}
+
+/**
+ * To be used as argument to Array#sort(). Compares strings without case
+ * sensitivity.
+ */
+function stringCompareCaseInsensitive(a, b) {
+	a = a.toLowerCase();
+	b = b.toLowerCase();
+	return a > b ? 1
+		: a < b ? -1
+		: 0;
 }
