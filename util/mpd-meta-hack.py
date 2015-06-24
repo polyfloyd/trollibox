@@ -60,6 +60,7 @@ if __name__ == '__main__':
 	libdir = get_mpd_library_dir(MPD_CONF)
 
 	total_files_updated = 0
+	total_files_skipped = 0
 	total_image_size    = 0
 
 	for song in client.listallinfo(''):
@@ -73,6 +74,7 @@ if __name__ == '__main__':
 			try:
 				client.sticker_get('song', file_rel, 'image-nchunks')
 				# Track has art, skip it.
+				total_files_skipped += 1
 				continue
 			except:
 				# Track has no art.
@@ -82,6 +84,7 @@ if __name__ == '__main__':
 		img_data = get_art_base64(file_abs, IMG_SIZE)
 
 		if img_data is None:
+			total_files_skipped += 1
 			continue
 		print('Updating %s, size=%s' % (file_rel, len(img_data)))
 
@@ -112,5 +115,6 @@ if __name__ == '__main__':
 	client.close()
 	client.disconnect()
 
+	print('%s files skipped' % total_files_skipped)
 	print('%s files updated' % total_files_updated)
 	print('%s KB total image size' % (round(total_image_size / 1024, 2)))
