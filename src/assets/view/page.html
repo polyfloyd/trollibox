@@ -14,8 +14,10 @@
 		window.URLROOT = '{{ .urlroot }}';
 	</script>
 
-	{{ range .assets.css }}
-		<link rel="stylesheet" href="{{ . }}" />
+	{{ with $v := . }}
+		{{ range $v.assets.css }}
+			<link rel="stylesheet" href="{{ $v.urlroot }}{{ . }}" />
+		{{ end }}
 	{{ end }}
 
 	{{ template "head" . }}
@@ -50,8 +52,10 @@
 
 	{{ template "content" . }}
 
-	{{ range .assets.js }}
-		<script src="{{ . }}"></script>
+	{{ with $v := . }}
+		{{ range $v.assets.js }}
+			<script src="{{ $v.urlroot }}{{ . }}"></script>
+		{{ end }}
 	{{ end }}
 	{{ template "init" . }}
 </body>

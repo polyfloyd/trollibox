@@ -138,7 +138,7 @@ func getStaticAssets(files []string) (static map[string][]string) {
 		if !strings.HasPrefix(file, PUBLIC) {
 			continue
 		}
-		urlPath := strings.TrimPrefix(file, PUBLIC)
+		urlPath := strings.TrimPrefix(file, PUBLIC+"/")
 
 		switch path.Ext(file) {
 		case ".css":
