@@ -22,9 +22,27 @@ var BrowserSearchView = Backbone.View.extend({
 	doSearch: function() {
 		this.query   = this.$('.search-input input').val();
 		this.results = this.model.search(this.query).sort(function(a, b) {
-			return a.matches > b.matches ? -1
+			var matchesCmp = a.matches > b.matches ? -1
 				: a.matches < b.matches ? 1
-				: stringCompareCaseInsensitive(a.track.title, b.track.title);
+				: 0;
+			if (matchesCmp !== 0) {
+				return matchesCmp;
+			}
+
+			var artistCmp = stringCompareCaseInsensitive(a.track.artist, b.track.artist);
+			if (artistCmp !== 0) {
+				return artistCmp;
+			}
+
+			var titleCmp = stringCompareCaseInsensitive(a.track.title, b.track.title);
+			if (titleCmp !== 0) {
+				return titleCmp;
+			}
+
+			var albumCmp = stringCompareCaseInsensitive(a.track.album, b.track.album);
+			if (albumCmp !== 0) {
+				return albumCmp;
+			}
 		});
 		this.$('.result-list').empty();
 		this.appendResults(60);
