@@ -20,7 +20,12 @@ var BrowserSearchView = Backbone.View.extend({
 	},
 
 	doSearch: function() {
-		this.query   = this.$('.search-input input').val();
+		this.$('.result-list').empty();
+		this.query = this.$('.search-input input').val();
+		if (this.query.length <= 2) {
+			return;
+		}
+
 		this.results = this.model.search(this.query).sort(function(a, b) {
 			var matchesCmp = a.matches > b.matches ? -1
 				: a.matches < b.matches ? 1
@@ -44,7 +49,6 @@ var BrowserSearchView = Backbone.View.extend({
 				return albumCmp;
 			}
 		});
-		this.$('.result-list').empty();
 		this.appendResults(60);
 	},
 
