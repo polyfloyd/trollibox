@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 	ws "golang.org/x/net/websocket"
 )
@@ -198,18 +200,53 @@ func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 }
 
 func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
-		tracks, err := player.ListTracks(mux.Vars(req)["path"], true)
+	getResponse := func(path string, wr io.Writer) error {
+		tracks, err := player.ListTracks(path, true)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
-		res.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(res).Encode(map[string]interface{}{
+		return json.NewEncoder(wr).Encode(map[string]interface{}{
 			"tracks": tracks,
 		})
-		if err != nil {
-			panic(err)
+	}
+
+	// Only cache the root since it is the most commonly requested path.
+	var cachedRoot *bytes.Buffer
+	var cacheMutex sync.Mutex
+	go func() {
+		listener := make(chan string, 16)
+		defer close(listener)
+		player.Listen(listener)
+		listener <- "update" // Bootstrap the cycle
+
+		for {
+			if event := <-listener; event != "update" {
+				continue
+			}
+
+			cacheMutex.Lock()
+			var newCachedRoot bytes.Buffer
+			getResponse("/", &newCachedRoot)
+			cachedRoot = &newCachedRoot
+			cacheMutex.Unlock()
+		}
+	}()
+
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+
+		if path := mux.Vars(req)["path"]; path == "" || path == "/" {
+			cacheMutex.Lock()
+			buf := cachedRoot
+			cacheMutex.Unlock()
+			if _, err := res.Write(buf.Bytes()); err != nil {
+				panic(err)
+			}
+		} else {
+			if err := getResponse(path, res); err != nil {
+				panic(err)
+			}
 		}
 	}
 }
