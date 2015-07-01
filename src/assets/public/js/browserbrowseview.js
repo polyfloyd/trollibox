@@ -107,6 +107,7 @@ var BrowserBrowseView = Backbone.View.extend({
 				'<li data-index="<%= index %>">'+
 					'<span class="track-title"><%- track.title %></span>'+
 					'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
+					'<span class="track-album"><%- track.album %></span>'+
 				'</li>'+
 			'<% }) %>'+
 		'</ul>'
