@@ -57,7 +57,18 @@ var BrowserAlbumsView = Backbone.View.extend({
 		var self = this;
 
 		album.sort(function(a, b) {
-			return stringCompareCaseInsensitive(a.albumtrack, b.albumtrack);
+			var at = a.albumtrack;
+			var bt = b.albumtrack;
+
+			// Add a zero padding to make sure '12' > '4'.
+			while (at.length > bt.length) {
+				bt = '0'+bt;
+			}
+			while (bt.length > at.length) {
+				at = '0'+at;
+			}
+
+			return stringCompareCaseInsensitive(at, bt);
 		});
 
 		// Sort tracks into discs. If no disc data is available, all tracks are
