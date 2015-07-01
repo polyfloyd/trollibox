@@ -18,13 +18,13 @@ type Track struct {
 	player *Player
 
 	Id          string `json:"id"`
-	Artist      string `json:"artist"`
-	Title       string `json:"title"`
-	Genre       string `json:"genre"`
-	Album       string `json:"album"`
-	AlbumArtist string `json:"albumartist"`
-	AlbumTrack  string `json:"albumtrack"`
-	AlbumDisc   string `json:"albumdisc"`
+	Artist      string `json:"artist,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Genre       string `json:"genre,omitempty"`
+	Album       string `json:"album,omitempty"`
+	AlbumArtist string `json:"albumartist,omitempty"`
+	AlbumTrack  string `json:"albumtrack,omitempty"`
+	AlbumDisc   string `json:"albumdisc,omitempty"`
 	Duration    int    `json:"duration"`
 }
 

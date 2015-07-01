@@ -24,12 +24,10 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:playlist', 'data/player/playlist', function(data) {
 			this.setInternal('playlist', data.tracks.filter(function(track) {
 				return !!track.id;
-			}).map(function(track) {
-				return this.fillMissingTrackFields(track);
-			}, this));
+			}).map(this.fillMissingTrackFields, this));
 		});
 		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
-			this.setInternal('tracks', data.tracks);
+			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 
 		this.attachServerUpdater('progress', 'data/player/progress', function(value) {
@@ -187,6 +185,18 @@ var Player = Backbone.Model.extend({
 	},
 
 	fillMissingTrackFields: function(track) {
+		[
+			'artist',
+			'title',
+			'genre',
+			'album',
+			'albumartist',
+			'albumtrack',
+			'albumdisc',
+		].forEach(function(k) {
+			track[k] || (track[k] = '');
+		});
+
 		if (!track.title || !track.artist) {
 			var artistAndTitle = track.id.match(/.*\/(.+)\s+-\s+(.+)\.\w+/);
 			if (artistAndTitle) {
