@@ -28,16 +28,23 @@ var BrowserAlbumsView = Backbone.View.extend({
 		// Flatten the tree into a list.
 		this.albums = Object.keys(artistAlbums)
 			.sort(stringCompareCaseInsensitive)
-			.reduce(function(results, artistName) {
-				return results.concat(Object.keys(artistAlbums[artistName])
+			.reduce(function(albums, artistName) {
+				return Object.keys(artistAlbums[artistName])
 					.sort(stringCompareCaseInsensitive)
-					.map(function(albumTitle) {
-						return {
+					.reduce(function(albums, albumTitle) {
+						var album = artistAlbums[artistName][albumTitle];
+						// Showing albums is pretty pointless and wastes screen
+						// space with libraries that are not tagged very well.
+						if (album.length <= 1) {
+							return albums;
+						}
+
+						return albums.concat({
 							title:  albumTitle,
 							artist: artistName,
-							tracks: artistAlbums[artistName][albumTitle],
-						};
-					}));
+							tracks: album,
+						});
+					}, albums);
 		}, []);
 
 		this.$('.album-list ul')
