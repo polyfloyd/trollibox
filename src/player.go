@@ -16,7 +16,6 @@ import (
 
 type Track struct {
 	player *Player
-	isDir  bool
 
 	Id          string `json:"id"`
 	Artist      string `json:"artist"`
@@ -280,14 +279,11 @@ func (this *Player) playlistLoop() {
 func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Client) {
 	track.player = this
 
-	if dir, ok := (*song)["directory"]; ok {
-		track.isDir = true
-		track.Id = dir
-	} else {
-		track.isDir = false
-		track.Id = (*song)["file"]
+	if _, ok := (*song)["directory"]; ok {
+		panic("Tried to read a directory")
 	}
 
+	track.Id          = (*song)["file"]
 	track.Artist      = (*song)["Artist"]
 	track.Title       = (*song)["Title"]
 	track.Genre       = (*song)["Genre"]
@@ -344,20 +340,13 @@ func (this *Player) Queue(path string, queuedBy string) (err error) {
 }
 
 func (this *Player) QueueRandom() error {
-	files, err := this.ListTracks("", true)
+	tracks, err := this.ListTracks("", true)
 	if err != nil {
 		return err
 	}
 
-	if len(files) == 0 {
+	if len(tracks) == 0 {
 		return nil
-	}
-
-	tracks := make([]Track, len(files))[0:0]
-	for _, file := range files {
-		if !file.isDir {
-			tracks = append(tracks, file)
-		}
 	}
 
 	// TODO: Implement selection bias
@@ -420,15 +409,20 @@ func (this *Player) ListTracks(path string, recursive bool) (tracks []Track, err
 		} else {
 			songs, err = mpdc.ListInfo(path)
 		}
-
 		if err != nil {
 			return
 		}
 
+		numDirs := 0
 		tracks = make([]Track, len(songs))
 		for i, song := range songs {
-			this.trackFromMpdSong(&song, &tracks[i], mpdc)
+			if _, ok := song["directory"]; ok {
+				numDirs++
+			} else {
+				this.trackFromMpdSong(&song, &tracks[i-numDirs], mpdc)
+			}
 		}
+		tracks = tracks[:len(tracks)-numDirs]
 	})
 	return
 }
