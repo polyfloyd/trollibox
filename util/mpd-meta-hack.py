@@ -26,16 +26,16 @@ def get_mpd_library_dir(f):
 		return fixHome(res[0])
 
 def get_art_base64(f, size):
-	audio_file = mutagen.File(f)
-	data = None
-	if not audio_file is None and 'APIC:' in audio_file.tags:
-		data = audio_file.tags['APIC:'].data
-	if not audio_file is None and hasattr(audio_file, 'pictures') and len(audio_file.pictures) > 0:
-		data = audio_file.pictures[0].data
-	if data is None:
-		return None
-
 	try:
+		audio_file = mutagen.File(f)
+		data = None
+		if not audio_file is None and 'APIC:' in audio_file.tags:
+			data = audio_file.tags['APIC:'].data
+		if not audio_file is None and hasattr(audio_file, 'pictures') and len(audio_file.pictures) > 0:
+			data = audio_file.pictures[0].data
+		if data is None:
+			return None
+
 		img = Image.open(io.BytesIO(data))
 		img.thumbnail(size)
 		buf = io.BytesIO()
