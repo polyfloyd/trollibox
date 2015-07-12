@@ -15,6 +15,9 @@
 				<li role="presentation" id="browser-show-browse">
 					<a class="glyphicon glyphicon-music" title="Browse Artists By Genre" href="#"></a>
 				</li>
+				<li role="presentation" id="browser-show-streams">
+					<a class="glyphicon glyphicon-globe" title="Network Streams" href="#"></a>
+				</li>
 			</ul>
 
 			<div class="browser-views-content"></div>
@@ -39,6 +42,9 @@
 				model: player,
 			}),
 			browse: new BrowserBrowseView({
+				model: player,
+			}),
+			streams: new BrowserStreamsView({
 				model: player,
 			}),
 		};

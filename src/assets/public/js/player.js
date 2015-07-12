@@ -6,6 +6,7 @@ var Player = Backbone.Model.extend({
 		'playlist': [],
 		'progress': 0,
 		'state':    'stopped',
+		'streams':  [],
 		'tracks':   [],
 		'volume':   0,
 	},
@@ -28,6 +29,9 @@ var Player = Backbone.Model.extend({
 		});
 		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
+		});
+		this.attachServerReloader('server-event:update-streams', 'data/track/streams', function(data) {
+			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
 
 		this.attachServerUpdater('progress', 'data/player/progress', function(value) {
@@ -166,9 +170,11 @@ var Player = Backbone.Model.extend({
 			this.progressUpdater = setInterval(function() {
 				self.setInternal('progress', self.get('progress') + 1);
 			}, 1000);
-			this.progressTimeout = setTimeout(function() {
-				self.reload('server-event:player');
-			}, 1000 * (this.get('current').duration - this.get('progress')));
+			if (this.get('current').duration) {
+				this.progressTimeout = setTimeout(function() {
+					self.reload('server-event:player');
+				}, 1000 * (this.get('current').duration - this.get('progress')));
+			}
 		}
 	},
 
@@ -185,6 +191,7 @@ var Player = Backbone.Model.extend({
 	},
 
 	fillMissingTrackFields: function(track) {
+		// Ensure every field is a string.
 		[
 			'artist',
 			'title',
@@ -198,13 +205,29 @@ var Player = Backbone.Model.extend({
 		});
 
 		if (!track.title || !track.artist) {
-			var artistAndTitle = track.id.match(/.*\/(.+)\s+-\s+(.+)\.\w+/);
+			// First, attempt to find an "<artist> - <title>" string.
+			var artistAndTitle = [
+				'title',
+				'artist',
+			].reduce(function(ant, attr) {
+				if (ant || !track[attr]) {
+					return ant;
+				}
+				return track[attr].match(/(.+)\s+-\s+(.+)/);
+			}, null);
+			// Also try the filename. We use a different regex to cut off the
+			// path and extension.
+			artistAndTitle = artistAndTitle || track.id.match(/.*\/(.+)\s+-\s+(.+)\.\w+/);
 			if (artistAndTitle) {
-				track.artist = track.artist || artistAndTitle[1];
-				track.title  = track.title  || artistAndTitle[2];
+				track.artist = artistAndTitle[1];
+				track.title  = artistAndTitle[2];
 			} else {
-				var title = track.id.match(/.*\/(.+)\.\w+/);
-				track.title = title ? title[1] : '';
+				// If that doesn't work, use the filename or stream URL.
+				track.title = track.id.match(/^https?:\/\//)
+					? track.id // Use the stream URL.
+					: function(t) { //  Cut the filename from the path.
+						return t ? t[1] : '';
+					}(track.id.match(/.*\/(.+)\.\w+/));
 			}
 		}
 		return track;

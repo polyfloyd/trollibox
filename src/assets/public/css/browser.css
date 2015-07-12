@@ -306,3 +306,37 @@ ul.result-list li .track-album {
 .browser-view.browser-browse h2 {
 	flex-shrink: 0;
 }
+
+
+.browser-view.browser-streams > ul {
+	width: calc(100%);
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-view.browser-streams > ul > li {
+	width: 160px;
+	height: 160px;
+	display: inline-block;
+	cursor: pointer;
+}
+
+.browser-view.browser-streams > ul > li .track-art {
+	width: calc(100% - 8px);
+	height: calc(100% - 8px);
+	margin: 4px;
+	position: relative;
+}
+
+.browser-view.browser-streams ul > li .track-art > * {
+	background-color: rgba(0, 0, 0, 0.6);
+	position: absolute;
+	padding: 0 0.2em;
+	overflow: hidden;
+}
+
+.browser-view.browser-streams ul > li .track-art > .stream-title {
+	top: 0;
+	left: 0;
+	right: 0;
+}

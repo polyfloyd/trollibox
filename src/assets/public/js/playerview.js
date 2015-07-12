@@ -51,7 +51,9 @@ var PlayerView = Backbone.View.extend({
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby);
 		this.$('.track-duration-total').text(cur.duration ? durationToString(cur.duration) : '');
-		this.$('.do-set-progress').attr('max', cur.duration);
+		this.$('.do-set-progress')
+			.attr('max', cur.duration || 0)
+			.toggleAttr('disabled', !cur.duration);
 	},
 
 	renderProgress: function() {
@@ -150,7 +152,6 @@ var PlayerView = Backbone.View.extend({
 			'<div class="input-group">'+
 				'<p class="input-group-addon">'+
 					'<span class="track-duration-current"></span>'+
-					' / '+
 					'<span class="track-duration-total"></span>'+
 				'</p>'+
 				'<input class="do-set-progress" type="range" min="0" max="100" title="Seek in the current track" />'+
@@ -174,7 +175,7 @@ var PlayerView = Backbone.View.extend({
 	playlistTemplate: _.template(
 		'<li class="queuedby-<%= queuedby %>">'+
 			'<button class="do-remove glyphicon glyphicon-remove"></button>'+
-			'<span class="track-artist"><%- artist %></span> - <span class="track-title"><%- title %></span>'+
+			'<span class="track-artist"><%- artist %></span><span class="track-title"><%- title %></span>'+
 		'</li>'
 	),
 

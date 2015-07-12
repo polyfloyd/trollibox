@@ -55,10 +55,17 @@
 	background: none;
 }
 
-.track-duration-current:empty:before,
-.track-duration-total:empty:before {
+.track-duration-current:empty:before {
 	content: "0:00";
 	opacity: 0.7;
+}
+
+.track-duration-total:before {
+	content: " / ";
+}
+
+.track-duration-total:empty:before {
+	content: "";
 }
 
 .player.player-playing .do-play,
@@ -79,6 +86,14 @@
 .player-playlist li {
 	padding-left: 30px;
 	cursor: move;
+}
+
+.player-playlist li .track-artist:empty:before {
+	content: "";
+}
+
+.player-playlist li .track-artist:not(:empty):after {
+	content: " - ";
 }
 
 .player-playlist li.sortable-placeholder {

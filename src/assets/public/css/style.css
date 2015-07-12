@@ -97,9 +97,13 @@ input[type='range']::-moz-range-thumb {
 	     appearance: none !important;
 	width: 4px;
 	height: 2.2em;
-	background: #f60;
 	border: none;
 	border-radius: 0;
+	background: #f60;
+}
+
+input[type='range'][disabled]::-moz-range-thumb {
+	background: #444;
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -108,6 +112,10 @@ input[type='range']::-webkit-slider-thumb {
 	width: 4px;
 	height: 2.2em;
 	background: #f60;
+}
+
+input[type='range'][disabled]::-webkit-slider-thumb {
+	background: #444;
 }
 
 /* Navbar */

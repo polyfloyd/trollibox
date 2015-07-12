@@ -22,6 +22,25 @@ Array.prototype.findIndex =  Array.prototype.findIndex || function(predicate) {
 	return -1;
 };
 
+jQuery.fn.toggleAttr = function(attr, value, toggle) {
+	if (typeof toggle === 'undefined') {
+		toggle = value;
+		value = undefined;
+	}
+	if (typeof value === 'undefined') {
+		value = attr;
+	}
+
+	return this.each(function() {
+		var $this = $(this);
+		if (toggle) {
+			$this.attr(attr, value);
+		} else {
+			$this.removeAttr(attr);
+		}
+	});
+};
+
 $.fn.lazyLoad = function(callback, thisArg) {
 	thisArg = thisArg || this;
 	var $el = this;
@@ -57,13 +76,23 @@ function showTrackArt($elem, track, cb) {
 		return;
 	}
 
+	function setUrl(url) {
+		$elem.css('background-image', 'url(\''+url.replace(/'/g, '\\\'')+'\')');
+	}
+
+	if (track.art) {
+		setUrl(track.art);
+		if (cb) cb(true);
+		return;
+	}
+
 	var url = URLROOT+'data/track/art/'+encodeURIComponent(track.id);
 	$.ajax({
 		method:   'HEAD',
 		url:      url,
 		complete: function(xhr, state) {
 			if (state !== 'error') {
-				$elem.css('background-image', 'url(\''+url.replace(/'/g, '\\\'')+'\')');
+				setUrl(url);
 			}
 			if (cb) cb(state !== 'error');
 		},
