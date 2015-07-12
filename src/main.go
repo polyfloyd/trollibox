@@ -42,6 +42,8 @@ type Config struct {
 	Address string `json:"listen-address"`
 	URLRoot string `json:"url-root"`
 
+	StorageDir string `json:"storage-dir"`
+
 	Mpd struct {
 		Host     string  `json:"host"`
 		Port     int     `json:"port"`
@@ -72,6 +74,14 @@ func main() {
 	if in, err := os.Open(*configFile); err != nil {
 		log.Fatal(err)
 	} else if err := json.NewDecoder(in).Decode(&config); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := SetStorageDir(config.StorageDir); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("Using \"%v\" for storage", config.StorageDir)
+	if err := InitStreams(); err != nil {
 		log.Fatal(err)
 	}
 

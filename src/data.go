@@ -78,7 +78,9 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(player))
 	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(player))
-	r.Path("/track/streams").Methods("GET").HandlerFunc(htPlayerStreams(player))
+	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList())
+	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd())
+	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove())
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
 
@@ -289,19 +291,6 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 	}
 }
 
-func htPlayerStreams(*Player) func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Set("Content-Type", "application/json")
-
-		err := json.NewEncoder(res).Encode(map[string]interface{}{
-			"streams": GetStreams(),
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
 func htTrackArt(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		tracks, err := player.ListTracks(mux.Vars(req)["path"], false)
@@ -330,6 +319,63 @@ func htTrackArtProbe(player *Player) func(res http.ResponseWriter, req *http.Req
 
 		if len(tracks) != 1 || !tracks[0].HasArt() {
 			http.NotFound(res, req)
+		}
+	}
+}
+
+func htStreamsList() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+
+		err := json.NewEncoder(res).Encode(map[string]interface{}{
+			"streams": GetStreams(),
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htStreamsAdd() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		var data struct {
+			Stream StreamTrack `json:"stream"`
+		}
+
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			panic(err)
+		}
+
+		if err := AddStream(&data.Stream); err != nil {
+			panic(err)
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		if _, err := res.Write([]byte("{}")); err != nil {
+			panic(err)
+		}
+	}
+}
+
+func htStreamsRemove() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		var data struct {
+			Stream StreamTrack `json:"stream"`
+		}
+
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			panic(err)
+		}
+
+		if err := RemoveStreamByUrl(data.Stream.Url); err != nil {
+			panic(err)
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		if _, err := res.Write([]byte("{}")); err != nil {
+			panic(err)
 		}
 	}
 }

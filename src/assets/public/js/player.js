@@ -30,7 +30,7 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
-		this.attachServerReloader('server-event:update-streams', 'data/track/streams', function(data) {
+		this.attachServerReloader('server-event:update-streams', 'data/streams', function(data) {
 			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
 
@@ -302,5 +302,39 @@ var Player = Backbone.Model.extend({
 		this.set('playlist', this.get('playlist').filter(function(t, i) {
 			return i !== trackIndex;
 		}));
+	},
+
+	addStream: function(stream) {
+		$.ajax({
+			url:      URLROOT+'data/streams',
+			method:   'POST',
+			dataType: 'json',
+			data:     JSON.stringify({ stream: stream }),
+			context:  this,
+			success:  function() {
+				this.set('streams', this.get('streams').concat(stream));
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
+
+	removeStream: function(stream) {
+		$.ajax({
+			url:      URLROOT+'data/streams',
+			method:   'DELETE',
+			dataType: 'json',
+			context:  this,
+			data:     JSON.stringify({ stream: stream }),
+			success:  function() {
+				this.set('streams', this.get('streams').filter(function(str) {
+					return str.id === stream.id;
+				}));
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
 	},
 });

@@ -4,13 +4,31 @@ import (
 	"regexp"
 )
 
-var streams = []StreamTrack{
+var streamsStorage *PersistentStorage
+var defaultStreams = []StreamTrack{
 	{
 		Url:   "http://pub7.di.fm/di_trance",
 		Art:   "http://api.audioaddict.com/v1/assets/image/befc1043f0a216128f8570d3664856f7.png?size=200x200",
 		Album: "DI Trance",
 	},
 }
+
+func InitStreams() error {
+	ss, err := NewPersistentStorage("streams", &[]StreamTrack{})
+	if err != nil {
+		return err
+	}
+	streamsStorage = ss
+
+	if len(GetStreams()) == 0 {
+		if err := streamsStorage.SetValue(&defaultStreams); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 
 type StreamTrack struct {
 	Url   string `json:"id"`
@@ -24,7 +42,7 @@ func (this *StreamTrack) GetUri() string {
 }
 
 func GetStreams() []StreamTrack {
-	return streams
+	return *streamsStorage.Value().(*[]StreamTrack)
 }
 
 func GetStreamByURL(url string) *StreamTrack {
@@ -34,6 +52,28 @@ func GetStreamByURL(url string) *StreamTrack {
 		}
 	}
 	return nil
+}
+
+func AddStream(stream *StreamTrack) error {
+	if GetStreamByURL(stream.Url) != nil {
+		return nil
+	}
+
+	streams := append(GetStreams(), *stream)
+	return streamsStorage.SetValue(&streams)
+}
+
+func RemoveStreamByUrl(url string) error {
+	streams := GetStreams()
+	found := 0
+	for i, stream := range streams {
+		if stream.Url == url {
+			found++
+		}
+		streams[i] = streams[i-found]
+	}
+	streams = streams[:len(streams)-found]
+	return streamsStorage.SetValue(&streams)
 }
 
 func isStreamUri(uri string) (ok bool) {
