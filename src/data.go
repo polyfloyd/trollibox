@@ -11,6 +11,43 @@ import (
 	ws "golang.org/x/net/websocket"
 )
 
+// Dirty hack to remove an extra "Track" JSON object when serializing.
+func jsonType(plTr *PlaylistTrack) interface{} {
+	if plTr == nil {
+		return nil
+	}
+
+	if tr, ok := plTr.Track.(*StreamTrack); ok {
+		return &struct{
+			*StreamTrack
+			*QueueAttrs
+		} {
+			StreamTrack: tr,
+			QueueAttrs:  &plTr.QueueAttrs,
+		}
+	} else if tr, ok := plTr.Track.(*LocalTrack); ok {
+		return &struct{
+			*LocalTrack
+			*QueueAttrs
+		} {
+			LocalTrack: tr,
+			QueueAttrs: &plTr.QueueAttrs,
+		}
+	} else {
+		panic("Unknown track type")
+	}
+	return nil
+}
+
+func jsonTypeList(inList []PlaylistTrack) (outList []interface{}) {
+	outList = make([]interface{}, len(inList))
+	for i, plTr := range inList {
+		outList[i] = jsonType(&plTr)
+	}
+	return
+}
+
+
 func socketHandler(player *Player) func(*ws.Conn) {
 	return func(conn *ws.Conn) {
 		ch := make(chan string, 16)
@@ -41,6 +78,7 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
 	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(player))
 	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(player))
+	r.Path("/track/streams").Methods("GET").HandlerFunc(htPlayerStreams(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
 
@@ -150,7 +188,7 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 			res.Header().Set("Content-Type", "application/json")
 			err := json.NewEncoder(res).Encode(map[string]interface{}{
 				"progress": progress,
-				"track":    track,
+				"track":    jsonType(track),
 				"state":    state,
 			})
 			if err != nil {
@@ -169,7 +207,7 @@ func htPlayerGetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 
 		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
-			"tracks": tracks,
+			"tracks": jsonTypeList(tracks),
 		})
 		if err != nil {
 			panic(err)
@@ -247,6 +285,19 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 			if err := getResponse(path, res); err != nil {
 				panic(err)
 			}
+		}
+	}
+}
+
+func htPlayerStreams(*Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+
+		err := json.NewEncoder(res).Encode(map[string]interface{}{
+			"streams": GetStreams(),
+		})
+		if err != nil {
+			panic(err)
 		}
 	}
 }

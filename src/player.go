@@ -13,8 +13,12 @@ import (
 	mpd "github.com/polyfloyd/gompd/mpd"
 )
 
+type Track interface {
+	GetUri() string
+}
 
-type Track struct {
+
+type LocalTrack struct {
 	player *Player
 
 	Id          string `json:"id"`
@@ -28,7 +32,11 @@ type Track struct {
 	Duration    int    `json:"duration"`
 }
 
-func (this *Track) GetArt() (image io.Reader) {
+func (this *LocalTrack) GetUri() string {
+	return this.Id
+}
+
+func (this *LocalTrack) GetArt() (image io.Reader) {
 	this.player.withMpd(func(mpdc *mpd.Client) {
 		numChunks := 0
 		if strNum, err := mpdc.StickerGet(this.Id, "image-nchunks"); err == nil {
@@ -53,7 +61,7 @@ func (this *Track) GetArt() (image io.Reader) {
 	return
 }
 
-func (this *Track) HasArt() (hasArt bool) {
+func (this *LocalTrack) HasArt() (hasArt bool) {
 	this.player.withMpd(func(mpdc *mpd.Client) {
 		_, err := mpdc.StickerGet(this.Id, "image-nchunks")
 		hasArt = err == nil
@@ -139,7 +147,6 @@ func (this *Player) withMpd(fn func(mpd *mpd.Client)) {
 	}
 	defer client.Close()
 	fn(client)
-
 }
 
 func (this *Player) idleLoop() {
@@ -253,37 +260,40 @@ func (this *Player) playlistLoop() {
 			}
 
 			if len(songs) > 0 {
-				var current Track
-				this.trackFromMpdSong(&songs[0], &current, mpdc)
+				currentUri := songs[0]["file"]
+
 				// TODO: If one track is followed by another track with the same
 				// ID, the next block will not be executed, leaving the playcount
 				// unchanged.
-				if this.lastTrack != current.Id {
-
+				if this.lastTrack != currentUri {
 					// Increment the playcount for this track
 					var playCount int64
-					if str, err := mpdc.StickerGet(current.Id, "play-count"); err == nil {
+					if str, err := mpdc.StickerGet(currentUri, "play-count"); err == nil {
 						playCount, _ = strconv.ParseInt(str, 10, 32)
 					}
-					if err := mpdc.StickerSet(current.Id, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
+					if err := mpdc.StickerSet(currentUri, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
 						log.Println(err)
 					}
 
-					this.lastTrack = current.Id
+					this.lastTrack = currentUri
 				}
 			}
 		})
 	}
 }
 
-func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Client) {
+func (this *Player) localTrackFromMpdSong(song *mpd.Attrs, track *LocalTrack, mpdc *mpd.Client) {
 	track.player = this
 
 	if _, ok := (*song)["directory"]; ok {
-		panic("Tried to read a directory")
+		panic("Tried to read a directory as local file")
 	}
 
-	track.Id          = (*song)["file"]
+	track.Id = (*song)["file"]
+	if isStreamUri(track.Id) {
+		panic("Tried to read a stream as local file")
+	}
+
 	track.Artist      = (*song)["Artist"]
 	track.Title       = (*song)["Title"]
 	track.Genre       = (*song)["Genre"]
@@ -301,16 +311,40 @@ func (this *Player) trackFromMpdSong(song *mpd.Attrs, track *Track, mpdc *mpd.Cl
 		timeStr = str
 	}
 
-	if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
-		panic(err)
-	} else {
-		track.Duration = int(duration)
+	if timeStr != "" {
+		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
+			panic(err)
+		} else {
+			track.Duration = int(duration)
+		}
 	}
 }
 
+func (this *Player) streamTrackFromMpdSong(song *mpd.Attrs, stream *StreamTrack, mpdc *mpd.Client) {
+	if tmpl := GetStreamByURL((*song)["file"]); tmpl != nil {
+		// Make a copy to prevent polluting the original.
+		*stream = StreamTrack(*tmpl)
+	}
+	if name, ok := (*song)["Name"]; ok {
+		stream.Album = name
+	}
+	if stream.Album == "" {
+		stream.Album = stream.Url
+	}
+	stream.Title = (*song)["Title"]
+}
+
 func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack, mpdc *mpd.Client) {
-	this.trackFromMpdSong(song, &track.Track, mpdc)
-	track.QueueAttrs = this.queueAttrs[track.Id]
+	if isStreamUri((*song)["file"]) {
+		var streamTrack StreamTrack
+		this.streamTrackFromMpdSong(song, &streamTrack, mpdc)
+		track.Track = &streamTrack
+	} else {
+		var tr LocalTrack
+		this.localTrackFromMpdSong(song, &tr, mpdc)
+		track.Track = &tr
+	}
+	track.QueueAttrs = this.queueAttrs[track.Track.GetUri()]
 }
 
 func (this *Player) Listen(listener chan string) uint64 {
@@ -329,12 +363,12 @@ func (this *Player) Unlisten(handle uint64) {
 	delete(this.listeners, handle)
 }
 
-func (this *Player) Queue(path string, queuedBy string) (err error) {
+func (this *Player) Queue(uri string, queuedBy string) (err error) {
 	this.withMpd(func(mpdc *mpd.Client) {
-		this.queueAttrs[path] = QueueAttrs{
+		this.queueAttrs[uri] = QueueAttrs{
 			QueuedBy: queuedBy,
 		}
-		err = mpdc.Add(path)
+		err = mpdc.Add(uri)
 	})
 	return
 }
@@ -350,7 +384,7 @@ func (this *Player) QueueRandom() error {
 	}
 
 	// TODO: Implement selection bias
-	return this.Queue(tracks[this.rand.Intn(len(tracks))].Id, "system")
+	return this.Queue(tracks[this.rand.Intn(len(tracks))].GetUri(), "system")
 }
 
 func (this *Player) Volume() (vol float32, err error) {
@@ -397,7 +431,7 @@ func (this *Player) SetVolume(vol float32) (err error) {
 	return
 }
 
-func (this *Player) ListTracks(path string, recursive bool) (tracks []Track, err error) {
+func (this *Player) ListTracks(path string, recursive bool) (tracks []LocalTrack, err error) {
 	this.withMpd(func(mpdc *mpd.Client) {
 		if path == "" {
 			path = "/"
@@ -414,12 +448,12 @@ func (this *Player) ListTracks(path string, recursive bool) (tracks []Track, err
 		}
 
 		numDirs := 0
-		tracks = make([]Track, len(songs))
+		tracks = make([]LocalTrack, len(songs))
 		for i, song := range songs {
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else {
-				this.trackFromMpdSong(&song, &tracks[i-numDirs], mpdc)
+				this.localTrackFromMpdSong(&song, &tracks[i-numDirs], mpdc)
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -453,7 +487,7 @@ func (this *Player) SetPlaylistIds(trackIds []string) error {
 		// Playing track is not the first track of the new list? Remove it so we
 		// can overwrite it.
 		var delStart int
-		if playlist[0].Id == trackIds[0] {
+		if playlist[0].GetUri() == trackIds[0] {
 			// Don't queue the first track twice.
 			delStart = 1
 			trackIds = trackIds[1:]
