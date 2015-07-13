@@ -72,7 +72,8 @@ function durationToString(seconds) {
 
 function showTrackArt($elem, track, cb) {
 	$elem.css('background-image', ''); // Reset to default.
-	if (!track || !track.id) {
+	if (!track) {
+		if (cb) cb(false);
 		return;
 	}
 
@@ -83,6 +84,11 @@ function showTrackArt($elem, track, cb) {
 	if (track.art) {
 		setUrl(track.art);
 		if (cb) cb(true);
+		return;
+	}
+
+	if (!track.id) {
+		if (cb) cb(false);
 		return;
 	}
 

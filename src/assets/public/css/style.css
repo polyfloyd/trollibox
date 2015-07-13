@@ -141,3 +141,12 @@ input[type='range'][disabled]::-webkit-slider-thumb {
 	background-color: #f60;
 	color: #222;
 }
+
+/* Modal */
+.modal-content {
+	background-color: #222;
+}
+
+.modal-content > * {
+	border-color: #333;
+}
