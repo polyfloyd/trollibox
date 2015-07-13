@@ -70,7 +70,10 @@ func RemoveStreamByUrl(url string) error {
 		if stream.Url == url {
 			found++
 		}
-		streams[i] = streams[i-found]
+		if i+found == len(streams) {
+			break
+		}
+		streams[i] = streams[i+found]
 	}
 	streams = streams[:len(streams)-found]
 	return streamsStorage.SetValue(&streams)

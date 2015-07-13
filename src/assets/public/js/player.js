@@ -312,7 +312,7 @@ var Player = Backbone.Model.extend({
 			data:     JSON.stringify({ stream: stream }),
 			context:  this,
 			success:  function() {
-				this.set('streams', this.get('streams').concat(stream));
+				this.reload('server-event:update-streams');
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
@@ -328,9 +328,7 @@ var Player = Backbone.Model.extend({
 			context:  this,
 			data:     JSON.stringify({ stream: stream }),
 			success:  function() {
-				this.set('streams', this.get('streams').filter(function(str) {
-					return str.id === stream.id;
-				}));
+				this.reload('server-event:update-streams');
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
