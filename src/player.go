@@ -266,13 +266,16 @@ func (this *Player) playlistLoop() {
 				// ID, the next block will not be executed, leaving the playcount
 				// unchanged.
 				if this.lastTrack != currentUri {
-					// Increment the playcount for this track
-					var playCount int64
-					if str, err := mpdc.StickerGet(currentUri, "play-count"); err == nil {
-						playCount, _ = strconv.ParseInt(str, 10, 32)
-					}
-					if err := mpdc.StickerSet(currentUri, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
-						log.Println(err)
+					// Streams can't have stickers.
+					if !IsStreamUri(currentUri) {
+						// Increment the playcount for this track.
+						var playCount int64
+						if str, err := mpdc.StickerGet(currentUri, "play-count"); err == nil {
+							playCount, _ = strconv.ParseInt(str, 10, 32)
+						}
+						if err := mpdc.StickerSet(currentUri, "play-count", strconv.FormatInt(playCount + 1, 10)); err != nil {
+							log.Printf("Could not set play-count: %v", err)
+						}
 					}
 
 					this.lastTrack = currentUri
@@ -290,7 +293,7 @@ func (this *Player) localTrackFromMpdSong(song *mpd.Attrs, track *LocalTrack, mp
 	}
 
 	track.Id = (*song)["file"]
-	if isStreamUri(track.Id) {
+	if IsStreamUri(track.Id) {
 		panic("Tried to read a stream as local file")
 	}
 
@@ -335,7 +338,7 @@ func (this *Player) streamTrackFromMpdSong(song *mpd.Attrs, stream *StreamTrack,
 }
 
 func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTrack, mpdc *mpd.Client) {
-	if isStreamUri((*song)["file"]) {
+	if IsStreamUri((*song)["file"]) {
 		var streamTrack StreamTrack
 		this.streamTrackFromMpdSong(song, &streamTrack, mpdc)
 		track.Track = &streamTrack

@@ -79,7 +79,7 @@ func RemoveStreamByUrl(url string) error {
 	return streamsStorage.SetValue(&streams)
 }
 
-func isStreamUri(uri string) (ok bool) {
+func IsStreamUri(uri string) (ok bool) {
 	ok, _ = regexp.Match("^https?:\\/\\/", []byte(uri))
 	return
 }
