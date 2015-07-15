@@ -85,7 +85,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password)
+	queuer, err := NewQueuer("queuer")
+	if err  != nil {
+		log.Fatal(err)
+	}
+
+	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password, queuer)
 	if err != nil {
 		log.Fatal(err)
 	}

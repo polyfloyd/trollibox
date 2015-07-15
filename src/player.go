@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"strconv"
 	"sync"
-	"time"
 	mpd "github.com/polyfloyd/gompd/mpd"
 )
 
@@ -34,6 +32,30 @@ type LocalTrack struct {
 
 func (this *LocalTrack) GetUri() string {
 	return this.Id
+}
+
+func (this *LocalTrack) AttributeByName(attr string) interface{} {
+	switch attr {
+	case "uri":
+		return this.Id
+	case "artist":
+		return this.Artist
+	case "title":
+		return this.Title
+	case "genre":
+		return this.Genre
+	case "album":
+		return this.AlbumArtist
+	case "albumartist":
+		return this.AlbumArtist
+	case "albumtrack":
+		return this.AlbumTrack
+	case "albumdisc":
+		return this.AlbumDisc
+	case "duration":
+		return this.Duration
+	}
+	return nil
 }
 
 func (this *LocalTrack) GetArt() (image io.Reader) {
@@ -82,8 +104,6 @@ type PlaylistTrack struct {
 
 
 type Player struct {
-	rand *rand.Rand
-
 	// Running the idle routine on the same connection as the main connection
 	// will fuck things up badly.
 	mpdWatcher *mpd.Watcher
@@ -104,9 +124,11 @@ type Player struct {
 	// We use this value to determine wether the currently playing track has
 	// changed.
 	lastTrack string
+
+	queuer *Queuer
 }
 
-func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
+func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, queuer *Queuer) (*Player, error) {
 	addr := fmt.Sprintf("%v:%v", mpdHost, mpdPort)
 
 	var passwd string
@@ -122,13 +144,14 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	}
 
 	player := &Player{
-		rand:       rand.New(rand.NewSource(time.Now().UnixNano())),
 		mpdWatcher: clientWatcher,
 		listeners:  map[uint64]chan string{},
 		queueAttrs: map[string]QueueAttrs{},
 
 		addr: addr,
 		passwd: passwd,
+
+		queuer: queuer,
 	}
 
 	go player.queueLoop()
@@ -386,8 +409,12 @@ func (this *Player) QueueRandom() error {
 		return nil
 	}
 
-	// TODO: Implement selection bias
-	return this.Queue(tracks[this.rand.Intn(len(tracks))].GetUri(), "system")
+	track := this.queuer.SelectTrack(tracks)
+	if track == nil {
+		return nil
+	}
+
+	return this.Queue(track.GetUri(), "system")
 }
 
 func (this *Player) Volume() (vol float32, err error) {
@@ -612,4 +639,8 @@ func (this *Player) SetState(state string) (err error) {
 		}
 	})
 	return
+}
+
+func (this *Player) Queuer() *Queuer {
+	return this.queuer
 }
