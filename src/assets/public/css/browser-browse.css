@@ -1,0 +1,18 @@
+.browser-view.browser-browse > * {
+	width: calc(100% / 3);
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-view.browser-browse > .genre-tab {
+	width: 300px;
+}
+
+.browser-view.browser-browse > .track-tab,
+.browser-view.browser-browse > .artist-tab {
+	width: 50%;
+}
+
+.browser-view.browser-browse h2 {
+	flex-shrink: 0;
+}

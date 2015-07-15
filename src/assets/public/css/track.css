@@ -1,0 +1,43 @@
+ul.result-list {
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+	overflow-y: auto;
+}
+
+ul.result-list li .track-num,
+ul.result-list li .track-num:after {
+	color: #aaa;
+}
+
+ul.result-list li .track-num:not(:empty):after {
+	content: ". ";
+}
+
+ul.result-list li .track-album {
+	float: right;
+	color: #aaa;
+}
+
+ul.result-list li:hover {
+	background-color: #333;
+	cursor: pointer;
+}
+
+ul.result-list li.active {
+	background-color: #333;
+	color: #f60;
+}
+
+ul.result-list:empty:before {
+	content: "No results";
+}
+
+ul.result-list li em {
+	color: #f60;
+	font-style: normal;
+}
+
+ul.result-list li .track-artist:after {
+	content: " - ";
+}

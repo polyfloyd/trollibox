@@ -1,0 +1,62 @@
+.browser-view.browser-streams > * {
+	width: 100%;
+}
+
+.browser-view.browser-streams .do-add-stream {
+	display: inline-block;
+	font-size: 0.6em;
+	vertical-align: middle;
+	color: #f60;
+	cursor: pointer;
+}
+
+.browser-view.browser-streams ul {
+	width: calc(100%);
+}
+
+.browser-view.browser-streams ul > li {
+	width: 160px;
+	height: 160px;
+	display: inline-block;
+	cursor: pointer;
+}
+
+.browser-view.browser-streams ul > li .track-art {
+	width: calc(100% - 8px);
+	height: calc(100% - 8px);
+	margin: 4px;
+	position: relative;
+}
+
+.browser-view.browser-streams ul > li .track-art > * {
+	background-color: rgba(0, 0, 0, 0.6);
+	position: absolute;
+	padding: 0 0.2em;
+	overflow: hidden;
+}
+
+.browser-view.browser-streams ul > li .track-art > .stream-title {
+	top: 0;
+	left: 0;
+	right: 0;
+}
+
+.browser-view.browser-streams ul > li .track-art > .do-remove {
+	padding: 0.2em;
+	top: auto;
+	right: 0;
+	bottom: 0;
+	border: none;
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+
+.browser-view.browser-streams ul > li:hover .track-art > .do-remove {
+	opacity: 1;
+}
+
+.dialog-add-stream .art-preview {
+	margin: 15px auto 0 auto;
+	width: 100px;
+	height: 100px;
+}

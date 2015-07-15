@@ -1,0 +1,131 @@
+.browser-view.browser-albums {
+	display: flex;
+}
+
+.browser-view.browser-albums .album-list {
+	width: 50%;
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-view.browser-albums .album-view {
+	width: 50%;
+}
+
+.browser-view.browser-albums .album-list h2 {
+	flex-shrink: 0;
+}
+
+.browser-albums .album-view {
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-albums .album-view .album-info {
+	cursor: pointer;
+	flex-shrink: 0;
+}
+
+.browser-albums .album-view .album-info:hover,
+.browser-albums .album-view .disc-title:hover {
+	background-color: #333;
+}
+
+.browser-albums .album-view .disc-title {
+	margin: 0.4em 0 0 0;
+	font-size: 1.2em;
+	cursor: pointer;
+}
+
+.browser-albums .album-list li {
+	width: 160px;
+	height: 160px;
+	display: inline-block;
+}
+
+.browser-albums li .track-art {
+	width: calc(100% - 8px);
+	height: calc(100% - 8px);
+	margin: 4px;
+	position: relative;
+}
+
+.browser-albums li .track-art > * {
+	background-color: rgba(0, 0, 0, 0.6);
+	position: absolute;
+	padding: 0 0.2em;
+	opacity: 0;
+	overflow: hidden;
+	transition: opacity 0.2s;
+}
+
+.browser-albums li.show-details .track-art > *,
+.browser-albums li .track-art:hover > * {
+	opacity: 1;
+}
+
+.browser-albums li .album-title {
+	top: 0;
+	left: 0;
+	right: 0;
+}
+
+.browser-albums li .album-artist {
+	left: 0;
+	right: 0;
+	bottom: 0;
+}
+
+.browser-albums .album-view {
+	position: relative;
+	padding: 15px;
+}
+
+.browser-albums .track-art span,
+.browser-albums .album-view span,
+.browser-albums .album-view .disc-title {
+	text-shadow: 0 0 0.2em #000;
+}
+
+.browser-albums .album-view .album-info,
+.browser-albums .album-view .disc-title,
+.browser-albums .album-view .result-list {
+	padding: 0 0.3em;
+	position: relative;
+	z-index: 10;
+}
+
+.browser-albums .album-view .album-info:hover,
+.browser-albums .album-view .disc-title:hover,
+.browser-albums .album-view .result-list li:hover {
+	background-color: rgba(0, 0, 0, 0.4);
+}
+
+.browser-albums .album-view .disc-title:before {
+	content: "Disc ";
+}
+
+.browser-albums .album-view .album-title {
+	font-size: 1.4em;
+}
+
+.browser-albums .album-view .album-title {
+	font-size: 1.4em;
+}
+
+.browser-albums .album-view .album-artist {
+	display: block;
+}
+
+.browser-albums .album-view .album-art {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 0;
+	opacity: 0.4;
+	background-position: 50%;
+	background-size: cover;
+	background-repeat: no-repeat;
+}
