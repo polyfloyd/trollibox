@@ -25,3 +25,14 @@ func htPlayerPage() func(res http.ResponseWriter, req *http.Request) {
 		}
 	}
 }
+
+func htQueuerPage() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		params := GetBaseParamMap()
+
+		err := RenderPage("view/queuer.html", res, params)
+		if err != nil {
+			panic(err)
+		}
+	}
+}

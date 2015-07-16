@@ -1,0 +1,49 @@
+.queuer-container {
+	margin: 15px;
+}
+
+.queuer {
+	padding: 15px;
+	color: #eee;
+	background-color: #222;
+}
+
+.queuer-rules {
+	padding: 0;
+	list-style-type: none;
+}
+
+.queuer-rules .queuer-invert {
+	cursor: pointer;
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+}
+
+.queuer-rules .queuer-invert input {
+	display: none;
+}
+
+.queuer-rules .queuer-invert span {
+	color: #222;
+}
+
+.queuer-rules .queuer-invert input:not(:checked) ~ span {
+	opacity: 0;
+}
+
+.queuer-rules li:last-child .input-group-addon.addon-and {
+	display: none;
+}
+
+.queuer button.glyphicon {
+	font-size: 20px;
+	border: none;
+	color: #f60;
+	background: none;
+}
+
+.queuer-rules li .do-remove {
+	margin-left: 8px;
+	vertical-align: middle;
+}

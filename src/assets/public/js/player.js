@@ -2,13 +2,14 @@
 
 var Player = Backbone.Model.extend({
 	defaults: {
-		'current':  null,
-		'playlist': [],
-		'progress': 0,
-		'state':    'stopped',
-		'streams':  [],
-		'tracks':   [],
-		'volume':   0,
+		'current':    null,
+		'playlist':   [],
+		'progress':   0,
+		'queuerules': [],
+		'state':      'stopped',
+		'streams':    [],
+		'tracks':     [],
+		'volume':     0,
 	},
 
 	initialize: function() {
@@ -33,6 +34,9 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:update-streams', 'data/streams', function(data) {
 			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
+		this.attachServerReloader('server-event:update-queuer', 'data/queuer', function(data) {
+			this.setInternal('queuerules', data.queuerules);
+		});
 
 		this.attachServerUpdater('progress', 'data/player/progress', function(value) {
 			return { progress: value };
@@ -49,6 +53,9 @@ var Player = Backbone.Model.extend({
 					return track.id;
 				}),
 			};
+		});
+		this.attachServerUpdater('queuerules', 'data/queuer', function(value) {
+			return { queuerules: value };
 		});
 
 		this.on('change:current', this.reloadProgressUpdater, this);
@@ -335,5 +342,14 @@ var Player = Backbone.Model.extend({
 				this.trigger('error', err);
 			},
 		});
+	},
+
+	addDefaultQueueRule: function() {
+		this.set('queuerules', this.get('queuerules').concat([{
+			attribute: 'artist',
+			invert:    false,
+			operation: 'contains',
+			value:     '',
+		}]));
 	},
 });

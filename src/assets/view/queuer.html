@@ -1,0 +1,21 @@
+{{ define "title" }}Queuer{{ end }}
+
+{{ define "pagename" }}queuer{{ end }}
+
+{{ define "content" }}
+	<div class="queuer-container"></div>
+{{ end }}
+
+{{ define "init" }}
+	<script>
+		var player = new Player();
+		player.on('error', function(err) {
+			console.error(err);
+		});
+		var queuerView = new QueuerView({
+			model: player,
+		});
+		$('.queuer-container').append(queuerView.$el);
+	</script>
+{{ end }}
+
