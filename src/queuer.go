@@ -41,6 +41,16 @@ type SelectionRule struct {
 
 // Creates a function that matches a track based on this rules criteria.
 func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
+	if this.Attribute == "" {
+		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", this)
+	}
+	if this.Operation == "" {
+		return nil, fmt.Errorf("Rule's Operation is unset (%v)", this)
+	}
+	if this.Value == nil {
+		return nil, fmt.Errorf("Rule's Value is unset (%v)", this)
+	}
+
 	// We'll use this function to invert the output if nessecary.
 	inv := func(val bool) bool {
 		if this.Invert {
@@ -53,13 +63,13 @@ func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 	// Prevent type errors further down.
 	typeVal   := reflect.ValueOf(this.Value).Kind()
 	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(this.Attribute)).Kind()
-	if typeVal != typeTrack && !(typeVal == reflect.Int64 && typeTrack == reflect.Int) {
+	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
 		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
 
 	// The duration is currently the only integer attribute.
-	if int64Val, ok := this.Value.(int64); ok && this.Attribute == "duration" {
-		intVal := int(int64Val)
+	if float64Val, ok := this.Value.(float64); ok && this.Attribute == "duration" {
+		intVal := int(float64Val)
 		switch this.Operation {
 		case OP_EQUALS:
 			return func(track *LocalTrack) bool {
@@ -109,6 +119,14 @@ func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 	}
 
 	return nil, fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", this.Operation, this.Attribute, this.Value)
+}
+
+func (this *SelectionRule) String() string {
+	invStr := ""
+	if this.Invert {
+		invStr = " not"
+	}
+	return fmt.Sprintf("if%v %v %v \"%v\"", invStr, this.Attribute, this.Operation, this.Value)
 }
 
 
@@ -161,6 +179,10 @@ func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 	return selection[this.rand.Intn(len(selection))]
 }
 
+func (this *Queuer) Rules() []SelectionRule {
+	return this.rules
+}
+
 func (this *Queuer) AddRule(rule SelectionRule) error {
 	if len(this.rules) != len(this.ruleFuncs) {
 		if err := this.updateRuleFuncs(); err != nil {
@@ -185,17 +207,26 @@ func (this *Queuer) RemoveRule(index int) error {
 }
 
 func (this *Queuer) SetRules(rules []SelectionRule) error {
-	this.rules = rules
-	if err := this.storage.SetValue(&this.rules); err != nil {
+	ruleFuncs, err := makeRuleFuncs(rules)
+	if err != nil {
 		return err
 	}
-	return this.updateRuleFuncs()
+	this.ruleFuncs = ruleFuncs
+
+	this.rules = rules
+	return this.storage.SetValue(&this.rules)
 }
 
 func (this *Queuer) updateRuleFuncs() (err error) {
-	this.ruleFuncs = make([]func(*LocalTrack) bool, len(this.rules))
-	for i, rule := range this.rules {
-		if this.ruleFuncs[i], err = rule.MatchFunc(); err != nil {
+	this.ruleFuncs, err = makeRuleFuncs(this.rules)
+	return
+}
+
+func makeRuleFuncs(rules []SelectionRule) (funcs []func(*LocalTrack) bool, err error) {
+	funcs = make([]func(*LocalTrack) bool, len(rules))
+	for i, rule := range rules {
+		if funcs[i], err = rule.MatchFunc(); err != nil {
+			funcs = []func(*LocalTrack) bool{}
 			return
 		}
 	}

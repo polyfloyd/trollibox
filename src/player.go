@@ -36,6 +36,7 @@ func (this *LocalTrack) GetUri() string {
 
 func (this *LocalTrack) AttributeByName(attr string) interface{} {
 	switch attr {
+	case "id": fallthrough
 	case "uri":
 		return this.Id
 	case "artist":
