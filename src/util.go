@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"io"
+	"sync"
 	assets "./assets-go"
 )
 
@@ -23,4 +24,40 @@ func getPageTemplate(name string) *template.Template {
 	} else {
 		return page
 	}
+}
+
+type EventEmitter struct {
+	listeners     map[uint64]chan string
+	listenersEnum uint64
+	listenersLock sync.Mutex
+}
+
+func NewEventEmitter() *EventEmitter {
+	return &EventEmitter{
+		listeners: map[uint64]chan string{},
+	}
+}
+
+func (this *EventEmitter) Emit(event string) {
+	this.listenersLock.Lock()
+	for _, l := range this.listeners {
+		l <- event
+	}
+	this.listenersLock.Unlock()
+}
+
+func (this *EventEmitter) Listen(listener chan string) uint64 {
+	this.listenersLock.Lock()
+	defer this.listenersLock.Unlock()
+
+	this.listenersEnum++
+	this.listeners[this.listenersEnum] = listener
+	return this.listenersEnum
+}
+
+func (this *EventEmitter) Unlisten(handle uint64) {
+	this.listenersLock.Lock()
+	defer this.listenersLock.Unlock()
+
+	delete(this.listeners, handle)
 }

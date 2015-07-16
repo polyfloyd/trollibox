@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"strconv"
-	"sync"
 	mpd "github.com/polyfloyd/gompd/mpd"
 )
 
@@ -105,15 +104,13 @@ type PlaylistTrack struct {
 
 
 type Player struct {
+	*EventEmitter
+
 	// Running the idle routine on the same connection as the main connection
 	// will fuck things up badly.
 	mpdWatcher *mpd.Watcher
 
 	addr, passwd string
-
-	listeners     map[uint64]chan string
-	listenersEnum uint64
-	listenersLock sync.Mutex
 
 	// A map containing properties related to tracks currently in the queue.
 	queueAttrs map[string]QueueAttrs
@@ -145,9 +142,9 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, queuer *Queuer)
 	}
 
 	player := &Player{
-		mpdWatcher: clientWatcher,
-		listeners:  map[uint64]chan string{},
-		queueAttrs: map[string]QueueAttrs{},
+		EventEmitter: NewEventEmitter(),
+		mpdWatcher:   clientWatcher,
+		queueAttrs:   map[string]QueueAttrs{},
 
 		addr: addr,
 		passwd: passwd,
@@ -177,11 +174,7 @@ func (this *Player) idleLoop() {
 	for {
 		select {
 		case event := <- this.mpdWatcher.Event:
-			this.listenersLock.Lock()
-			for _, l := range this.listeners {
-				l <- event
-			}
-			this.listenersLock.Unlock()
+			this.Emit(event)
 		case err := <- this.mpdWatcher.Error:
 			log.Println(err)
 		}
@@ -372,22 +365,6 @@ func (this *Player) playlistTrackFromMpdSong(song *mpd.Attrs, track *PlaylistTra
 		track.Track = &tr
 	}
 	track.QueueAttrs = this.queueAttrs[track.Track.GetUri()]
-}
-
-func (this *Player) Listen(listener chan string) uint64 {
-	this.listenersLock.Lock()
-	defer this.listenersLock.Unlock()
-
-	this.listenersEnum++
-	this.listeners[this.listenersEnum] = listener
-	return this.listenersEnum
-}
-
-func (this *Player) Unlisten(handle uint64) {
-	this.listenersLock.Lock()
-	defer this.listenersLock.Unlock()
-
-	delete(this.listeners, handle)
 }
 
 func (this *Player) Queue(uri string, queuedBy string) (err error) {
