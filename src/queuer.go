@@ -149,12 +149,23 @@ func NewQueuer(file string) (this *Queuer, err error) {
 	return this, nil
 }
 
+func (this *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
+	if len(tracks) == 0 {
+		return nil
+	}
+	return &tracks[this.rand.Intn(len(tracks))]
+}
+
 // Select a track based on the rules set. A track must match all rules in order
 // to be picked.
 func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
+	if len(tracks) == 0 {
+		return nil
+	}
+
 	// Just pick a random track when no rules are set.
 	if len(this.rules) == 0 {
-		return &tracks[this.rand.Intn(len(tracks))]
+		return this.RandomTrack(tracks)
 	}
 
 	selection := make([]*LocalTrack, len(tracks))[0:0]

@@ -412,7 +412,8 @@ func (this *Player) QueueRandom() error {
 
 	track := this.queuer.SelectTrack(tracks)
 	if track == nil {
-		return nil
+		log.Println("No tracks passed queue criteria")
+		track = this.queuer.RandomTrack(tracks)
 	}
 
 	return this.Queue(track.GetUri(), "system")
