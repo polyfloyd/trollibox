@@ -38,7 +38,7 @@ type SelectionRule struct {
 }
 
 // Creates a function that matches a track based on this rules criteria.
-func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
+func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 	if this.Attribute == "" {
 		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", this)
 	}
@@ -220,7 +220,7 @@ func makeRuleFuncs(rules []SelectionRule) (funcs []func(*LocalTrack) bool, err e
 	funcs = make([]func(*LocalTrack) bool, len(rules))
 	for i, rule := range rules {
 		if funcs[i], err = rule.MatchFunc(); err != nil {
-			funcs = []func(*LocalTrack) bool{}
+			funcs = nil
 			return
 		}
 	}
