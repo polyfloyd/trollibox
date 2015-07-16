@@ -126,6 +126,8 @@ func (this *SelectionRule) String() string {
 
 // The Queuer controls which tracks are added to the playlist.
 type Queuer struct {
+	*EventEmitter
+
 	rules []SelectionRule
 
 	rand *rand.Rand
@@ -139,8 +141,9 @@ type Queuer struct {
 
 func NewQueuer(file string) (this *Queuer, err error) {
 	this = &Queuer{
-		rules: []SelectionRule{},
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		EventEmitter: NewEventEmitter(),
+		rules:        []SelectionRule{},
+		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	this.storage, err = NewPersistentStorage(file, &this.rules)
 	if err := this.updateRuleFuncs(); err != nil {
@@ -200,6 +203,7 @@ func (this *Queuer) AddRule(rule SelectionRule) error {
 	} else {
 		this.rules     = append(this.rules, rule)
 		this.ruleFuncs = append(this.ruleFuncs, fn)
+		this.Emit("update")
 		return nil
 	}
 }
@@ -208,6 +212,7 @@ func (this *Queuer) RemoveRule(index int) error {
 	if err := this.SetRules(append(this.rules[:index], this.rules[index+1:]...)); err != nil {
 		return err
 	}
+	this.Emit("update")
 	return this.storage.SetValue(&this.rules)
 }
 
@@ -218,6 +223,7 @@ func (this *Queuer) SetRules(rules []SelectionRule) error {
 	}
 	this.ruleFuncs = ruleFuncs
 
+	this.Emit("update")
 	this.rules = rules
 	return this.storage.SetValue(&this.rules)
 }

@@ -152,9 +152,10 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, queuer *Queuer)
 		queuer: queuer,
 	}
 
+	go player.idleLoop()
+	go player.queuerEventsLoop()
 	go player.queueLoop()
 	go player.playlistLoop()
-	go player.idleLoop()
 
 	return player, nil
 }
@@ -178,6 +179,17 @@ func (this *Player) idleLoop() {
 		case err := <- this.mpdWatcher.Error:
 			log.Println(err)
 		}
+	}
+}
+
+func (this *Player) queuerEventsLoop() {
+	ch := make(chan string, 16)
+	listenHandle := this.queuer.Listen(ch)
+	defer close(ch)
+	defer this.queuer.Unlisten(listenHandle)
+
+	for {
+		this.Emit("queuer-"+<-ch)
 	}
 }
 

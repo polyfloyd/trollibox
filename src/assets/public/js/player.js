@@ -34,7 +34,7 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:update-streams', 'data/streams', function(data) {
 			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
-		this.attachServerReloader('server-event:update-queuer', 'data/queuer', function(data) {
+		this.attachServerReloader('server-event:queuer-update', 'data/queuer', function(data) {
 			this.setInternal('queuerules', data.queuerules);
 		});
 
