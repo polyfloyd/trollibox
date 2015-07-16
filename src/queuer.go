@@ -14,7 +14,7 @@ const (
 	OP_EQUALS   = "equals"
 	OP_GREATER  = "greater"
 	OP_LESS     = "less"
-	OP_REGEX    = "regex"
+	OP_MATCHES  = "matches"
 )
 
 
@@ -101,7 +101,7 @@ func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 			return func(track *LocalTrack) bool {
 				return inv(track.AttributeByName(this.Attribute).(string) < strVal)
 			}, nil
-		case OP_REGEX:
+		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
 				return nil, err
 			} else {

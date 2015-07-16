@@ -57,7 +57,7 @@ var QueuerView = Backbone.View.extend({
 			types: [ 'string', 'int' ],
 		},
 		{
-			name: 'regex',
+			name: 'matches',
 			types: [ 'string' ],
 		},
 	],
