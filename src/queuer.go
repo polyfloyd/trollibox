@@ -12,7 +12,6 @@ import (
 const (
 	OP_CONTAINS = "contains"
 	OP_EQUALS   = "equals"
-	OP_EXISTS   = "exists"
 	OP_GREATER  = "greater"
 	OP_LESS     = "less"
 	OP_REGEX    = "regex"
@@ -26,7 +25,6 @@ type SelectionRule struct {
 	// How to interpret Value. Can be any of the following:
 	//   OP_CONTAINS
 	//   OP_EQUALS
-	//   OP_EXISTS
 	//   OP_GREATER
 	//   OP_LESS
 	//   OP_REGEX
@@ -94,10 +92,6 @@ func (this *SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 		case OP_EQUALS:
 			return func(track *LocalTrack) bool {
 				return inv(track.AttributeByName(this.Attribute).(string) == strVal)
-			}, nil
-		case OP_EXISTS:
-			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(this.Attribute).(string) != "")
 			}, nil
 		case OP_GREATER:
 			return func(track *LocalTrack) bool {

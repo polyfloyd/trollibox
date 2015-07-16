@@ -49,10 +49,6 @@ var QueuerView = Backbone.View.extend({
 			types: [ 'string', 'int' ],
 		},
 		{
-			name: 'exists',
-			types: [ 'string' ],
-		},
-		{
 			name: 'greater',
 			types: [ 'string', 'int' ],
 		},
