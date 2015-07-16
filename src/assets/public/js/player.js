@@ -128,6 +128,7 @@ var Player = Backbone.Model.extend({
 						}, 200);
 					},
 					error:    function() {
+						waiting = false;
 						this.trigger('error');
 					},
 				});
