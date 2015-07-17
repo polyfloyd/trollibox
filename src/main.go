@@ -81,7 +81,9 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Printf("Using \"%v\" for storage", config.StorageDir)
-	if err := InitStreams(); err != nil {
+
+	streamdb, err := NewStreamDB("streams")
+	if err  != nil {
 		log.Fatal(err)
 	}
 
@@ -90,7 +92,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password, queuer)
+	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password, streamdb, queuer)
 	if err != nil {
 		log.Fatal(err)
 	}

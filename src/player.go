@@ -123,10 +123,11 @@ type Player struct {
 	// changed.
 	lastTrack string
 
-	queuer *Queuer
+	streamdb *StreamDB
+	queuer   *Queuer
 }
 
-func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, queuer *Queuer) (*Player, error) {
+func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, streamdb *StreamDB, queuer *Queuer) (*Player, error) {
 	addr := fmt.Sprintf("%v:%v", mpdHost, mpdPort)
 
 	var passwd string
@@ -149,7 +150,8 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, queuer *Queuer)
 		addr: addr,
 		passwd: passwd,
 
-		queuer: queuer,
+		streamdb: streamdb,
+		queuer:   queuer,
 	}
 
 	go player.idleLoop()
@@ -353,7 +355,7 @@ func (this *Player) localTrackFromMpdSong(song *mpd.Attrs, track *LocalTrack, mp
 }
 
 func (this *Player) streamTrackFromMpdSong(song *mpd.Attrs, stream *StreamTrack, mpdc *mpd.Client) {
-	if tmpl := GetStreamByURL((*song)["file"]); tmpl != nil {
+	if tmpl := this.StreamDB().StreamByURL((*song)["file"]); tmpl != nil {
 		// Make a copy to prevent polluting the original.
 		*stream = StreamTrack(*tmpl)
 	}
@@ -630,6 +632,10 @@ func (this *Player) SetState(state string) (err error) {
 		}
 	})
 	return
+}
+
+func (this *Player) StreamDB() *StreamDB {
+	return this.streamdb
 }
 
 func (this *Player) Queuer() *Queuer {

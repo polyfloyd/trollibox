@@ -4,32 +4,6 @@ import (
 	"regexp"
 )
 
-var streamsStorage *PersistentStorage
-var defaultStreams = []StreamTrack{
-	{
-		Url:   "http://pub7.di.fm/di_trance",
-		Art:   "http://api.audioaddict.com/v1/assets/image/befc1043f0a216128f8570d3664856f7.png?size=200x200",
-		Album: "DI Trance",
-	},
-}
-
-func InitStreams() error {
-	ss, err := NewPersistentStorage("streams", &[]StreamTrack{})
-	if err != nil {
-		return err
-	}
-	streamsStorage = ss
-
-	if len(GetStreams()) == 0 {
-		if err := streamsStorage.SetValue(&defaultStreams); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-
 type StreamTrack struct {
 	Url   string `json:"id"`
 	Album string `json:"album",omitempty`
@@ -41,12 +15,29 @@ func (this *StreamTrack) GetUri() string {
 	return this.Url
 }
 
-func GetStreams() []StreamTrack {
-	return *streamsStorage.Value().(*[]StreamTrack)
+
+type StreamDB struct {
+	*EventEmitter
+	storage *PersistentStorage
 }
 
-func GetStreamByURL(url string) *StreamTrack {
-	for _, stream := range GetStreams() {
+func NewStreamDB(file string) (this *StreamDB, err error) {
+	this = &StreamDB{
+		EventEmitter: NewEventEmitter(),
+	}
+	if this.storage, err = NewPersistentStorage(file, &[]StreamTrack{}); err != nil {
+		return nil, err
+	}
+
+	return this, nil
+}
+
+func (this *StreamDB) Streams() []StreamTrack {
+	return *this.storage.Value().(*[]StreamTrack)
+}
+
+func (this *StreamDB) StreamByURL(url string) *StreamTrack {
+	for _, stream := range this.Streams() {
 		if stream.Url == url {
 			return &stream
 		}
@@ -54,17 +45,20 @@ func GetStreamByURL(url string) *StreamTrack {
 	return nil
 }
 
-func AddStream(stream *StreamTrack) error {
-	if GetStreamByURL(stream.Url) != nil {
-		return nil
-	}
-
-	streams := append(GetStreams(), *stream)
-	return streamsStorage.SetValue(&streams)
+func (this *StreamDB) SetStreams(streams []StreamTrack) error {
+	this.Emit("update")
+	return this.storage.SetValue(&streams)
 }
 
-func RemoveStreamByUrl(url string) error {
-	streams := GetStreams()
+func (this *StreamDB) AddStream(stream *StreamTrack) error {
+	if this.StreamByURL(stream.Url) != nil {
+		return nil
+	}
+	return this.SetStreams(append(this.Streams(), *stream))
+}
+
+func (this *StreamDB) RemoveStreamByUrl(url string) error {
+	streams := this.Streams()
 	found := 0
 	for i, stream := range streams {
 		if stream.Url == url {
@@ -75,8 +69,7 @@ func RemoveStreamByUrl(url string) error {
 		}
 		streams[i] = streams[i+found]
 	}
-	streams = streams[:len(streams)-found]
-	return streamsStorage.SetValue(&streams)
+	return this.SetStreams(streams[:len(streams)-found])
 }
 
 func IsStreamUri(uri string) (ok bool) {

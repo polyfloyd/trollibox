@@ -80,9 +80,9 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(player))
 	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(player))
 	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(player))
-	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList())
-	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd())
-	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove())
+	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(player))
+	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(player))
+	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(player))
 	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
 }
 
@@ -325,12 +325,12 @@ func htTrackArtProbe(player *Player) func(res http.ResponseWriter, req *http.Req
 	}
 }
 
-func htStreamsList() func(res http.ResponseWriter, req *http.Request) {
+func htStreamsList(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(res).Encode(map[string]interface{}{
-			"streams": GetStreams(),
+			"streams": player.StreamDB().Streams(),
 		})
 		if err != nil {
 			panic(err)
@@ -338,7 +338,7 @@ func htStreamsList() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func htStreamsAdd() func(res http.ResponseWriter, req *http.Request) {
+func htStreamsAdd(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			Stream StreamTrack `json:"stream"`
@@ -349,7 +349,7 @@ func htStreamsAdd() func(res http.ResponseWriter, req *http.Request) {
 			panic(err)
 		}
 
-		if err := AddStream(&data.Stream); err != nil {
+		if err := player.StreamDB().AddStream(&data.Stream); err != nil {
 			panic(err)
 		}
 
@@ -360,7 +360,7 @@ func htStreamsAdd() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func htStreamsRemove() func(res http.ResponseWriter, req *http.Request) {
+func htStreamsRemove(player *Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			Stream StreamTrack `json:"stream"`
@@ -371,7 +371,7 @@ func htStreamsRemove() func(res http.ResponseWriter, req *http.Request) {
 			panic(err)
 		}
 
-		if err := RemoveStreamByUrl(data.Stream.Url); err != nil {
+		if err := player.StreamDB().RemoveStreamByUrl(data.Stream.Url); err != nil {
 			panic(err)
 		}
 
