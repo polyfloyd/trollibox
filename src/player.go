@@ -173,15 +173,10 @@ func (this *Player) withMpd(fn func(mpd *mpd.Client)) {
 }
 
 func (this *Player) eventLoop() {
-	streamdbCh := make(chan string, 16)
-	streamdbListenHandle := this.StreamDB().Listen(streamdbCh)
-	defer close(streamdbCh)
-	defer this.queuer.Unlisten(streamdbListenHandle)
-
-	queuerCh := make(chan string, 16)
-	queuerListenHandle := this.queuer.Listen(queuerCh)
-	defer close(queuerCh)
-	defer this.queuer.Unlisten(queuerListenHandle)
+	streamdbCh := this.StreamDB().Listen()
+	defer this.queuer.Unlisten(streamdbCh)
+	queuerCh := this.queuer.Listen()
+	defer this.queuer.Unlisten(queuerCh)
 
 	for {
 		select {
@@ -198,8 +193,8 @@ func (this *Player) eventLoop() {
 }
 
 func (this *Player) queueLoop() {
-	listener := make(chan string, 16)
-	this.Listen(listener)
+	listener := this.Listen()
+	defer this.Unlisten(listener)
 	listener <- "player" // Bootstrap the cycle
 	for {
 		if event := <- listener; event != "player" {
@@ -252,8 +247,8 @@ func (this *Player) queueLoop() {
 }
 
 func (this *Player) playlistLoop() {
-	listener := make(chan string, 16)
-	this.Listen(listener)
+	listener := this.Listen()
+	defer this.Unlisten(listener)
 	listener <- "playlist" // Bootstrap the cycle
 	for {
 		if event := <- listener; event != "playlist" {

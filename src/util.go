@@ -27,37 +27,37 @@ func getPageTemplate(name string) *template.Template {
 }
 
 type EventEmitter struct {
-	listeners     map[uint64]chan string
-	listenersEnum uint64
+	listeners     map[chan string]bool
 	listenersLock sync.Mutex
 }
 
 func NewEventEmitter() *EventEmitter {
 	return &EventEmitter{
-		listeners: map[uint64]chan string{},
+		listeners: map[chan string]bool{},
 	}
 }
 
 func (this *EventEmitter) Emit(event string) {
 	this.listenersLock.Lock()
-	for _, l := range this.listeners {
+	for l := range this.listeners {
 		l <- event
 	}
 	this.listenersLock.Unlock()
 }
 
-func (this *EventEmitter) Listen(listener chan string) uint64 {
+func (this *EventEmitter) Listen() chan string {
 	this.listenersLock.Lock()
 	defer this.listenersLock.Unlock()
 
-	this.listenersEnum++
-	this.listeners[this.listenersEnum] = listener
-	return this.listenersEnum
+	ch := make(chan string, 16)
+	this.listeners[ch] = true
+	return ch
 }
 
-func (this *EventEmitter) Unlisten(handle uint64) {
+func (this *EventEmitter) Unlisten(ch chan string) {
 	this.listenersLock.Lock()
 	defer this.listenersLock.Unlock()
 
-	delete(this.listeners, handle)
+	close(ch)
+	delete(this.listeners, ch)
 }

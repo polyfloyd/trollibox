@@ -50,10 +50,8 @@ func jsonTypeList(inList []PlaylistTrack) (outList []interface{}) {
 
 func socketHandler(player *Player) func(*ws.Conn) {
 	return func(conn *ws.Conn) {
-		ch := make(chan string, 16)
-		listenHandle := player.Listen(ch)
-		defer close(ch)
-		defer player.Unlisten(listenHandle)
+		ch := player.Listen()
+		defer player.Unlisten(ch)
 
 		conn.SetDeadline(time.Now().Add(time.Hour * 42 * 42 * 42))
 
@@ -257,9 +255,8 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 	var cachedRoot *bytes.Buffer
 	var cacheMutex sync.Mutex
 	go func() {
-		listener := make(chan string, 16)
-		defer close(listener)
-		player.Listen(listener)
+		listener := player.Listen()
+		defer player.Unlisten(listener)
 		listener <- "update" // Bootstrap the cycle
 
 		for {
