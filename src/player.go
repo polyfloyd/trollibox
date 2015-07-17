@@ -154,8 +154,7 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string, streamdb *Strea
 		queuer:   queuer,
 	}
 
-	go player.idleLoop()
-	go player.queuerEventsLoop()
+	go player.eventLoop()
 	go player.queueLoop()
 	go player.playlistLoop()
 
@@ -173,25 +172,28 @@ func (this *Player) withMpd(fn func(mpd *mpd.Client)) {
 	fn(client)
 }
 
-func (this *Player) idleLoop() {
+func (this *Player) eventLoop() {
+	streamdbCh := make(chan string, 16)
+	streamdbListenHandle := this.StreamDB().Listen(streamdbCh)
+	defer close(streamdbCh)
+	defer this.queuer.Unlisten(streamdbListenHandle)
+
+	queuerCh := make(chan string, 16)
+	queuerListenHandle := this.queuer.Listen(queuerCh)
+	defer close(queuerCh)
+	defer this.queuer.Unlisten(queuerListenHandle)
+
 	for {
 		select {
 		case event := <- this.mpdWatcher.Event:
 			this.Emit(event)
+		case event := <- streamdbCh:
+			this.Emit("streams-"+event)
+		case event := <- queuerCh:
+			this.Emit("queuer-"+event)
 		case err := <- this.mpdWatcher.Error:
 			log.Println(err)
 		}
-	}
-}
-
-func (this *Player) queuerEventsLoop() {
-	ch := make(chan string, 16)
-	listenHandle := this.queuer.Listen(ch)
-	defer close(ch)
-	defer this.queuer.Unlisten(listenHandle)
-
-	for {
-		this.Emit("queuer-"+<-ch)
 	}
 }
 

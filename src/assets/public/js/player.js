@@ -31,7 +31,7 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
-		this.attachServerReloader('server-event:update-streams', 'data/streams', function(data) {
+		this.attachServerReloader('server-event:streams-update', 'data/streams', function(data) {
 			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
 		this.attachServerReloader('server-event:queuer-update', 'data/queuer', function(data) {
@@ -320,7 +320,7 @@ var Player = Backbone.Model.extend({
 			data:     JSON.stringify({ stream: stream }),
 			context:  this,
 			success:  function() {
-				this.reload('server-event:update-streams');
+				this.reload('server-event:streams-update');
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
@@ -336,7 +336,7 @@ var Player = Backbone.Model.extend({
 			context:  this,
 			data:     JSON.stringify({ stream: stream }),
 			success:  function() {
-				this.reload('server-event:update-streams');
+				this.reload('server-event:streams-update');
 			},
 			error:    function(req, str, err) {
 				this.trigger('error', err);
