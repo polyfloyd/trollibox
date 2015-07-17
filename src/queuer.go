@@ -128,8 +128,6 @@ func (this *SelectionRule) String() string {
 type Queuer struct {
 	*EventEmitter
 
-	rules []SelectionRule
-
 	rand *rand.Rand
 
 	// Rules translated into functions. Cached to improve performance. Call
@@ -142,10 +140,11 @@ type Queuer struct {
 func NewQueuer(file string) (this *Queuer, err error) {
 	this = &Queuer{
 		EventEmitter: NewEventEmitter(),
-		rules:        []SelectionRule{},
 		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	this.storage, err = NewPersistentStorage(file, &this.rules)
+	if this.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
+		return nil, err
+	}
 	if err := this.updateRuleFuncs(); err != nil {
 		return nil, err
 	}
@@ -167,7 +166,7 @@ func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 	}
 
 	// Just pick a random track when no rules are set.
-	if len(this.rules) == 0 {
+	if len(this.Rules()) == 0 {
 		return this.RandomTrack(tracks)
 	}
 
@@ -188,32 +187,7 @@ func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 }
 
 func (this *Queuer) Rules() []SelectionRule {
-	return this.rules
-}
-
-func (this *Queuer) AddRule(rule SelectionRule) error {
-	if len(this.rules) != len(this.ruleFuncs) {
-		if err := this.updateRuleFuncs(); err != nil {
-			return err
-		}
-	}
-
-	if fn, err := rule.MatchFunc(); err != nil {
-		return err
-	} else {
-		this.rules     = append(this.rules, rule)
-		this.ruleFuncs = append(this.ruleFuncs, fn)
-		this.Emit("update")
-		return nil
-	}
-}
-
-func (this *Queuer) RemoveRule(index int) error {
-	if err := this.SetRules(append(this.rules[:index], this.rules[index+1:]...)); err != nil {
-		return err
-	}
-	this.Emit("update")
-	return this.storage.SetValue(&this.rules)
+	return *this.storage.Value().(*[]SelectionRule)
 }
 
 func (this *Queuer) SetRules(rules []SelectionRule) error {
@@ -224,12 +198,11 @@ func (this *Queuer) SetRules(rules []SelectionRule) error {
 	this.ruleFuncs = ruleFuncs
 
 	this.Emit("update")
-	this.rules = rules
-	return this.storage.SetValue(&this.rules)
+	return this.storage.SetValue(&rules)
 }
 
 func (this *Queuer) updateRuleFuncs() (err error) {
-	this.ruleFuncs, err = makeRuleFuncs(this.rules)
+	this.ruleFuncs, err = makeRuleFuncs(this.Rules())
 	return
 }
 
