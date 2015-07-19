@@ -212,7 +212,7 @@ var QueuerView = Backbone.View.extend({
 
 	template: _.template(
 		'<div class="queuer">'+
-			'<h2>Queue Rules<h2>'+
+			'<h2>Queue Rules</h2>'+
 			'<ul class="queuer-rules"></ul>'+
 			'<button class="glyphicon glyphicon-plus do-add-rule"></ul>'+
 		'</div>'

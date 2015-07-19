@@ -94,7 +94,3 @@
 .track-duration:after {
 	content: ")";
 }
-
-.browser-view h2:first-child {
-	margin-top: 0;
-}
