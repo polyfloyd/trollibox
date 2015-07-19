@@ -18,6 +18,29 @@ const (
 )
 
 
+type RuleError struct {
+	OrigErr error
+	Rule    SelectionRule
+	Index   int
+}
+
+func NewRuleError(err error, rule SelectionRule) *RuleError {
+	if err == nil {
+		return nil
+	}
+
+	return &RuleError {
+		OrigErr: err,
+		Rule:    rule,
+		Index:   -1,
+	}
+}
+
+func (this *RuleError) Error() string {
+	return this.OrigErr.Error()
+}
+
+
 type SelectionRule struct {
 	// Name of the track attribute to match.
 	Attribute string `json:"attribute"`
@@ -38,15 +61,15 @@ type SelectionRule struct {
 }
 
 // Creates a function that matches a track based on this rules criteria.
-func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
+func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 	if this.Attribute == "" {
-		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", this)
+		return nil, NewRuleError(fmt.Errorf("Rule's Attribute is unset (%v)", this), this)
 	}
 	if this.Operation == "" {
-		return nil, fmt.Errorf("Rule's Operation is unset (%v)", this)
+		return nil, NewRuleError(fmt.Errorf("Rule's Operation is unset (%v)", this), this)
 	}
 	if this.Value == nil {
-		return nil, fmt.Errorf("Rule's Value is unset (%v)", this)
+		return nil, NewRuleError(fmt.Errorf("Rule's Value is unset (%v)", this), this)
 	}
 
 	// We'll use this function to invert the output if nessecary.
@@ -62,7 +85,7 @@ func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 	typeVal   := reflect.ValueOf(this.Value).Kind()
 	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(this.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
-		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
+		return nil, NewRuleError(fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack), this)
 	}
 
 	// The duration is currently the only integer attribute.
@@ -103,7 +126,7 @@ func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 			}, nil
 		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
-				return nil, err
+				return nil, NewRuleError(err, this)
 			} else {
 				return func(track *LocalTrack) bool {
 					return inv(pat.MatchString(track.AttributeByName(this.Attribute).(string)))
@@ -112,7 +135,7 @@ func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", this.Operation, this.Attribute, this.Value)
+	return nil, NewRuleError(fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", this.Operation, this.Attribute, this.Value), this)
 }
 
 func (this *SelectionRule) String() string {
@@ -201,15 +224,16 @@ func (this *Queuer) SetRules(rules []SelectionRule) error {
 	return this.storage.SetValue(&rules)
 }
 
-func (this *Queuer) updateRuleFuncs() (err error) {
+func (this *Queuer) updateRuleFuncs() (err *RuleError) {
 	this.ruleFuncs, err = makeRuleFuncs(this.Rules())
 	return
 }
 
-func makeRuleFuncs(rules []SelectionRule) (funcs []func(*LocalTrack) bool, err error) {
+func makeRuleFuncs(rules []SelectionRule) (funcs []func(*LocalTrack) bool, err *RuleError) {
 	funcs = make([]func(*LocalTrack) bool, len(rules))
 	for i, rule := range rules {
 		if funcs[i], err = rule.MatchFunc(); err != nil {
+			err.Index = i
 			funcs = nil
 			return
 		}

@@ -83,12 +83,12 @@ func main() {
 	log.Printf("Using \"%v\" for storage", config.StorageDir)
 
 	streamdb, err := NewStreamDB("streams")
-	if err  != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	queuer, err := NewQueuer("queuer")
-	if err  != nil {
+	if err != nil {
 		log.Fatal(err)
 	}
 

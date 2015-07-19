@@ -72,7 +72,9 @@ var QueuerView = Backbone.View.extend({
 				this.copyRules();
 				this.render();
 			}
+			this.removeRuleErrors();
 		});
+		this.listenTo(this.model, 'error:queuerules', this.renderError);
 		this.copyRules();
 		this.render();
 	},
@@ -146,6 +148,19 @@ var QueuerView = Backbone.View.extend({
 			});
 			return $el;
 		}, this));
+	},
+
+	renderError: function(err) {
+		var $li = this.$('.queuer-rules > li:nth-child('+(err.ruleindex+1)+') .queuer-value');
+		$li.tooltip({
+			title:    err.message,
+			template: this.ruleErrorTemplate(),
+			trigger:  'manual',
+		}).tooltip('show');
+	},
+
+	removeRuleErrors: function() {
+		this.$('.queuer-rules > li .queuer-value').tooltip('destroy');
 	},
 
 	stringToInt: function(str) {
@@ -240,5 +255,12 @@ var QueuerView = Backbone.View.extend({
 
 			'<button class="glyphicon glyphicon-remove do-remove"></button>'+
 		'</li>'
+	),
+	ruleErrorTemplate: _.template(
+		'<div class="tooltip rule-error" role="tooltip">'+
+			'<div class="glyphicon glyphicon-warning-sign"></div>'+
+			'<div class="tooltip-inner"></div>'+
+			'<div class="tooltip-arrow"></div>'+
+		'</div>'
 	),
 });

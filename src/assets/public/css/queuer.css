@@ -47,3 +47,15 @@
 	margin-left: 8px;
 	vertical-align: middle;
 }
+
+.queuer-rules .rule-error .glyphicon {
+	position: absolute;
+	top: 8px;
+	left: 6px;
+	font-size: 30px;
+	color: #f00;
+}
+
+.queuer-rules .rule-error .tooltip-inner {
+	padding-left: 42px;
+}

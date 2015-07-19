@@ -134,9 +134,11 @@ var Player = Backbone.Model.extend({
 							}
 						}, 200);
 					},
-					error:    function() {
+					error:    function(res, status, message) {
 						waiting = false;
-						this.trigger('error');
+						var err = res.responseJSON.error || new Error(message);
+						this.trigger('error', err);
+						this.trigger('error:'+name, err);
 					},
 				});
 				waiting = true;

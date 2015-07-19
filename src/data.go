@@ -403,11 +403,21 @@ func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Req
 			panic(err)
 		}
 
+		res.Header().Set("Content-Type", "application/json")
 		if err := player.Queuer().SetRules(data.Rules); err != nil {
+			if err, ok := err.(*RuleError); ok {
+				res.WriteHeader(400)
+				json.NewEncoder(res).Encode(map[string]interface{} {
+					"error": map[string]interface{} {
+						"message":    err.Error(),
+						"ruleindex": err.Index,
+					},
+				})
+				return
+			}
 			panic(err)
 		}
 
-		res.Header().Set("Content-Type", "application/json")
 		if _, err := res.Write([]byte("{}")); err != nil {
 			panic(err)
 		}
