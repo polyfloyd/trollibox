@@ -105,11 +105,11 @@ var QueuerView = Backbone.View.extend({
 			}));
 
 			$el.find('.queuer-invert').on('change', function() {
-				rule.invert = $(this).find('input').prop('checked');
+				rule.invert = $(this).find('change').prop('checked');
 				self.updateRules();
 			});
 
-			$el.find('.queuer-attribute').on('input', function() {
+			$el.find('.queuer-attribute').on('change', function() {
 				rule.attribute = $(this).val();
 				var type = self.ruleAttr(rule).type;
 				if (self.ruleOp(rule).types.indexOf(type) === -1) {
@@ -121,7 +121,7 @@ var QueuerView = Backbone.View.extend({
 				self.updateRules();
 			});
 
-			$el.find('.queuer-operation').on('input', function() {
+			$el.find('.queuer-operation').on('change', function() {
 				rule.operation = $(this).val();
 				self.updateRules();
 			});
