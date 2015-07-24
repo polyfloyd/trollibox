@@ -105,7 +105,7 @@ var QueuerView = Backbone.View.extend({
 			}));
 
 			$el.find('.queuer-invert').on('change', function() {
-				rule.invert = $(this).find('change').prop('checked');
+				rule.invert = $(this).find('input').prop('checked');
 				self.updateRules();
 			});
 
