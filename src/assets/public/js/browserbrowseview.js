@@ -5,6 +5,8 @@ var BrowserBrowseView = Backbone.View.extend({
 	className: 'browser-view browser-browse',
 
 	initialize: function(options) {
+		this.tabs = new TabView();
+		this.$el.append(this.tabs.$el);
 		this.listenTo(this.model, 'change:tracks', this.updateTree);
 		this.updateTree();
 	},
@@ -22,19 +24,18 @@ var BrowserBrowseView = Backbone.View.extend({
 	},
 
 	render: function() {
-		this.$el.html(this.template());
+		this.tabs.clearTabs();
 		this.showGenreList();
 	},
 
 	showGenreList: function() {
 		var self = this;
 
-		var $tab = this.$('.genre-tab');
-		$tab.html(this.genreTabTemplate({
+		var $tab = this.tabs.pushTab($(this.genreTabTemplate({
 			genres: Object.keys(this.genreTree).sort(stringCompareCaseInsensitive),
-		}));
-		$tab.find('.result-list li').on('click', function() {
-			$tab.find('.result-list li.active').removeClass('active');
+		})), { name: 'genre' });
+		$tab.find('.result-list > li').on('click', function() {
+			$tab.find('.result-list > li.active').removeClass('active');
 			var $li = $(this);
 			$li.addClass('active');
 			self.showArtistList($li.attr('data-genre'));
@@ -47,8 +48,10 @@ var BrowserBrowseView = Backbone.View.extend({
 		var artists = Object.keys(this.genreTree[genreTitle])
 			.sort(stringCompareCaseInsensitive);
 
-		var $tab = this.$('.artist-tab');
-		$tab.html(this.artistTabTemplate({ artists: artists }));
+		var $tab = this.tabs.pushTab($(this.artistTabTemplate({
+			artists: artists,
+		})), { name: 'artist' });
+
 		$tab.find('.result-list li').on('click', function() {
 			$tab.find('.result-list li.active').removeClass('active');
 			var $li = $(this);
@@ -59,31 +62,23 @@ var BrowserBrowseView = Backbone.View.extend({
 		if (artists.length === 1) {
 			$tab.find('.result-list li').addClass('active');
 			this.showTrackList(genreTitle, artists[0]);
-		} else {
-			this.$('.track-tab').empty();
 		}
 	},
 
 	showTrackList: function(genreTitle, artistTitle) {
 		var self = this;
 
-		var $tab = this.$('.track-tab');
-		$tab.html(this.trackTabTemplate({
+		var $tab = this.tabs.pushTab($(this.trackTabTemplate({
 			tracks: this.genreTree[genreTitle][artistTitle].sort(function(a, b) {
 				return stringCompareCaseInsensitive(a.title, b.title);
 			}),
-		}));
+		})), { name: 'track' });
 		$tab.find('.result-list li').on('click', function() {
 			var index = $(this).attr('data-index');
 			self.model.appendToPlaylist(self.genreTree[genreTitle][artistTitle][index]);
 		});
 	},
 
-	template: _.template(
-		'<div class="genre-tab"></div>'+
-		'<div class="artist-tab"></div>'+
-		'<div class="track-tab"></div>'
-	),
 	genreTabTemplate: _.template(
 		'<h2>Genres</h2>'+
 		'<ul class="result-list">'+
@@ -93,7 +88,7 @@ var BrowserBrowseView = Backbone.View.extend({
 		'</ul>'
 	),
 	artistTabTemplate: _.template(
-		'<h2>Artists</h2>'+
+		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a> Artists</h2>'+
 		'<ul class="result-list">'+
 			'<% artists.forEach(function(artist) { %>'+
 				'<li data-artist="<%- artist %>"><%- artist %></li>'+
@@ -101,7 +96,7 @@ var BrowserBrowseView = Backbone.View.extend({
 		'</ul>'
 	),
 	trackTabTemplate: _.template(
-		'<h2>Tracks</h2>'+
+		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a> Tracks</h2>'+
 		'<ul class="result-list">'+
 			'<% tracks.forEach(function(track, index) { %>'+
 				'<li data-index="<%= index %>">'+

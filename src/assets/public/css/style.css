@@ -4,6 +4,10 @@
 	color: #ddd;
 }
 
+[hidden] {
+	display: none !important;
+}
+
 html,
 body {
 	height: 100%;

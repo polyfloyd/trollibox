@@ -60,6 +60,18 @@
 	background-color: #222;
 }
 
+.browser .browser-view > .tab-view {
+	height: calc(100% - 15px);
+	padding: 0;
+}
+
+.browser .browser-view > .tab-view .do-pop-tab {
+	font-size: 0.8em;
+	padding: 0 0.3em 0 0;
+	color: #f60;
+	cursor: pointer;
+}
+
 .browser-player {
 	width: 300px;
 	height: calc(100% - 2*15px);

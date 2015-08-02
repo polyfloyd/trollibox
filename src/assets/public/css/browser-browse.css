@@ -1,16 +1,20 @@
-.browser-view.browser-browse > * {
-	width: calc(100% / 3);
+.browser-view.browser-browse .tab-view {
+	display: block;
+}
+
+.browser-view.browser-browse .tab {
+	padding: 15px;
 	display: flex;
 	flex-direction: column;
 }
 
-.browser-view.browser-browse > .genre-tab {
-	width: 300px;
+.browser-view.browser-browse .tab-name-genre {
+	width: 20%;
 }
 
-.browser-view.browser-browse > .track-tab,
-.browser-view.browser-browse > .artist-tab {
-	width: 50%;
+.browser-view.browser-browse .tab-name-track,
+.browser-view.browser-browse .tab-name-artist {
+	width: 40%;
 }
 
 .browser-view.browser-browse h2 {
