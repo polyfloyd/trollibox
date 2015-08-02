@@ -1,46 +1,70 @@
-.browser-view.browser-albums {
-	display: flex;
+.browser-view.browser-albums .tab-view {
+	background-color: transparent;
 }
 
-.browser-view.browser-albums .album-list {
+.browser-view.browser-albums .tab {
 	width: 50%;
+	padding: 15px;
 	display: flex;
 	flex-direction: column;
+	background-color: #222;
 }
 
-.browser-view.browser-albums .album-view {
-	width: 50%;
+@media (min-width: 992px) {
+
+	.browser-view.browser-albums .tab-name-list {
+		margin-right: 7.5px;
+	}
+
+	.browser-view.browser-albums .tab-name-album {
+		margin-left: 7.5px;
+	}
+
 }
 
-.browser-view.browser-albums .album-list h2 {
+.browser .browser-view.browser-albums > .tab-view .do-pop-tab {
+	margin-bottom: 0.2em;
+	font-size: 20px;
+}
+
+.browser-view.browser-albums .tab-name-list h2 {
 	flex-shrink: 0;
 }
 
-.browser-albums .album-view {
+.browser-albums .tab-name-album {
 	display: flex;
 	flex-direction: column;
 }
 
-.browser-albums .album-view .album-info {
+.browser-albums .tab-name-album .album-info {
 	cursor: pointer;
 	flex-shrink: 0;
 }
 
-.browser-albums .album-view .album-info:hover,
-.browser-albums .album-view .disc-title:hover {
+.browser-albums .tab-name-album .album-info:hover,
+.browser-albums .tab-name-album .disc-title:hover {
 	background-color: #333;
 }
 
-.browser-albums .album-view .disc-title {
+.browser-albums .tab-name-album .disc-title {
 	margin: 0.4em 0 0 0;
 	font-size: 1.2em;
 	cursor: pointer;
 }
 
-.browser-albums .album-list li {
+.browser-albums .tab-name-list li {
 	width: 160px;
 	height: 160px;
 	display: inline-block;
+}
+
+@media (max-width: 991px) {
+
+	.browser-albums .tab-name-list li {
+		width: 120px;
+		height: 120px;
+	}
+
 }
 
 .browser-albums li .track-art {
@@ -76,48 +100,47 @@
 	bottom: 0;
 }
 
-.browser-albums .album-view {
+.browser-albums .tab-name-album {
 	position: relative;
 	padding: 15px;
 }
 
 .browser-albums .track-art span,
-.browser-albums .album-view span,
-.browser-albums .album-view .disc-title {
+.browser-albums .tab-name-album span,
+.browser-albums .tab-name-album .disc-title {
 	text-shadow: 0 0 0.2em #000;
 }
 
-.browser-albums .album-view .album-info,
-.browser-albums .album-view .disc-title,
-.browser-albums .album-view .result-list {
-	padding: 0 0.3em;
+.browser-albums .tab-name-album .album-info,
+.browser-albums .tab-name-album .disc-title,
+.browser-albums .tab-name-album .result-list {
 	position: relative;
 	z-index: 10;
 }
 
-.browser-albums .album-view .album-info:hover,
-.browser-albums .album-view .disc-title:hover,
-.browser-albums .album-view .result-list li:hover {
+.browser-albums .tab-name-album .album-info:hover,
+.browser-albums .tab-name-album .disc-title:hover,
+.browser-albums .tab-name-album .result-list li:hover {
 	background-color: rgba(0, 0, 0, 0.4);
 }
 
-.browser-albums .album-view .disc-title:before {
+.browser-albums .tab-name-album .disc-title:before {
 	content: "Disc ";
 }
 
-.browser-albums .album-view .album-title {
+.browser-albums .tab-name-album .album-title {
 	font-size: 1.4em;
 }
 
-.browser-albums .album-view .album-title {
+.browser-albums .tab-name-album .album-title {
 	font-size: 1.4em;
 }
 
-.browser-albums .album-view .album-artist {
+.browser-albums .tab-name-album .album-artist {
 	display: block;
 }
 
-.browser-albums .album-view .album-art {
+.browser-albums .tab-name-album .album-art {
 	position: absolute;
 	top: 0;
 	left: 0;

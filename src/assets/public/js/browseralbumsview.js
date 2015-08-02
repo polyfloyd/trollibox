@@ -5,12 +5,15 @@ var BrowserAlbumsView = Backbone.View.extend({
 	className: 'browser-view browser-albums',
 
 	initialize: function(options) {
+		this.tabs = new TabView();
+		this.$el.append(this.tabs.$el);
 		this.listenTo(this.model, 'change:tracks', this.render);
 		this.render();
 	},
 
 	render: function() {
-		this.$el.html(this.template());
+		this.tabs.clearTabs();
+		var $tab = this.tabs.pushTab($(this.albumListTemplate()), { name: 'list' });
 
 		// Get a list of tracks which belong to an album.
 		var albumTracks = this.model.get('tracks').filter(function(track) {
@@ -47,10 +50,10 @@ var BrowserAlbumsView = Backbone.View.extend({
 					}, albums);
 		}, []);
 
-		this.$('.album-list ul')
-			.empty()
-			.lazyLoad(this.doLazyLoad, this);
+		$tab.find('ul').lazyLoad(this.doLazyLoad, this);
 		this.appendAlbums(24);
+
+		this.tabs.pushTab('', { name: 'album' });
 	},
 
 	renderAlbum: function(album) {
@@ -90,22 +93,21 @@ var BrowserAlbumsView = Backbone.View.extend({
 			};
 		});
 
-		var $el = this.$('.album-view');
-		$el.html(this.albumTemplate({
+		var $tab = this.tabs.pushTab($(this.albumTemplate({
 			title:    album[0].album,
 			artist:   album[0].albumartist,
 			duration: this.albumDuration(album),
 			discs:    discs,
-		}));
+		})), { name: 'album' });
 
-		showTrackArt($el.find('.album-art'), album[0]);
-		$el.find('.album-info').on('click', function() {
+		showTrackArt($tab.find('.album-art'), album[0]);
+		$tab.find('.album-info').on('click', function() {
 			self.model.appendToPlaylist(album);
 		});
-		$el.find('.disc-title').on('click', function() {
+		$tab.find('.disc-title').on('click', function() {
 			self.model.appendToPlaylist(discs[$(this).attr('data-index')].tracks);
 		});
-		$el.find('.result-list li.track').on('click', function() {
+		$tab.find('.result-list li.track').on('click', function() {
 			self.model.appendToPlaylist(album[$(this).attr('data-index')]);
 		});
 	},
@@ -113,7 +115,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 	appendAlbums: function(count) {
 		var self = this;
 
-		var $list = this.$('.album-list ul');
+		var $list = this.$('.tab-name-list ul');
 		var numChildren = $list.children().length;
 		var albums = this.albums.slice(numChildren, numChildren + count);
 		if (!albums.length) {
@@ -148,12 +150,9 @@ var BrowserAlbumsView = Backbone.View.extend({
 		}, 0);
 	},
 
-	template: _.template(
-		'<div class="album-list">'+
-			'<h2>Albums</h2>'+
-			'<ul class="result-list "></ul>'+
-		'</div>'+
-		'<div class="album-view"></div>'
+	albumListTemplate: _.template(
+		'<h2>Albums</h2>'+
+		'<ul class="result-list"></ul>'
 	),
 	albumPreviewTemplate:_.template(
 		'<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">'+
@@ -165,6 +164,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 	),
 	albumTemplate:_.template(
 		'<div class="album-art"></div>'+
+		'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
 		'<div class="album-info">'+
 			'<p>'+
 				'<span class="album-title"><%- title %></span>'+
