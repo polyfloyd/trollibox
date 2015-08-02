@@ -1,0 +1,14 @@
+.browser-view.browser-files .tab {
+	width: calc(100% / 3);
+	padding: 15px;
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-view.browser-files h2 {
+	flex-shrink: 0;
+}
+
+.browser-view.browser-files .result-list > li.type-dir:after {
+	content: "/";
+}
