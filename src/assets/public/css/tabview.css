@@ -14,6 +14,16 @@
 	display: none;
 }
 
+/* A dummy to fill the remaining space */
+.tab-view:after {
+	content: "";
+	display: block;
+	height: 100%;
+	float: left;
+	flex-grow: 1;
+	overflow-y: auto;
+}
+
 @media (min-width: 992px) {
 
 	.tab-view > .tab:not([hidden]) + .tab .do-pop-tab {

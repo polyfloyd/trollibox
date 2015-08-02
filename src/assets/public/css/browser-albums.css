@@ -1,25 +1,7 @@
-.browser-view.browser-albums .tab-view {
-	background-color: transparent;
-}
-
 .browser-view.browser-albums .tab {
 	width: 50%;
-	padding: 15px;
 	display: flex;
 	flex-direction: column;
-	background-color: #222;
-}
-
-@media (min-width: 992px) {
-
-	.browser-view.browser-albums .tab-name-list {
-		margin-right: 7.5px;
-	}
-
-	.browser-view.browser-albums .tab-name-album {
-		margin-left: 7.5px;
-	}
-
 }
 
 .browser .browser-view.browser-albums > .tab-view .do-pop-tab {

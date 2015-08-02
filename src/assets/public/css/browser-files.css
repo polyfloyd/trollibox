@@ -1,6 +1,5 @@
 .browser-view.browser-files .tab {
 	width: calc(100% / 3);
-	padding: 15px;
 	display: flex;
 	flex-direction: column;
 }

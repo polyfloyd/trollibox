@@ -52,8 +52,6 @@ var BrowserAlbumsView = Backbone.View.extend({
 
 		$tab.find('ul').lazyLoad(this.doLazyLoad, this);
 		this.appendAlbums(24);
-
-		this.tabs.pushTab('', { name: 'album' });
 	},
 
 	renderAlbum: function(album) {

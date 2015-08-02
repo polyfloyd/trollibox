@@ -1,9 +1,4 @@
-.browser-view.browser-browse .tab-view {
-	display: block;
-}
-
 .browser-view.browser-browse .tab {
-	padding: 15px;
 	display: flex;
 	flex-direction: column;
 }

@@ -50,19 +50,31 @@
 
 .browser .browser-view {
 	height: 100%;
-	padding: calc(15px / 2);
+	padding: 15px;
 	display: flex;
 }
 
 .browser .browser-view > * {
-	margin: calc(15px / 2);
 	padding: 15px;
 	background-color: #222;
 }
 
 .browser .browser-view > .tab-view {
-	height: calc(100% - 15px);
+	height: 100%;
 	padding: 0;
+	background-color: transparent;
+	overflow: hidden; /* Hide the overflowing :after */
+}
+
+.browser .browser-view > .tab-view > .tab {
+	margin-right: 15px;
+	padding: 15px;
+	background-color: #222;
+}
+
+.browser .browser-view > .tab-view:after {
+	background-color: #222;
+	margin-right: -15px;
 }
 
 .browser .browser-view > .tab-view .do-pop-tab {
