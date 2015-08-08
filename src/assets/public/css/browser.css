@@ -98,6 +98,10 @@
 		display: none !important;
 	}
 
+	.browser-view > .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
+		display: none !important;
+	}
+
 }
 
 .browser-player {

@@ -24,14 +24,6 @@
 	overflow-y: auto;
 }
 
-@media (min-width: 992px) {
-
-	.tab-view > .tab:not([hidden]) + .tab .do-pop-tab {
-		display: none;
-	}
-
-}
-
 @media (max-width: 991px) {
 
 	.tab-view > .tab:not(:last-child) {
