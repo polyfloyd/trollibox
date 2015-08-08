@@ -11,3 +11,11 @@
 .browser-view.browser-files .result-list > li.type-dir:after {
 	content: "/";
 }
+
+.browser-view.browser-files .do-queue-all {
+	cursor: pointer;
+}
+
+.browser-view.browser-files .do-queue-all:hover {
+	background-color: #333;
+}

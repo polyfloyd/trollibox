@@ -109,6 +109,12 @@ var BrowserFilesView = Backbone.View.extend({
 				var $li = $(this);
 				self.model.appendToPlaylist(tracks[$li.attr('data-index')].track);
 			});
+			$tab.find('.do-queue-all').on('click', function() {
+				var tracks = self.getTracksInDir(dir.path);
+				if (tracks.length < 20 || confirm('You are about to add '+tracks.length+' tracks to the playlist. Is that okay?')) {
+					self.model.appendToPlaylist(tracks);
+				}
+			});
 		}, this);
 	},
 
@@ -119,6 +125,15 @@ var BrowserFilesView = Backbone.View.extend({
 		return this.trimSlashes(path).split('/').reduce(function(dir, pathPart) {
 			return dir ? dir.files[pathPart] : undefined;
 		}, this.tree);
+	},
+
+	getTracksInDir: function(path) {
+		if (path == '' || path == '/') {
+			return this.model.get('tracks');
+		}
+		return this.model.get('tracks').filter(function(track) {
+			return track.id.indexOf(path) === 0;
+		});
 	},
 
 	trimSlashes: function(path) {
@@ -136,7 +151,7 @@ var BrowserFilesView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a><%- name %>/</h2>'+
+		'<h2 class="do-queue-all"><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a><%- name %>/</h2>'+
 		'<ul class="result-list">'+
 			'<% dirs.forEach(function(file) { %>'+
 				'<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>'+
