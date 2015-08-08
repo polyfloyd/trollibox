@@ -78,7 +78,11 @@ var BrowserFilesView = Backbone.View.extend({
 				var file = dir.files[filename];
 				dirsAndFiles[!!file.track|0].push(file);
 				return dirsAndFiles;
-			}, [ [], [] ]);
+			}, [ [], [] ]).map(function(arr) {
+				return arr.sort(function(a, b) {
+					return stringCompareCaseInsensitive(a.name, b.name);
+				});
+			});
 			var dirs   = dirsAndFiles[0];
 			var tracks = dirsAndFiles[1];
 
@@ -127,7 +131,7 @@ var BrowserFilesView = Backbone.View.extend({
 		return path;
 	},
 
-	join: function(a, b) {
+	join: function() {
 		return this.trimSlashes(Array.prototype.join.call(arguments, '/'));
 	},
 
