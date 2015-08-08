@@ -4,11 +4,6 @@ var TabView = Backbone.View.extend({
 	tagName:   'div',
 	className: 'tab-view',
 
-	initialize: function(args) {
-		args || (args = {});
-		this.maxTabs = args.maxTabs || 0;
-	},
-
 	/**
 	 * Shows a tab (yes, really).
 	 *
@@ -33,29 +28,15 @@ var TabView = Backbone.View.extend({
 		}
 
 		$tab.find('~').remove();
-		this.updateTabVisibility();
-
 		return $tab;
 	},
 
 	popTab: function() {
 		this.$('.tab:last-child').remove();
-		this.updateTabVisibility();
 	},
 
 	clearTabs: function() {
 		this.$('.tab').remove();
-		this.updateTabVisibility();
-	},
-
-	updateTabVisibility: function() {
-		if (this.maxTabs) {
-			Array.prototype.forEach.call(this.$('.tab'), function($tab, i, arr) {
-				$($tab).toggleAttr('hidden', i < arr.length - this.maxTabs);
-			}, this);
-		} else {
-			this.$('.tab').toggleAttr('hidden', false);
-		}
 	},
 
 	escapeName: function(name) {

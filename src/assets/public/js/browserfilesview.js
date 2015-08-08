@@ -5,7 +5,7 @@ var BrowserFilesView = Backbone.View.extend({
 	className: 'browser-view browser-files',
 
 	initialize: function(options) {
-		this.tabs = new TabView({ maxTabs: 3 });
+		this.tabs = new TabView();
 		this.$el.append(this.tabs.$el);
 		this.listenTo(this.model, 'change:tracks', this.updateTree);
 		this.updateTree();

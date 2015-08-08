@@ -84,6 +84,22 @@
 	cursor: pointer;
 }
 
+@media (max-width: 991px) {
+
+	.browser-view > .tab-view > .tab:not(:nth-last-child(-n+1)) {
+		display: none !important;
+	}
+
+}
+
+@media (min-width: 992px) {
+
+	.browser-view > .tab-view > .tab:not(:nth-last-child(-n+3)) {
+		display: none !important;
+	}
+
+}
+
 .browser-player {
 	width: 300px;
 	height: calc(100% - 2*15px);
