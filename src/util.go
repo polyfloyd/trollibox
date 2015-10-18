@@ -4,12 +4,17 @@ import (
 	"html/template"
 	"io"
 	"sync"
+	"time"
+
 	assets "./assets-go"
 )
 
 const PAGE_BASE = "view/page.html"
 
-var pageTemplates = map[string]*template.Template{}
+var (
+	pageTemplates  = map[string]*template.Template{}
+	httpCacheSince = time.Now()
+)
 
 func RenderPage(name string, wr io.Writer, data interface{}) error {
 	return getPageTemplate(name).ExecuteTemplate(wr, "page", data)
@@ -23,6 +28,14 @@ func getPageTemplate(name string) *template.Template {
 		return page
 	} else {
 		return page
+	}
+}
+
+func HttpCacheTime() time.Time {
+	if BUILD == "debug" {
+		return time.Now()
+	} else {
+		return httpCacheSince
 	}
 }
 
