@@ -3,12 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"sync"
 	"time"
-	ws "golang.org/x/net/websocket"
+
+	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 )
 
 // Dirty hack to remove an extra "Track" JSON object when serializing.
@@ -18,18 +19,18 @@ func jsonType(plTr *PlaylistTrack) interface{} {
 	}
 
 	if tr, ok := plTr.Track.(*StreamTrack); ok {
-		return &struct{
+		return &struct {
 			*StreamTrack
 			*QueueAttrs
-		} {
+		}{
 			StreamTrack: tr,
 			QueueAttrs:  &plTr.QueueAttrs,
 		}
 	} else if tr, ok := plTr.Track.(*LocalTrack); ok {
-		return &struct{
+		return &struct {
 			*LocalTrack
 			*QueueAttrs
-		} {
+		}{
 			LocalTrack: tr,
 			QueueAttrs: &plTr.QueueAttrs,
 		}
@@ -47,9 +48,8 @@ func jsonTypeList(inList []PlaylistTrack) (outList []interface{}) {
 	return
 }
 
-
-func socketHandler(player *Player) func(*ws.Conn) {
-	return func(conn *ws.Conn) {
+func socketHandler(player *Player) func(*websocket.Conn) {
+	return func(conn *websocket.Conn) {
 		ch := player.Listen()
 		defer player.Unlisten(ch)
 
@@ -81,7 +81,7 @@ func htDataAttach(r *mux.Router, player *Player) {
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(player))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(player))
 	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(player))
-	r.Path("/listen").Handler(ws.Handler(socketHandler(player)))
+	r.Path("/listen").Handler(websocket.Handler(socketHandler(player)))
 }
 
 func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Request) {
@@ -407,9 +407,9 @@ func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Req
 		if err := player.Queuer().SetRules(data.Rules); err != nil {
 			if err, ok := err.(*RuleError); ok {
 				res.WriteHeader(400)
-				json.NewEncoder(res).Encode(map[string]interface{} {
-					"error": map[string]interface{} {
-						"message":    err.Error(),
+				json.NewEncoder(res).Encode(map[string]interface{}{
+					"error": map[string]interface{}{
+						"message":   err.Error(),
 						"ruleindex": err.Index,
 					},
 				})

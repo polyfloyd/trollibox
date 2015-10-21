@@ -50,27 +50,27 @@ func NewEventEmitter() *EventEmitter {
 	}
 }
 
-func (this *EventEmitter) Emit(event string) {
-	this.listenersLock.Lock()
-	for l := range this.listeners {
+func (emitter *EventEmitter) Emit(event string) {
+	emitter.listenersLock.Lock()
+	for l := range emitter.listeners {
 		l <- event
 	}
-	this.listenersLock.Unlock()
+	emitter.listenersLock.Unlock()
 }
 
-func (this *EventEmitter) Listen() chan string {
-	this.listenersLock.Lock()
-	defer this.listenersLock.Unlock()
+func (emitter *EventEmitter) Listen() chan string {
+	emitter.listenersLock.Lock()
+	defer emitter.listenersLock.Unlock()
 
 	ch := make(chan string, 16)
-	this.listeners[ch] = true
+	emitter.listeners[ch] = true
 	return ch
 }
 
-func (this *EventEmitter) Unlisten(ch chan string) {
-	this.listenersLock.Lock()
-	defer this.listenersLock.Unlock()
+func (emitter *EventEmitter) Unlisten(ch chan string) {
+	emitter.listenersLock.Lock()
+	defer emitter.listenersLock.Unlock()
 
 	close(ch)
-	delete(this.listeners, ch)
+	delete(emitter.listeners, ch)
 }

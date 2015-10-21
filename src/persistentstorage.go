@@ -22,7 +22,6 @@ func SetStorageDir(dir string) error {
 	return nil
 }
 
-
 type PersistentStorage struct {
 	value    interface{}
 	file     string
@@ -34,49 +33,49 @@ func NewPersistentStorage(name string, typeValue interface{}) (*PersistentStorag
 		return nil, fmt.Errorf("Storage dir unset")
 	}
 
-	this := &PersistentStorage{
+	store := &PersistentStorage{
 		file:  path.Join(storageDir, name+".json"),
 		value: typeValue,
 	}
 
-	ok, err := this.readValue()
+	ok, err := store.readValue()
 	if err != nil {
 		return nil, err
 	}
 
 	if !ok {
-		if err := this.SetValue(typeValue); err != nil {
+		if err := store.SetValue(typeValue); err != nil {
 			return nil, err
 		}
 	}
 
-	return this, nil
+	return store, nil
 }
 
-func (this *PersistentStorage) Value() interface{} {
-	return this.value
+func (store *PersistentStorage) Value() interface{} {
+	return store.value
 }
 
-func (this *PersistentStorage) SetValue(value interface{}) error {
-	this.value = value
+func (store *PersistentStorage) SetValue(value interface{}) error {
+	store.value = value
 
-	this.fileLock.Lock()
-	defer this.fileLock.Unlock()
+	store.fileLock.Lock()
+	defer store.fileLock.Unlock()
 
-	file, err := os.Create(this.file)
+	file, err := os.Create(store.file)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	return json.NewEncoder(file).Encode(this.value)
+	return json.NewEncoder(file).Encode(store.value)
 }
 
-func (this *PersistentStorage) readValue() (bool, error) {
-	this.fileLock.Lock()
-	defer this.fileLock.Unlock()
+func (store *PersistentStorage) readValue() (bool, error) {
+	store.fileLock.Lock()
+	defer store.fileLock.Unlock()
 
-	file, err := os.Open(this.file)
+	file, err := os.Open(store.file)
 	if os.IsNotExist(err) {
 		return false, nil
 	} else if err != nil {
@@ -84,7 +83,7 @@ func (this *PersistentStorage) readValue() (bool, error) {
 	}
 	defer file.Close()
 
-	if err := json.NewDecoder(file).Decode(this.value); err != nil {
+	if err := json.NewDecoder(file).Decode(store.value); err != nil {
 		return false, err
 	}
 	return true, nil

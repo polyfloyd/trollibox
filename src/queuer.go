@@ -17,7 +17,6 @@ const (
 	OP_MATCHES  = "matches"
 )
 
-
 type RuleError struct {
 	OrigErr error
 	Rule    SelectionRule
@@ -29,17 +28,16 @@ func NewRuleError(err error, rule SelectionRule) *RuleError {
 		return nil
 	}
 
-	return &RuleError {
+	return &RuleError{
 		OrigErr: err,
 		Rule:    rule,
 		Index:   -1,
 	}
 }
 
-func (this *RuleError) Error() string {
-	return this.OrigErr.Error()
+func (err *RuleError) Error() string {
+	return err.OrigErr.Error()
 }
-
 
 type SelectionRule struct {
 	// Name of the track attribute to match.
@@ -61,20 +59,20 @@ type SelectionRule struct {
 }
 
 // Creates a function that matches a track based on this rules criteria.
-func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
-	if this.Attribute == "" {
-		return nil, NewRuleError(fmt.Errorf("Rule's Attribute is unset (%v)", this), this)
+func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
+	if rule.Attribute == "" {
+		return nil, NewRuleError(fmt.Errorf("Rule's Attribute is unset (%v)", rule), rule)
 	}
-	if this.Operation == "" {
-		return nil, NewRuleError(fmt.Errorf("Rule's Operation is unset (%v)", this), this)
+	if rule.Operation == "" {
+		return nil, NewRuleError(fmt.Errorf("Rule's Operation is unset (%v)", rule), rule)
 	}
-	if this.Value == nil {
-		return nil, NewRuleError(fmt.Errorf("Rule's Value is unset (%v)", this), this)
+	if rule.Value == nil {
+		return nil, NewRuleError(fmt.Errorf("Rule's Value is unset (%v)", rule), rule)
 	}
 
-	// We'll use this function to invert the output if nessecary.
+	// We'll use rule function to invert the output if nessecary.
 	inv := func(val bool) bool {
-		if this.Invert {
+		if rule.Invert {
 			return !val
 		} else {
 			return val
@@ -82,16 +80,16 @@ func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 	}
 
 	// Prevent type errors further down.
-	typeVal   := reflect.ValueOf(this.Value).Kind()
-	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(this.Attribute)).Kind()
+	typeVal := reflect.ValueOf(rule.Value).Kind()
+	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
-		return nil, NewRuleError(fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack), this)
+		return nil, NewRuleError(fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack), rule)
 	}
 
 	// The duration is currently the only integer attribute.
-	if float64Val, ok := this.Value.(float64); ok && this.Attribute == "duration" {
+	if float64Val, ok := rule.Value.(float64); ok && rule.Attribute == "duration" {
 		intVal := int(float64Val)
-		switch this.Operation {
+		switch rule.Operation {
 		case OP_EQUALS:
 			return func(track *LocalTrack) bool {
 				return inv(track.Duration == intVal)
@@ -106,46 +104,45 @@ func (this SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 			}, nil
 		}
 
-	} else if strVal, ok := this.Value.(string); ok {
-		switch this.Operation {
+	} else if strVal, ok := rule.Value.(string); ok {
+		switch rule.Operation {
 		case OP_CONTAINS:
 			return func(track *LocalTrack) bool {
-				return inv(strings.Contains(track.AttributeByName(this.Attribute).(string), strVal))
+				return inv(strings.Contains(track.AttributeByName(rule.Attribute).(string), strVal))
 			}, nil
 		case OP_EQUALS:
 			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(this.Attribute).(string) == strVal)
+				return inv(track.AttributeByName(rule.Attribute).(string) == strVal)
 			}, nil
 		case OP_GREATER:
 			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(this.Attribute).(string) > strVal)
+				return inv(track.AttributeByName(rule.Attribute).(string) > strVal)
 			}, nil
 		case OP_LESS:
 			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(this.Attribute).(string) < strVal)
+				return inv(track.AttributeByName(rule.Attribute).(string) < strVal)
 			}, nil
 		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
-				return nil, NewRuleError(err, this)
+				return nil, NewRuleError(err, rule)
 			} else {
 				return func(track *LocalTrack) bool {
-					return inv(pat.MatchString(track.AttributeByName(this.Attribute).(string)))
+					return inv(pat.MatchString(track.AttributeByName(rule.Attribute).(string)))
 				}, nil
 			}
 		}
 	}
 
-	return nil, NewRuleError(fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", this.Operation, this.Attribute, this.Value), this)
+	return nil, NewRuleError(fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", rule.Operation, rule.Attribute, rule.Value), rule)
 }
 
-func (this *SelectionRule) String() string {
+func (rule *SelectionRule) String() string {
 	invStr := ""
-	if this.Invert {
+	if rule.Invert {
 		invStr = " not"
 	}
-	return fmt.Sprintf("if%v %v %v \"%v\"", invStr, this.Attribute, this.Operation, this.Value)
+	return fmt.Sprintf("if%v %v %v \"%v\"", invStr, rule.Attribute, rule.Operation, rule.Value)
 }
-
 
 // The Queuer controls which tracks are added to the playlist.
 type Queuer struct {
@@ -160,42 +157,43 @@ type Queuer struct {
 	storage *PersistentStorage
 }
 
-func NewQueuer(file string) (this *Queuer, err error) {
-	this = &Queuer{
+func NewQueuer(file string) (queuer *Queuer, err error) {
+	queuer = &Queuer{
 		EventEmitter: NewEventEmitter(),
 		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	if this.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
+	if queuer.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
 		return nil, err
 	}
-	if err := this.updateRuleFuncs(); err != nil {
+	if err := queuer.updateRuleFuncs(); err != nil {
 		return nil, err
 	}
-	return this, nil
+	return queuer, nil
 }
 
-func (this *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
+func (queuer *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
 	if len(tracks) == 0 {
 		return nil
 	}
-	return &tracks[this.rand.Intn(len(tracks))]
+	return &tracks[queuer.rand.Intn(len(tracks))]
 }
 
 // Select a track based on the rules set. A track must match all rules in order
 // to be picked.
-func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
+func (queuer *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 	if len(tracks) == 0 {
 		return nil
 	}
 
 	// Just pick a random track when no rules are set.
-	if len(this.Rules()) == 0 {
-		return this.RandomTrack(tracks)
+	if len(queuer.Rules()) == 0 {
+		return queuer.RandomTrack(tracks)
 	}
 
 	selection := make([]*LocalTrack, len(tracks))[0:0]
-	outer: for i := range tracks {
-		for _, rule := range this.ruleFuncs {
+outer:
+	for i := range tracks {
+		for _, rule := range queuer.ruleFuncs {
 			if !rule(&tracks[i]) {
 				continue outer
 			}
@@ -206,26 +204,26 @@ func (this *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 	if len(selection) == 0 {
 		return nil
 	}
-	return selection[this.rand.Intn(len(selection))]
+	return selection[queuer.rand.Intn(len(selection))]
 }
 
-func (this *Queuer) Rules() []SelectionRule {
-	return *this.storage.Value().(*[]SelectionRule)
+func (queuer *Queuer) Rules() []SelectionRule {
+	return *queuer.storage.Value().(*[]SelectionRule)
 }
 
-func (this *Queuer) SetRules(rules []SelectionRule) error {
+func (queuer *Queuer) SetRules(rules []SelectionRule) error {
 	ruleFuncs, err := makeRuleFuncs(rules)
 	if err != nil {
 		return err
 	}
-	this.ruleFuncs = ruleFuncs
+	queuer.ruleFuncs = ruleFuncs
 
-	this.Emit("update")
-	return this.storage.SetValue(&rules)
+	queuer.Emit("update")
+	return queuer.storage.SetValue(&rules)
 }
 
-func (this *Queuer) updateRuleFuncs() (err *RuleError) {
-	this.ruleFuncs, err = makeRuleFuncs(this.Rules())
+func (queuer *Queuer) updateRuleFuncs() (err *RuleError) {
+	queuer.ruleFuncs, err = makeRuleFuncs(queuer.Rules())
 	return
 }
 
