@@ -405,7 +405,7 @@ func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Req
 
 		res.Header().Set("Content-Type", "application/json")
 		if err := player.Queuer().SetRules(data.Rules); err != nil {
-			if err, ok := err.(*RuleError); ok {
+			if err, ok := err.(RuleError); ok {
 				res.WriteHeader(400)
 				json.NewEncoder(res).Encode(map[string]interface{}{
 					"error": map[string]interface{}{

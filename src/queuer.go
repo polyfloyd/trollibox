@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,28 +17,6 @@ const (
 	OP_LESS     = "less"
 	OP_MATCHES  = "matches"
 )
-
-type RuleError struct {
-	OrigErr error
-	Rule    SelectionRule
-	Index   int
-}
-
-func NewRuleError(err error, rule SelectionRule) *RuleError {
-	if err == nil {
-		return nil
-	}
-
-	return &RuleError{
-		OrigErr: err,
-		Rule:    rule,
-		Index:   -1,
-	}
-}
-
-func (err *RuleError) Error() string {
-	return err.OrigErr.Error()
-}
 
 type SelectionRule struct {
 	// Name of the track attribute to match.
@@ -59,15 +38,15 @@ type SelectionRule struct {
 }
 
 // Creates a function that matches a track based on this rules criteria.
-func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
+func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 	if rule.Attribute == "" {
-		return nil, NewRuleError(fmt.Errorf("Rule's Attribute is unset (%v)", rule), rule)
+		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", rule)
 	}
 	if rule.Operation == "" {
-		return nil, NewRuleError(fmt.Errorf("Rule's Operation is unset (%v)", rule), rule)
+		return nil, fmt.Errorf("Rule's Operation is unset (%v)", rule)
 	}
 	if rule.Value == nil {
-		return nil, NewRuleError(fmt.Errorf("Rule's Value is unset (%v)", rule), rule)
+		return nil, fmt.Errorf("Rule's Value is unset (%v)", rule)
 	}
 
 	// We'll use rule function to invert the output if nessecary.
@@ -83,7 +62,7 @@ func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 	typeVal := reflect.ValueOf(rule.Value).Kind()
 	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
-		return nil, NewRuleError(fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack), rule)
+		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
 
 	// The duration is currently the only integer attribute.
@@ -124,7 +103,7 @@ func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 			}, nil
 		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
-				return nil, NewRuleError(err, rule)
+				return nil, err
 			} else {
 				return func(track *LocalTrack) bool {
 					return inv(pat.MatchString(track.AttributeByName(rule.Attribute).(string)))
@@ -133,7 +112,7 @@ func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, *RuleError) {
 		}
 	}
 
-	return nil, NewRuleError(fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", rule.Operation, rule.Attribute, rule.Value), rule)
+	return nil, fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", rule.Operation, rule.Attribute, rule.Value)
 }
 
 func (rule *SelectionRule) String() string {
@@ -150,10 +129,6 @@ type Queuer struct {
 
 	rand *rand.Rand
 
-	// Rules translated into functions. Cached to improve performance. Call
-	// updateRuleFuncs to synchronize with the actual rules.
-	ruleFuncs []func(*LocalTrack) bool
-
 	storage *PersistentStorage
 }
 
@@ -165,12 +140,15 @@ func NewQueuer(file string) (queuer *Queuer, err error) {
 	if queuer.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
 		return nil, err
 	}
-	if err := queuer.updateRuleFuncs(); err != nil {
+	// Check the integrity of the rules.
+	if err := queuer.SetRules(queuer.Rules()); err != nil {
 		return nil, err
 	}
 	return queuer, nil
 }
 
+// Picks a random track from the specified tracklist. Does not apply any of the
+// set selection rules.
 func (queuer *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
 	if len(tracks) == 0 {
 		return nil
@@ -180,7 +158,7 @@ func (queuer *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
 
 // Select a track based on the rules set. A track must match all rules in order
 // to be picked.
-func (queuer *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
+func (queuer *Queuer) SelectRandomTrack(tracks []LocalTrack) *LocalTrack {
 	if len(tracks) == 0 {
 		return nil
 	}
@@ -190,21 +168,56 @@ func (queuer *Queuer) SelectTrack(tracks []LocalTrack) *LocalTrack {
 		return queuer.RandomTrack(tracks)
 	}
 
-	selection := make([]*LocalTrack, len(tracks))[0:0]
-outer:
-	for i := range tracks {
-		for _, rule := range queuer.ruleFuncs {
-			if !rule(&tracks[i]) {
-				continue outer
-			}
-		}
-		selection = append(selection, &tracks[i])
-	}
+	ruleFuncs, _ := makeRuleFuncs(queuer.Rules())
 
-	if len(selection) == 0 {
+	const SPLIT = 1000
+	var wg sync.WaitGroup
+	output := make([][]*LocalTrack, 0, len(tracks)/SPLIT+1)
+	for input := tracks; len(input) != 0; {
+		var part []LocalTrack
+		if len(input) >= SPLIT {
+			part = input[0:SPLIT]
+			input = input[SPLIT:]
+		} else {
+			part = input
+			input = []LocalTrack{}
+		}
+		output = append(output, make([]*LocalTrack, 0, SPLIT))
+
+		wg.Add(1)
+		go func(in []LocalTrack, out *[]*LocalTrack) {
+			defer wg.Done()
+		outer:
+			for i := range in {
+				for _, rule := range ruleFuncs {
+					if !rule(&in[i]) {
+						continue outer
+					}
+				}
+				*out = append(*out, &in[i])
+			}
+		}(part, &output[len(output)-1])
+	}
+	wg.Wait()
+
+	numPassedTracks := 0
+	for _, part := range output {
+		numPassedTracks += len(part)
+	}
+	if numPassedTracks == 0 {
 		return nil
 	}
-	return selection[queuer.rand.Intn(len(selection))]
+
+	pickIndex := queuer.rand.Intn(numPassedTracks)
+	index := 0
+	for _, part := range output {
+		if index+len(part) > pickIndex {
+			return part[pickIndex-index]
+		}
+		index += len(part)
+	}
+
+	return nil
 }
 
 func (queuer *Queuer) Rules() []SelectionRule {
@@ -212,29 +225,30 @@ func (queuer *Queuer) Rules() []SelectionRule {
 }
 
 func (queuer *Queuer) SetRules(rules []SelectionRule) error {
-	ruleFuncs, err := makeRuleFuncs(rules)
-	if err != nil {
+	if _, err := makeRuleFuncs(rules); err != nil {
 		return err
 	}
-	queuer.ruleFuncs = ruleFuncs
-
 	queuer.Emit("update")
 	return queuer.storage.SetValue(&rules)
 }
 
-func (queuer *Queuer) updateRuleFuncs() (err *RuleError) {
-	queuer.ruleFuncs, err = makeRuleFuncs(queuer.Rules())
-	return
+type RuleError struct {
+	OrigErr error
+	Rule    SelectionRule
+	Index   int
 }
 
-func makeRuleFuncs(rules []SelectionRule) (funcs []func(*LocalTrack) bool, err *RuleError) {
-	funcs = make([]func(*LocalTrack) bool, len(rules))
+func (err RuleError) Error() string {
+	return err.OrigErr.Error()
+}
+
+func makeRuleFuncs(rules []SelectionRule) ([]func(*LocalTrack) bool, error) {
+	funcs := make([]func(*LocalTrack) bool, len(rules))
 	for i, rule := range rules {
+		var err error
 		if funcs[i], err = rule.MatchFunc(); err != nil {
-			err.Index = i
-			funcs = nil
-			return
+			return nil, &RuleError{OrigErr: err, Rule: rule, Index: i}
 		}
 	}
-	return
+	return funcs, nil
 }

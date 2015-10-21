@@ -398,10 +398,12 @@ func (player *Player) QueueRandom() error {
 		return nil
 	}
 
-	track := player.queuer.SelectTrack(tracks)
+	track := player.queuer.SelectRandomTrack(tracks)
 	if track == nil {
-		log.Println("No tracks passed queue criteria")
 		track = player.queuer.RandomTrack(tracks)
+		if track == nil {
+			return fmt.Errorf("No track available to randomly queue")
+		}
 	}
 
 	return player.Queue(track.GetUri(), "system")
