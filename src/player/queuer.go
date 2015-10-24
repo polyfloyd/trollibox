@@ -1,13 +1,16 @@
-package main
+package player
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"reflect"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"./event"
 )
 
 const (
@@ -17,6 +20,38 @@ const (
 	OP_LESS     = "less"
 	OP_MATCHES  = "matches"
 )
+
+func AutoQueue(queuer *Queuer, pl Player) error {
+	listener := pl.Events().Listen()
+	defer pl.Events().Unlisten(listener)
+	for {
+		if ev := <-listener; ev != "playlist-end" {
+			continue
+		}
+
+		tracks, err := pl.ListTracks("", true)
+		if err != nil {
+			return err
+		}
+		if len(tracks) == 0 {
+			continue // No tracks to queue, too bad.
+		}
+
+		track := queuer.SelectRandomTrack(tracks)
+		if track == nil {
+			track = queuer.RandomTrack(tracks)
+			if track == nil {
+				continue
+			}
+		}
+		if err := pl.Queue(track, "system"); err != nil {
+			return err
+		}
+		if err := pl.SetState(PlayStatePlaying); err != nil {
+			return err
+		}
+	}
+}
 
 type SelectionRule struct {
 	// Name of the track attribute to match.
@@ -38,7 +73,7 @@ type SelectionRule struct {
 }
 
 // Creates a function that matches a track based on this rules criteria.
-func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
+func (rule SelectionRule) MatchFunc() (func(Track) bool, error) {
 	if rule.Attribute == "" {
 		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", rule)
 	}
@@ -60,7 +95,7 @@ func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 
 	// Prevent type errors further down.
 	typeVal := reflect.ValueOf(rule.Value).Kind()
-	typeTrack := reflect.ValueOf((&LocalTrack{}).AttributeByName(rule.Attribute)).Kind()
+	typeTrack := reflect.ValueOf(TrackAttr(dummyTrack{}, rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
 		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
@@ -70,43 +105,43 @@ func (rule SelectionRule) MatchFunc() (func(*LocalTrack) bool, error) {
 		intVal := int(float64Val)
 		switch rule.Operation {
 		case OP_EQUALS:
-			return func(track *LocalTrack) bool {
-				return inv(track.Duration == intVal)
+			return func(track Track) bool {
+				return inv(track.Duration() == intVal)
 			}, nil
 		case OP_GREATER:
-			return func(track *LocalTrack) bool {
-				return inv(track.Duration > intVal)
+			return func(track Track) bool {
+				return inv(track.Duration() > intVal)
 			}, nil
 		case OP_LESS:
-			return func(track *LocalTrack) bool {
-				return inv(track.Duration < intVal)
+			return func(track Track) bool {
+				return inv(track.Duration() < intVal)
 			}, nil
 		}
 
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
 		case OP_CONTAINS:
-			return func(track *LocalTrack) bool {
-				return inv(strings.Contains(track.AttributeByName(rule.Attribute).(string), strVal))
+			return func(track Track) bool {
+				return inv(strings.Contains(TrackAttr(track, rule.Attribute).(string), strVal))
 			}, nil
 		case OP_EQUALS:
-			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(rule.Attribute).(string) == strVal)
+			return func(track Track) bool {
+				return inv(TrackAttr(track, rule.Attribute).(string) == strVal)
 			}, nil
 		case OP_GREATER:
-			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(rule.Attribute).(string) > strVal)
+			return func(track Track) bool {
+				return inv(TrackAttr(track, rule.Attribute).(string) > strVal)
 			}, nil
 		case OP_LESS:
-			return func(track *LocalTrack) bool {
-				return inv(track.AttributeByName(rule.Attribute).(string) < strVal)
+			return func(track Track) bool {
+				return inv(TrackAttr(track, rule.Attribute).(string) < strVal)
 			}, nil
 		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
 				return nil, err
 			} else {
-				return func(track *LocalTrack) bool {
-					return inv(pat.MatchString(track.AttributeByName(rule.Attribute).(string)))
+				return func(track Track) bool {
+					return inv(pat.MatchString(TrackAttr(track, rule.Attribute).(string)))
 				}, nil
 			}
 		}
@@ -125,7 +160,7 @@ func (rule *SelectionRule) String() string {
 
 // The Queuer controls which tracks are added to the playlist.
 type Queuer struct {
-	*EventEmitter
+	*event.Emitter
 
 	rand *rand.Rand
 
@@ -134,8 +169,8 @@ type Queuer struct {
 
 func NewQueuer(file string) (queuer *Queuer, err error) {
 	queuer = &Queuer{
-		EventEmitter: NewEventEmitter(),
-		rand:         rand.New(rand.NewSource(time.Now().UnixNano())),
+		Emitter: event.NewEmitter(),
+		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	if queuer.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
 		return nil, err
@@ -149,16 +184,16 @@ func NewQueuer(file string) (queuer *Queuer, err error) {
 
 // Picks a random track from the specified tracklist. Does not apply any of the
 // set selection rules.
-func (queuer *Queuer) RandomTrack(tracks []LocalTrack) *LocalTrack {
+func (queuer *Queuer) RandomTrack(tracks []Track) Track {
 	if len(tracks) == 0 {
 		return nil
 	}
-	return &tracks[queuer.rand.Intn(len(tracks))]
+	return tracks[queuer.rand.Intn(len(tracks))]
 }
 
 // Select a track based on the rules set. A track must match all rules in order
 // to be picked.
-func (queuer *Queuer) SelectRandomTrack(tracks []LocalTrack) *LocalTrack {
+func (queuer *Queuer) SelectRandomTrack(tracks []Track) Track {
 	if len(tracks) == 0 {
 		return nil
 	}
@@ -172,29 +207,29 @@ func (queuer *Queuer) SelectRandomTrack(tracks []LocalTrack) *LocalTrack {
 
 	const SPLIT = 1000
 	var wg sync.WaitGroup
-	output := make([][]*LocalTrack, 0, len(tracks)/SPLIT+1)
+	output := make([][]Track, 0, len(tracks)/SPLIT+1)
 	for input := tracks; len(input) != 0; {
-		var part []LocalTrack
+		var part []Track
 		if len(input) >= SPLIT {
 			part = input[0:SPLIT]
 			input = input[SPLIT:]
 		} else {
 			part = input
-			input = []LocalTrack{}
+			input = []Track{}
 		}
-		output = append(output, make([]*LocalTrack, 0, SPLIT))
+		output = append(output, make([]Track, 0, SPLIT))
 
 		wg.Add(1)
-		go func(in []LocalTrack, out *[]*LocalTrack) {
+		go func(in []Track, out *[]Track) {
 			defer wg.Done()
 		outer:
 			for i := range in {
 				for _, rule := range ruleFuncs {
-					if !rule(&in[i]) {
+					if !rule(in[i]) {
 						continue outer
 					}
 				}
-				*out = append(*out, &in[i])
+				*out = append(*out, in[i])
 			}
 		}(part, &output[len(output)-1])
 	}
@@ -242,8 +277,8 @@ func (err RuleError) Error() string {
 	return err.OrigErr.Error()
 }
 
-func makeRuleFuncs(rules []SelectionRule) ([]func(*LocalTrack) bool, error) {
-	funcs := make([]func(*LocalTrack) bool, len(rules))
+func makeRuleFuncs(rules []SelectionRule) ([]func(Track) bool, error) {
+	funcs := make([]func(Track) bool, len(rules))
 	for i, rule := range rules {
 		var err error
 		if funcs[i], err = rule.MatchFunc(); err != nil {
@@ -252,3 +287,16 @@ func makeRuleFuncs(rules []SelectionRule) ([]func(*LocalTrack) bool, error) {
 	}
 	return funcs, nil
 }
+
+type dummyTrack struct{}
+
+func (dummyTrack) Uri() string                             { return "" }
+func (dummyTrack) Artist() string                          { return "" }
+func (dummyTrack) Title() string                           { return "" }
+func (dummyTrack) Genre() string                           { return "" }
+func (dummyTrack) Album() string                           { return "" }
+func (dummyTrack) AlbumArtist() string                     { return "" }
+func (dummyTrack) AlbumTrack() string                      { return "" }
+func (dummyTrack) AlbumDisc() string                       { return "" }
+func (dummyTrack) Duration() int                           { return 0 }
+func (dummyTrack) Art() (image io.ReadCloser, mime string) { return nil, "" }

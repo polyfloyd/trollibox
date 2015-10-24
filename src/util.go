@@ -3,7 +3,6 @@ package main
 import (
 	"html/template"
 	"io"
-	"sync"
 	"time"
 
 	assets "./assets-go"
@@ -37,40 +36,4 @@ func HttpCacheTime() time.Time {
 	} else {
 		return httpCacheSince
 	}
-}
-
-type EventEmitter struct {
-	listeners     map[chan string]bool
-	listenersLock sync.Mutex
-}
-
-func NewEventEmitter() *EventEmitter {
-	return &EventEmitter{
-		listeners: map[chan string]bool{},
-	}
-}
-
-func (emitter *EventEmitter) Emit(event string) {
-	emitter.listenersLock.Lock()
-	for l := range emitter.listeners {
-		l <- event
-	}
-	emitter.listenersLock.Unlock()
-}
-
-func (emitter *EventEmitter) Listen() chan string {
-	emitter.listenersLock.Lock()
-	defer emitter.listenersLock.Unlock()
-
-	ch := make(chan string, 16)
-	emitter.listeners[ch] = true
-	return ch
-}
-
-func (emitter *EventEmitter) Unlisten(ch chan string) {
-	emitter.listenersLock.Lock()
-	defer emitter.listenersLock.Unlock()
-
-	close(ch)
-	delete(emitter.listeners, ch)
 }

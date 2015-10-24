@@ -5,53 +5,72 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 
+	"./player"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
 // Dirty hack to remove an extra "Track" JSON object when serializing.
-func jsonType(plTr *PlaylistTrack) interface{} {
-	if plTr == nil {
+func trackJson(tr player.Track) interface{} {
+	if tr == nil {
 		return nil
 	}
 
-	if tr, ok := plTr.Track.(*StreamTrack); ok {
-		return &struct {
-			*StreamTrack
-			*QueueAttrs
-		}{
-			StreamTrack: tr,
-			QueueAttrs:  &plTr.QueueAttrs,
-		}
-	} else if tr, ok := plTr.Track.(*LocalTrack); ok {
-		return &struct {
-			*LocalTrack
-			*QueueAttrs
-		}{
-			LocalTrack: tr,
-			QueueAttrs: &plTr.QueueAttrs,
-		}
-	} else {
-		panic("Unknown track type")
+	track := &struct {
+		Uri         string `json:"id"`
+		Artist      string `json:"artist,omitempty"`
+		Title       string `json:"title,omitempty"`
+		Genre       string `json:"genre,omitempty"`
+		Album       string `json:"album,omitempty"`
+		AlbumArtist string `json:"albumartist,omitempty"`
+		AlbumTrack  string `json:"albumtrack,omitempty"`
+		AlbumDisc   string `json:"albumdisc,omitempty"`
+		Duration    int    `json:"duration"`
+		QueuedBy    string `json:"queuedby,omitempty"`
+		Progress    int    `json:"progress,omitempty"`
+	}{
+		Uri:         tr.Uri(),
+		Artist:      tr.Artist(),
+		Title:       tr.Title(),
+		Genre:       tr.Genre(),
+		Album:       tr.Album(),
+		AlbumArtist: tr.AlbumArtist(),
+		AlbumTrack:  tr.AlbumTrack(),
+		AlbumDisc:   tr.AlbumDisc(),
+		Duration:    tr.Duration(),
 	}
-	return nil
+
+	if plTr, ok := tr.(player.PlaylistTrack); ok {
+		track.QueuedBy = plTr.QueuedBy()
+		track.Progress = plTr.Progress()
+	}
+	return track
 }
 
-func jsonTypeList(inList []PlaylistTrack) (outList []interface{}) {
+func trackJsonList(inList []player.Track) (outList []interface{}) {
 	outList = make([]interface{}, len(inList))
-	for i, plTr := range inList {
-		outList[i] = jsonType(&plTr)
+	for i, tr := range inList {
+		outList[i] = trackJson(tr)
 	}
 	return
 }
 
-func socketHandler(player *Player) func(*websocket.Conn) {
+func pltrackJsonList(inList []player.PlaylistTrack) (outList []interface{}) {
+	outList = make([]interface{}, len(inList))
+	for i, tr := range inList {
+		outList[i] = trackJson(tr)
+	}
+	return
+}
+
+func socketHandler(pl player.Player) func(*websocket.Conn) {
 	return func(conn *websocket.Conn) {
-		ch := player.Listen()
-		defer player.Unlisten(ch)
+		ch := pl.Events().Listen()
+		defer pl.Events().Unlisten(ch)
 
 		conn.SetDeadline(time.Now().Add(time.Hour * 42 * 42 * 42))
 
@@ -64,29 +83,29 @@ func socketHandler(player *Player) func(*websocket.Conn) {
 	}
 }
 
-func htDataAttach(r *mux.Router, player *Player) {
-	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(player))
-	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(player))
-	r.Path("/player/progress").Methods("POST").HandlerFunc(htPlayerProgress(player))
-	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(player))
-	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(player))
-	r.Path("/player/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(player))
-	r.Path("/player/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(player))
-	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(player))
-	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(player))
-	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(player))
-	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(player))
-	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(player))
-	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(player))
-	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(player))
-	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(player))
-	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(player))
-	r.Path("/listen").Handler(websocket.Handler(socketHandler(player)))
+func htDataAttach(r *mux.Router, pl player.Player, queuer *player.Queuer, streamdb *player.StreamDB) {
+	r.Path("/player/state").Methods("POST").HandlerFunc(htPlayerSetState(pl))
+	r.Path("/player/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
+	r.Path("/player/progress").Methods("POST").HandlerFunc(htPlayerProgress(pl))
+	r.Path("/player/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
+	r.Path("/player/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
+	r.Path("/player/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl))
+	r.Path("/player/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(pl))
+	r.Path("/player/current").Methods("GET").HandlerFunc(htPlayerCurrentTrack(pl))
+	r.Path("/track/browse{path:.*}").Methods("GET").HandlerFunc(htPlayerTracks(pl))
+	r.Path("/track/art/{path:.*}").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
+	r.Path("/track/art/{path:.*}").Methods("HEAD").HandlerFunc(htTrackArtProbe(pl, streamdb))
+	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuer))
+	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuer))
+	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
+	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
+	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
+	r.Path("/listen").Handler(websocket.Handler(socketHandler(pl)))
 }
 
-func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if err := player.Next(); err != nil {
+		if err := pl.Next(); err != nil {
 			panic(err)
 		}
 
@@ -97,7 +116,7 @@ func htPlayerNext(player *Player) func(res http.ResponseWriter, req *http.Reques
 	}
 }
 
-func htPlayerProgress(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			Progress int `json:"progress"`
@@ -108,7 +127,7 @@ func htPlayerProgress(player *Player) func(res http.ResponseWriter, req *http.Re
 			panic(err)
 		}
 
-		if err := player.SetProgress(data.Progress); err != nil {
+		if err := pl.Seek(data.Progress); err != nil {
 			panic(err)
 		}
 
@@ -119,7 +138,7 @@ func htPlayerProgress(player *Player) func(res http.ResponseWriter, req *http.Re
 	}
 }
 
-func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerSetState(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			State string `json:"state"`
@@ -130,7 +149,7 @@ func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Re
 			panic(err)
 		}
 
-		if err := player.SetState(data.State); err != nil {
+		if err := pl.SetState(player.NamedPlaystate(data.State)); err != nil {
 			panic(err)
 		}
 
@@ -141,9 +160,9 @@ func htPlayerSetState(player *Player) func(res http.ResponseWriter, req *http.Re
 	}
 }
 
-func htPlayerGetVolume(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetVolume(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		volume, err := player.Volume()
+		volume, err := pl.Volume()
 		if err != nil {
 			panic(err)
 		}
@@ -158,7 +177,7 @@ func htPlayerGetVolume(player *Player) func(res http.ResponseWriter, req *http.R
 	}
 }
 
-func htPlayerSetVolume(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			Volume float32 `json:"volume"`
@@ -169,7 +188,7 @@ func htPlayerSetVolume(player *Player) func(res http.ResponseWriter, req *http.R
 			panic(err)
 		}
 
-		if err := player.SetVolume(data.Volume); err != nil {
+		if err := pl.SetVolume(data.Volume); err != nil {
 			panic(err)
 		}
 
@@ -180,19 +199,29 @@ func htPlayerSetVolume(player *Player) func(res http.ResponseWriter, req *http.R
 	}
 }
 
-func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *http.Request) {
+// DEPRECATED: Just query the playlist instead.
+func htPlayerCurrentTrack(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		if track, progress, err := player.CurrentTrack(); err != nil {
+		res.Header().Set("Content-Type", "application/json")
+		if tracks, err := pl.Playlist(); err != nil {
 			panic(err)
-		} else if state, err := player.State(); err != nil {
+		} else if state, err := pl.State(); err != nil {
 			panic(err)
 		} else {
-			res.Header().Set("Content-Type", "application/json")
-			err := json.NewEncoder(res).Encode(map[string]interface{}{
-				"progress": progress,
-				"track":    jsonType(track),
-				"state":    state,
-			})
+			var err error
+			if len(tracks) == 0 {
+				err = json.NewEncoder(res).Encode(map[string]interface{}{
+					"progress": 0,
+					"track":    nil,
+					"state":    state.Name(),
+				})
+			} else {
+				err = json.NewEncoder(res).Encode(map[string]interface{}{
+					"progress": tracks[0].Progress(),
+					"track":    trackJson(tracks[0]),
+					"state":    state.Name(),
+				})
+			}
 			if err != nil {
 				panic(err)
 			}
@@ -200,16 +229,16 @@ func htPlayerCurrentTrack(player *Player) func(res http.ResponseWriter, req *htt
 	}
 }
 
-func htPlayerGetPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetPlaylist(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tracks, err := player.Playlist()
+		tracks, err := pl.Playlist()
 		if err != nil {
 			panic(err)
 		}
 
 		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
-			"tracks": jsonTypeList(tracks),
+			"tracks": pltrackJsonList(tracks),
 		})
 		if err != nil {
 			panic(err)
@@ -217,7 +246,7 @@ func htPlayerGetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 	}
 }
 
-func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
 			TrackIds []string `json:"track-ids"`
@@ -228,7 +257,7 @@ func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 			panic(err)
 		}
 
-		if err := player.SetPlaylistIds(data.TrackIds); err != nil {
+		if err := pl.SetPlaylist(player.TrackIdentities(data.TrackIds)); err != nil {
 			panic(err)
 		}
 
@@ -239,15 +268,15 @@ func htPlayerSetPlaylist(player *Player) func(res http.ResponseWriter, req *http
 	}
 }
 
-func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	getResponse := func(path string, wr io.Writer) error {
-		tracks, err := player.ListTracks(path, true)
+		tracks, err := pl.ListTracks(path, true)
 		if err != nil {
 			return err
 		}
 
 		return json.NewEncoder(wr).Encode(map[string]interface{}{
-			"tracks": tracks,
+			"tracks": trackJsonList(tracks),
 		})
 	}
 
@@ -255,8 +284,8 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 	var cachedRoot *bytes.Buffer
 	var cacheMutex sync.Mutex
 	go func() {
-		listener := player.Listen()
-		defer player.Unlisten(listener)
+		listener := pl.Events().Listen()
+		defer pl.Events().Unlisten(listener)
 		listener <- "update" // Bootstrap the cycle
 
 		for {
@@ -290,44 +319,69 @@ func htPlayerTracks(player *Player) func(res http.ResponseWriter, req *http.Requ
 	}
 }
 
-func htTrackArt(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArt(pl player.Player, streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tracks, err := player.ListTracks(mux.Vars(req)["path"], false)
-		if err != nil {
-			panic(err)
+		uri := mux.Vars(req)["path"]
+
+		var track player.Track
+		if stream := streamdb.StreamByURL(fixStreamUri(uri)); stream != nil {
+			track = stream
+		} else {
+			tracks, err := pl.ListTracks(uri, false)
+			if err != nil {
+				panic(err)
+			}
+			if len(tracks) > 0 {
+				track = tracks[0]
+			}
 		}
 
-		if len(tracks) == 1 {
-			if artStream := tracks[0].GetArt(); artStream != nil {
-				res.Header().Set("Content-Type", "image/jpg")
-				io.Copy(res, artStream)
-				return
-			}
+		if artStream, mime := track.Art(); artStream != nil {
+			res.Header().Set("Content-Type", mime)
+			io.Copy(res, artStream)
+			return
 		}
 
 		http.NotFound(res, req)
 	}
 }
 
-func htTrackArtProbe(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArtProbe(pl player.Player, streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tracks, err := player.ListTracks(mux.Vars(req)["path"], false)
-		if err != nil {
-			panic(err)
+		uri := mux.Vars(req)["path"]
+
+		var track player.Track
+		if stream := streamdb.StreamByURL(fixStreamUri(uri)); stream != nil {
+			track = stream
+		} else {
+			tracks, err := pl.ListTracks(uri, false)
+			if err == nil {
+				if len(tracks) > 0 {
+					track = tracks[0]
+				}
+			}
 		}
 
-		if len(tracks) != 1 || !tracks[0].HasArt() {
+		trackHasArt := func(track player.Track) bool {
+			image, _ := track.Art()
+			if image != nil {
+				image.Close()
+				return true
+			}
+			return false
+		}
+		if track == nil || !trackHasArt(track) {
 			http.NotFound(res, req)
 		}
 	}
 }
 
-func htStreamsList(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsList(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(res).Encode(map[string]interface{}{
-			"streams": player.StreamDB().Streams(),
+			"streams": streamdb.Streams(),
 		})
 		if err != nil {
 			panic(err)
@@ -335,10 +389,10 @@ func htStreamsList(player *Player) func(res http.ResponseWriter, req *http.Reque
 	}
 }
 
-func htStreamsAdd(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsAdd(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
-			Stream StreamTrack `json:"stream"`
+			Stream player.StreamTrack `json:"stream"`
 		}
 
 		defer req.Body.Close()
@@ -346,7 +400,7 @@ func htStreamsAdd(player *Player) func(res http.ResponseWriter, req *http.Reques
 			panic(err)
 		}
 
-		if err := player.StreamDB().AddStream(&data.Stream); err != nil {
+		if err := streamdb.AddStream(data.Stream); err != nil {
 			panic(err)
 		}
 
@@ -357,10 +411,10 @@ func htStreamsAdd(player *Player) func(res http.ResponseWriter, req *http.Reques
 	}
 }
 
-func htStreamsRemove(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsRemove(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
-			Stream StreamTrack `json:"stream"`
+			Stream player.StreamTrack `json:"stream"`
 		}
 
 		defer req.Body.Close()
@@ -368,7 +422,7 @@ func htStreamsRemove(player *Player) func(res http.ResponseWriter, req *http.Req
 			panic(err)
 		}
 
-		if err := player.StreamDB().RemoveStreamByUrl(data.Stream.Url); err != nil {
+		if err := streamdb.RemoveStreamByUrl(data.Stream.Url); err != nil {
 			panic(err)
 		}
 
@@ -379,12 +433,12 @@ func htStreamsRemove(player *Player) func(res http.ResponseWriter, req *http.Req
 	}
 }
 
-func htQueuerulesGet(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htQueuerulesGet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
 		err := json.NewEncoder(res).Encode(map[string]interface{}{
-			"queuerules": player.Queuer().Rules(),
+			"queuerules": queuer.Rules(),
 		})
 		if err != nil {
 			panic(err)
@@ -392,10 +446,10 @@ func htQueuerulesGet(player *Player) func(res http.ResponseWriter, req *http.Req
 	}
 }
 
-func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Request) {
+func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
-			Rules []SelectionRule `json:"queuerules"`
+			Rules []player.SelectionRule `json:"queuerules"`
 		}
 
 		defer req.Body.Close()
@@ -404,8 +458,8 @@ func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Req
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if err := player.Queuer().SetRules(data.Rules); err != nil {
-			if err, ok := err.(RuleError); ok {
+		if err := queuer.SetRules(data.Rules); err != nil {
+			if err, ok := err.(player.RuleError); ok {
 				res.WriteHeader(400)
 				json.NewEncoder(res).Encode(map[string]interface{}{
 					"error": map[string]interface{}{
@@ -422,4 +476,11 @@ func htQueuerulesSet(player *Player) func(res http.ResponseWriter, req *http.Req
 			panic(err)
 		}
 	}
+}
+
+// "//" Gets converted to "/" in URLs, resulting in streams not being
+// recognised. This is hopefully a temporary fix. :(
+func fixStreamUri(uri string) string {
+	re := regexp.MustCompile("^([a-z]+):\\/([^\\/])")
+	return re.ReplaceAllString(uri, "$1://$2")
 }

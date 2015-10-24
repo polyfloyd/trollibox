@@ -1,28 +1,49 @@
-package main
+package player
 
 import (
+	"io"
+	"net/http"
 	"regexp"
+
+	"./event"
 )
 
 type StreamTrack struct {
-	Url   string `json:"id"`
-	Album string `json:"album",omitempty`
-	Title string `json:"title,omitempty"`
-	Art   string `json:"art"`
+	Url         string `json:"id"`
+	StreamTitle string `json:"album,omitempty"`
+	ArtUrl      string `json:"art,omitempty"`
 }
 
-func (stream *StreamTrack) GetUri() string {
-	return stream.Url
+func (track StreamTrack) Uri() string   { return track.Url }
+func (StreamTrack) Artist() string      { return "" }
+func (track StreamTrack) Title() string { return track.StreamTitle }
+func (StreamTrack) Genre() string       { return "" }
+func (StreamTrack) Album() string       { return "" }
+func (StreamTrack) AlbumArtist() string { return "" }
+func (StreamTrack) AlbumTrack() string  { return "" }
+func (StreamTrack) AlbumDisc() string   { return "" }
+func (StreamTrack) Duration() int       { return 0 }
+
+func (track StreamTrack) Art() (image io.ReadCloser, mime string) {
+	if track.ArtUrl == "" {
+		return nil, ""
+	}
+
+	res, err := http.Get(track.ArtUrl)
+	if err != nil {
+		return nil, ""
+	}
+	return res.Body, res.Header.Get("Content-Type")
 }
 
 type StreamDB struct {
-	*EventEmitter
+	*event.Emitter
 	storage *PersistentStorage
 }
 
 func NewStreamDB(file string) (db *StreamDB, err error) {
 	db = &StreamDB{
-		EventEmitter: NewEventEmitter(),
+		Emitter: event.NewEmitter(),
 	}
 	if db.storage, err = NewPersistentStorage(file, &[]StreamTrack{}); err != nil {
 		return nil, err
@@ -49,11 +70,11 @@ func (db *StreamDB) SetStreams(streams []StreamTrack) error {
 	return db.storage.SetValue(&streams)
 }
 
-func (db *StreamDB) AddStream(stream *StreamTrack) error {
+func (db *StreamDB) AddStream(stream StreamTrack) error {
 	if db.StreamByURL(stream.Url) != nil {
 		return nil
 	}
-	return db.SetStreams(append(db.Streams(), *stream))
+	return db.SetStreams(append(db.Streams(), stream))
 }
 
 func (db *StreamDB) RemoveStreamByUrl(url string) error {

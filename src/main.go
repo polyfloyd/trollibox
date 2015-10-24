@@ -15,6 +15,8 @@ import (
 	"time"
 
 	assets "./assets-go"
+	"./player"
+	"./player/mpd"
 	"github.com/gorilla/mux"
 )
 
@@ -70,25 +72,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := SetStorageDir(config.StorageDir); err != nil {
+	if err := player.SetStorageDir(config.StorageDir); err != nil {
 		log.Fatal(err)
 	}
 	log.Printf("Using \"%v\" for storage", config.StorageDir)
 
-	streamdb, err := NewStreamDB("streams")
+	streamdb, err := player.NewStreamDB("streams")
+	if err != nil {
+		log.Fatal(err)
+	}
+	queuer, err := player.NewQueuer("queuer")
+	if err != nil {
+		log.Fatal(err)
+	}
+	mpdPlayer, err := mpd.NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	queuer, err := NewQueuer("queuer")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	player, err := NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password, streamdb, queuer)
-	if err != nil {
-		log.Fatal(err)
-	}
+	go func() {
+		for {
+			log.Printf("Error during in autoqueuer: %v", player.AutoQueue(queuer, mpdPlayer))
+		}
+	}()
 
 	r := mux.NewRouter()
 
@@ -104,7 +110,7 @@ func main() {
 	r.Path("/").HandlerFunc(htBrowserPage())
 	r.Path("/player").HandlerFunc(htPlayerPage())
 	r.Path("/queuer").HandlerFunc(htQueuerPage())
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), player)
+	htDataAttach(r.PathPrefix("/data/").Subrouter(), mpdPlayer, queuer, streamdb)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
