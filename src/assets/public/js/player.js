@@ -227,7 +227,7 @@ var Player = Backbone.Model.extend({
 			}, null);
 			// Also try the filename. We use a different regex to cut off the
 			// path and extension.
-			artistAndTitle = artistAndTitle || track.id.match(/.*\/(.+)\s+-\s+(.+)\.\w+/);
+			artistAndTitle = artistAndTitle || track.id.match(/^(?:.*\/)?(.+)\s+-\s+(.+)\.\w+$/);
 			if (artistAndTitle) {
 				track.artist = artistAndTitle[1];
 				track.title  = artistAndTitle[2];
@@ -237,7 +237,7 @@ var Player = Backbone.Model.extend({
 					? track.id // Use the stream URL.
 					: function(t) { //  Cut the filename from the path.
 						return t ? t[1] : '';
-					}(track.id.match(/.*\/(.+)\.\w+/));
+					}(track.id.match(/^(?:.*\/)?(.+)\.\w+$/));
 			}
 		}
 		return track;
