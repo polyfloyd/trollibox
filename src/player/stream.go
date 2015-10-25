@@ -1,9 +1,14 @@
 package player
 
 import (
+	"bytes"
+	"encoding/base64"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"./event"
 )
@@ -29,6 +34,12 @@ func (track StreamTrack) Art() (image io.ReadCloser, mime string) {
 		return nil, ""
 	}
 
+	re := regexp.MustCompile("data:([a-zA-Z/]+);base64,(.+)$")
+	if match := re.FindStringSubmatch(track.ArtUrl); len(match) > 0 {
+		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1]
+	}
+
+	// Legacy
 	res, err := http.Get(track.ArtUrl)
 	if err != nil {
 		return nil, ""
@@ -48,7 +59,6 @@ func NewStreamDB(file string) (db *StreamDB, err error) {
 	if db.storage, err = NewPersistentStorage(file, &[]StreamTrack{}); err != nil {
 		return nil, err
 	}
-
 	return db, nil
 }
 
@@ -70,29 +80,38 @@ func (db *StreamDB) SetStreams(streams []StreamTrack) error {
 	return db.storage.SetValue(&streams)
 }
 
-func (db *StreamDB) AddStream(stream StreamTrack) error {
-	if db.StreamByURL(stream.Url) != nil {
+func (db *StreamDB) AddStream(track StreamTrack) error {
+	if db.StreamByURL(track.Url) != nil {
 		return nil
 	}
-	return db.SetStreams(append(db.Streams(), stream))
+
+	if track.ArtUrl != "" && !regexp.MustCompile("^data:").MatchString(track.ArtUrl) {
+		res, err := http.Get(track.ArtUrl)
+		if err != nil {
+			return err
+		}
+		defer res.Body.Close()
+
+		contentType := res.Header.Get("Content-Type")
+		if !regexp.MustCompile("^image/").MatchString(contentType) {
+			return fmt.Errorf("Invalid content type for stream image %s", contentType)
+		}
+		var buf bytes.Buffer
+		if _, err := io.Copy(base64.NewEncoder(base64.StdEncoding, &buf), res.Body); err != nil {
+			return err
+		}
+		track.ArtUrl = fmt.Sprintf("data:%s;base64,%s", contentType, buf.String())
+	}
+
+	return db.SetStreams(append(db.Streams(), track))
 }
 
 func (db *StreamDB) RemoveStreamByUrl(url string) error {
 	streams := db.Streams()
-	found := 0
 	for i, stream := range streams {
 		if stream.Url == url {
-			found++
+			return db.SetStreams(append(streams[:i], streams[i+1:]...))
 		}
-		if i+found == len(streams) {
-			break
-		}
-		streams[i] = streams[i+found]
 	}
-	return db.SetStreams(streams[:len(streams)-found])
-}
-
-func IsStreamUri(uri string) (ok bool) {
-	ok, _ = regexp.Match("^https?:\\/\\/", []byte(uri))
-	return
+	return nil
 }

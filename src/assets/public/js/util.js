@@ -81,12 +81,6 @@ function showTrackArt($elem, track, cb) {
 		$elem.css('background-image', 'url(\''+url.replace(/'/g, '\\\'')+'\')');
 	}
 
-	if (track.art) {
-		setUrl(track.art);
-		if (cb) cb(true);
-		return;
-	}
-
 	if (!track.id) {
 		if (cb) cb(false);
 		return;
