@@ -15,8 +15,12 @@ var BrowserSearchView = Backbone.View.extend({
 
 	render: function() {
 		this.$el.html(this.template());
-		this.$('search-input input').focus();
 		this.$('.result-list').lazyLoad(this.doLazyLoad, this);
+	},
+
+	focusInput: function() {
+		this.trigger('request-focus');
+		this.$('.search-input input').focus();
 	},
 
 	doSearch: function() {
@@ -96,7 +100,6 @@ var BrowserSearchView = Backbone.View.extend({
 					'<span class="glyphicon glyphicon-search"></span>'+
 				'</span>'+
 				'<input '+
-					'autofocus '+
 					'class="form-control input-lg" '+
 					'type="text" '+
 					'placeholder="Search Everything" />'+
