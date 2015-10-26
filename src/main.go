@@ -72,16 +72,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if err := player.SetStorageDir(config.StorageDir); err != nil {
+	storeDir := strings.Replace(config.StorageDir, "~", os.Getenv("HOME"), 1)
+	if err := os.MkdirAll(storeDir, 0755); err != nil {
 		log.Fatal(err)
 	}
-	log.Printf("Using \"%v\" for storage", config.StorageDir)
+	log.Printf("Using \"%s\" for storage", storeDir)
 
-	streamdb, err := player.NewStreamDB("streams")
+	streamdb, err := player.NewStreamDB(path.Join(storeDir, "streams.json"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	queuer, err := player.NewQueuer("queuer")
+	queuer, err := player.NewQueuer(path.Join(storeDir, "queuer.json"))
 	if err != nil {
 		log.Fatal(err)
 	}

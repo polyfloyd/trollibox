@@ -2,25 +2,9 @@ package player
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
-	"path"
-	"strings"
 	"sync"
 )
-
-var storageDir string
-
-func SetStorageDir(dir string) error {
-	dir = strings.Replace(dir, "~", os.Getenv("HOME"), 1)
-
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	storageDir = dir
-	return nil
-}
 
 type PersistentStorage struct {
 	value    interface{}
@@ -28,13 +12,9 @@ type PersistentStorage struct {
 	fileLock sync.Mutex
 }
 
-func NewPersistentStorage(name string, typeValue interface{}) (*PersistentStorage, error) {
-	if storageDir == "" {
-		return nil, fmt.Errorf("Storage dir unset")
-	}
-
+func NewPersistentStorage(filename string, typeValue interface{}) (*PersistentStorage, error) {
 	store := &PersistentStorage{
-		file:  path.Join(storageDir, name+".json"),
+		file:  filename,
 		value: typeValue,
 	}
 
