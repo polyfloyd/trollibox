@@ -24,36 +24,56 @@ var BrowserSearchView = Backbone.View.extend({
 	},
 
 	doSearch: function() {
-		this.$('.result-list').empty();
-		this.query = this.$('.search-input input').val();
-		if (this.query.length <= 2) {
+		var self = this;
+
+		var query = this.query();
+		if (query.length <= 1) {
+			this.$('.result-list').empty();
 			return;
 		}
 
-		this.results = this.model.search(this.query).sort(function(a, b) {
-			var matchesCmp = a.matches > b.matches ? -1
-				: a.matches < b.matches ? 1
-				: 0;
-			if (matchesCmp !== 0) {
-				return matchesCmp;
+		if (this.searchInProgress) {
+			return;
+		}
+		this.searchInProgress = true;
+
+		searchTracks(query, this.model.get('tracks'), function(list) {
+			self.searchInProgress = false;
+			if (query != self.query()) {
+				self.doSearch();
+				return;
 			}
 
-			var artistCmp = stringCompareCaseInsensitive(a.track.artist, b.track.artist);
-			if (artistCmp !== 0) {
-				return artistCmp;
-			}
+			self.$('.result-list').empty();
+			self.results = list.sort(function(a, b) {
+				var matchesCmp = a.matches > b.matches ? -1
+					: a.matches < b.matches ? 1
+					: 0;
+				if (matchesCmp !== 0) {
+					return matchesCmp;
+				}
 
-			var titleCmp = stringCompareCaseInsensitive(a.track.title, b.track.title);
-			if (titleCmp !== 0) {
-				return titleCmp;
-			}
+				var artistCmp = stringCompareCaseInsensitive(a.track.artist, b.track.artist);
+				if (artistCmp !== 0) {
+					return artistCmp;
+				}
 
-			var albumCmp = stringCompareCaseInsensitive(a.track.album, b.track.album);
-			if (albumCmp !== 0) {
-				return albumCmp;
-			}
+				var titleCmp = stringCompareCaseInsensitive(a.track.title, b.track.title);
+				if (titleCmp !== 0) {
+					return titleCmp;
+				}
+
+				var albumCmp = stringCompareCaseInsensitive(a.track.album, b.track.album);
+				if (albumCmp !== 0) {
+					return albumCmp;
+				}
+			});
+			self.appendResults(60);
 		});
-		this.appendResults(60);
+	},
+
+	query: function() {
+		return this.$('.search-input input').val();
 	},
 
 	doLazyLoad: function() {
@@ -69,7 +89,7 @@ var BrowserSearchView = Backbone.View.extend({
 			return;
 		}
 
-		var highlightExp = this.query.split(/\s+/).filter(function(kw) {
+		var highlightExp = this.query().split(/\s+/).filter(function(kw) {
 			return !!kw;
 		}).map(function(kw) {
 			// Escape the keyword into a HTML and then Regex safe string so it

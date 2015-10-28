@@ -243,49 +243,6 @@ var Player = Backbone.Model.extend({
 		return track;
 	},
 
-	/**
-	 * Search the entire library for tracks matching a word in the query string.
-	 */
-	search: function(query) {
-		if (!query) {
-			return [];
-		}
-
-		var keywords = query.toLowerCase().split(/\s+/g).filter(function(keyword) {
-			return !!keyword;
-		});
-		if (!keywords.length) {
-			return [];
-		}
-
-		return this.get('tracks').reduce(function(list, track) {
-			var numMatches = 0;
-			var allMatch = keywords.every(function(keyword) {
-				return ['artist', 'title', 'album'].filter(function(attr) {
-					var val = track[attr];
-					if (typeof val === 'undefined') {
-						return false;
-					}
-					var match = val.toLowerCase().indexOf(keyword) !== -1;
-					numMatches += match ? 1 : 0; //  Meh, no functional for you!
-					return match;
-				}).length > 0;
-			});
-
-			if (allMatch) {
-				// A concat() would be more correcter from a functional
-				// perspective, but also A LOT slower! :(
-				list.push({
-					matches: numMatches,
-					track:   track,
-				});
-				return list;
-			} else {
-				return list
-			}
-		}, []);
-	},
-
 	appendToPlaylist: function(tracks) {
 		if (!Array.isArray(tracks)) {
 			tracks = [tracks];
