@@ -1,11 +1,5 @@
-.queuer-container {
-	margin: 15px;
-}
-
-.queuer {
-	padding: 15px;
-	color: #eee;
-	background-color: #222;
+.queuer > * {
+	width: 100%;
 }
 
 .queuer-rules {

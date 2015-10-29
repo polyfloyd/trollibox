@@ -2,7 +2,7 @@
 
 var BrowserSearchView = Backbone.View.extend({
 	tagName:   'div',
-	className: 'browser-view browser-search',
+	className: 'view browser-search',
 
 	events: {
 		'input .search-input input': 'doSearch',

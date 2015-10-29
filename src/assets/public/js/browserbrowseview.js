@@ -2,7 +2,7 @@
 
 var BrowserBrowseView = Backbone.View.extend({
 	tagName:   'div',
-	className: 'browser-view browser-browse',
+	className: 'view browser-browse',
 
 	initialize: function(options) {
 		this.tabs = new TabView();

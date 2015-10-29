@@ -1,6 +1,3 @@
-{{ define "meta-title" }}Trollibox{{ end }}
-
-{{ define "page" }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +5,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
 	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
 
-	<title>{{ template "meta-title" . }} | {{ template "title" . }}</title>
+	<title>Trollibox</title>
 
 	<script>
 		window.URLROOT = '{{ .urlroot }}';
@@ -19,8 +16,6 @@
 			<link rel="stylesheet" href="{{ $v.urlroot }}{{ . }}" />
 		{{ end }}
 	{{ end }}
-
-	{{ template "head" . }}
 </head>
 <body>
 	<nav class="navbar navbar-default page-navbar">
@@ -36,13 +31,49 @@
 
 			<div class="collapse navbar-collapse">
 				<ul class="nav navbar-nav" role="tablist">
-					<li class="nav-item-browser"><a href="/">Browser</a></li>
-					<li class="nav-item-player"><a href="/player">Player</a></li>
-					<li class="nav-item-queuer"><a href="/queuer">Queuer</a></li>
+					<li class="nav-item show-view view-name-search">
+						<a
+							class="glyphicon glyphicon-search"
+							href="/browse/search"
+							title="Search Everything"></a>
+					</li>
+					<li class="nav-item show-view view-name-albums">
+						<a
+							class="glyphicon glyphicon-cd"
+							href="/browse/albums"
+							title="Browse Albums"></a>
+					</li>
+					<li class="nav-item show-view view-name-browse">
+						<a
+							class="glyphicon glyphicon-music"
+							href="/browse/browse"
+							title="Browse Artists By Genre"></a>
+					</li>
+					<li class="nav-item show-view view-name-files">
+						<a
+							class="glyphicon glyphicon-folder-open"
+							href="/browse/files"
+							title="Browse Files"></a>
+					</li>
+					<li class="nav-item show-view view-name-streams">
+						<a
+							class="glyphicon glyphicon-globe"
+							href="/browse/streams"
+							title="Network Streams"></a>
+					</li>
+					<li class="nav-item show-view view-name-queuer">
+						<a
+							class="glyphicon glyphicon-random"
+							href="/queuer"
+							title="Configure The Queuer"></a>
+					</li>
+					<li class="nav-item view-name-player">
+						<a
+							class="glyphicon glyphicon-play"
+							href="/player"
+							title="Expand The Player"></a>
+					</li>
 				</ul>
-				<script>
-					document.getElementsByClassName('nav-item-{{ template "pagename" . }}')[0].classList.add('active');
-				</script>
 
 				<ul class="nav navbar-nav navbar-right">
 					<li><a href="https://github.com/PolyFloyd/trollibox" target="_blank">{{ .version }}</a></li>
@@ -51,17 +82,98 @@
 		</div>
 	</nav>
 
-	{{ template "content" . }}
+	<div class="browser">
+		<div class="views-container"></div>
+		<div class="browser-player hidden-xs"></div>
+	</div>
 
 	{{ with $v := . }}
 		{{ range $v.assets.js }}
 			<script src="{{ $v.urlroot }}{{ . }}"></script>
 		{{ end }}
 	{{ end }}
-	{{ template "init" . }}
+
+	<script>
+		$(function() {
+			var player = new Player();
+			player.on('error', function(err) {
+				console.error(err);
+			});
+
+			var views = {
+				search:  new BrowserSearchView({ model: player }),
+				albums:  new BrowserAlbumsView({ model: player }),
+				browse:  new BrowserBrowseView({ model: player }),
+				files:   new BrowserFilesView({ model: player }),
+				streams: new BrowserStreamsView({ model: player }),
+				queuer:  new QueuerView({ model: player }),
+			};
+			var app = new Backbone.Router({
+				routes: {
+					'browse/search':  'search',
+					'browse/albums':  'albums',
+					'browse/browse':  'browse',
+					'browse/files':   'files',
+					'browse/streams': 'streams',
+					'queuer':         'queuer',
+					'player':         'player',
+				},
+			});
+
+			function routeByName(name) {
+				return Object.keys(app.routes).find(function(route) {
+					return name === app.routes[route];
+				});
+			}
+
+			app.on('route', function(route) {
+				// Toggle visibility of the views.
+				for (var k in views) {
+					views[k].$el.toggleClass('hidden', k !== route);
+				}
+
+				// Toggle the 'active' class of the navigation buttons.
+				$('.nav > .nav-item').removeClass('active');
+				$('.nav > .nav-item.view-name-'+route+'').addClass('active');
+
+				if (route !== 'player') {
+					$('.browser').removeClass('expand-player');
+				}
+			});
+			app.on('route:player', function() {
+				$('.browser').addClass('expand-player');
+			})
+
+			// Make sure to focus on the view when it emits a request-focus event.
+			Object.keys(views).forEach(function(k) {
+				$('.views-container').append(views[k].$el);
+				views[k].on('request-focus', function() {
+					app.navigate(routeByName(k), { trigger: true });
+				});
+			});
+			// Enable navigation by clicking one of the naviation buttons.
+			$('.nav > .nav-item > a').each(function(i, el) {
+				var $el = $(el);
+				$el.on('click', function(event) {
+					event.preventDefault();
+					app.navigate($el.attr('href'), { trigger: true });
+				});
+			});
+
+			if (!Backbone.history.start()) {
+				// Go to the search view if the current page mathces no route.
+				app.navigate('browse/search', {
+					trigger: true,
+					replace: true,
+				});
+			}
+
+			var playerView = new PlayerView({ model: player });
+			$('.browser-player').append(playerView.$el);
+
+			Hotkeys.player(player, $(document));
+			Hotkeys.browserSearch(views.search, $(document));
+		});
+	</script>
 </body>
 </html>
-{{ end }}
-
-{{ define "head" }}{{ end }}
-{{ define "init" }}{{ end }}

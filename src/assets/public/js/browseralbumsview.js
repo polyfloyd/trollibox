@@ -2,7 +2,7 @@
 
 var BrowserAlbumsView = Backbone.View.extend({
 	tagName:   'div',
-	className: 'browser-view browser-albums',
+	className: 'view browser-albums',
 
 	initialize: function(options) {
 		this.tabs = new TabView();

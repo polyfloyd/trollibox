@@ -3,81 +3,44 @@
 	display: flex;
 }
 
-.browser > * {
-	height: 100%;
-}
-
-.browser .browser-views {
+.views-container {
 	width: 100%;
+	height: 100%;
+	padding: 15px;
 	display: flex;
 	flex-grow: 1;
 }
 
-.browser-categories {
+.views-container > * {
+	width: 100%;
 	height: 100%;
-	margin: 0;
-	padding: 0;
-	list-style-type: none;
-	background-color: #222;
-}
-
-.browser-categories li {
-	width: 60px;
-	height: 60px;
-}
-
-.browser-categories li.active {
-	background-color: #f60;
-}
-
-.browser-categories li .glyphicon {
-	padding: 15px;
-}
-
-.browser-categories li .glyphicon {
-	font-size: 30px;
-	color: #f60;
-}
-
-.browser-categories li.active .glyphicon {
-	color: #222;
-}
-
-.browser-views-content {
-	width: calc(100% - 60px); /* Minus .browser-categories */
-	height: 100%;
-}
-
-.browser .browser-view {
-	height: 100%;
-	padding: 15px;
 	display: flex;
 }
 
-.browser .browser-view > * {
+.views-container > .view > * {
 	padding: 15px;
 	background-color: #222;
 }
 
-.browser .browser-view > .tab-view {
+.views-container > .view > .tab-view {
 	height: 100%;
 	padding: 0;
 	background-color: transparent;
 	overflow: hidden; /* Hide the overflowing :after */
 }
 
-.browser .browser-view > .tab-view > .tab {
+.views-container > .view > .tab-view:after {
+	background-color: #222;
+	margin-right: -15px;
+}
+
+.views-container > .view > .tab-view > .tab {
 	margin-right: 15px;
 	padding: 15px;
 	background-color: #222;
 }
 
-.browser .browser-view > .tab-view:after {
-	background-color: #222;
-	margin-right: -15px;
-}
-
-.browser .browser-view > .tab-view .do-pop-tab {
+.views-container > .view > .tab-view .do-pop-tab {
 	font-size: 0.8em;
 	padding: 0 0.3em 0 0;
 	color: #f60;
@@ -86,7 +49,7 @@
 
 @media (max-width: 991px) {
 
-	.browser-view > .tab-view > .tab:not(:nth-last-child(-n+1)) {
+	.views-container > .view > .tab-view > .tab:not(:nth-last-child(-n+1)) {
 		display: none !important;
 	}
 
@@ -94,14 +57,24 @@
 
 @media (min-width: 992px) {
 
-	.browser-view > .tab-view > .tab:not(:nth-last-child(-n+3)) {
+	.views-container > .view > .tab-view > .tab:not(:nth-last-child(-n+3)) {
 		display: none !important;
 	}
 
-	.browser-view > .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
+	.view > .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
 		display: none !important;
 	}
 
+}
+
+.browser.expand-player .views-container {
+	display: none;
+}
+
+.browser.expand-player .browser-player {
+	width: 100%;
+	padding: 0 15px;
+	display: block !important;
 }
 
 .browser-player {
@@ -118,11 +91,11 @@
 	flex-direction: column;
 }
 
-.browser .player-current {
+.browser-player .player-current {
 	flex-shrink: 0;
 }
 
-.browser .player-playlist {
+.browser-player .player-playlist {
 	overflow-x: auto;
 }
 

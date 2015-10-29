@@ -2,7 +2,7 @@
 
 var BrowserFilesView = Backbone.View.extend({
 	tagName:   'div',
-	className: 'browser-view browser-files',
+	className: 'view browser-files',
 
 	initialize: function(options) {
 		this.tabs = new TabView();

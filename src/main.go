@@ -109,8 +109,6 @@ func main() {
 	}
 
 	r.Path("/").HandlerFunc(htBrowserPage())
-	r.Path("/player").HandlerFunc(htPlayerPage())
-	r.Path("/queuer").HandlerFunc(htQueuerPage())
 	htDataAttach(r.PathPrefix("/data/").Subrouter(), mpdPlayer, queuer, streamdb)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)

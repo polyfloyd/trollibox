@@ -1,8 +1,8 @@
-.browser-view.browser-search {
+.browser-search {
 	flex-direction: column;
 }
 
-.browser-view.browser-search > .search-input {
+.browser-search > .search-input {
 	flex-shrink: 0;
 	margin-bottom: 15px;
 }

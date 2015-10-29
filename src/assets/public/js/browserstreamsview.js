@@ -2,7 +2,7 @@
 
 var BrowserStreamsView = Backbone.View.extend({
 	tagName:   'div',
-	className: 'browser-view browser-streams',
+	className: 'view browser-streams',
 
 	events: {
 		'click .do-add-stream': 'doShowAddDialog',

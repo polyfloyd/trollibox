@@ -1,15 +1,15 @@
-.browser-view.browser-albums .tab {
+.browser-albums .tab {
 	width: 50%;
 	display: flex;
 	flex-direction: column;
 }
 
-.browser .browser-view.browser-albums > .tab-view .do-pop-tab {
+.browser-albums > .tab-view .do-pop-tab {
 	margin-bottom: 0.2em;
 	font-size: 20px;
 }
 
-.browser-view.browser-albums .tab-name-list h2 {
+.browser-albums .tab-name-list h2 {
 	flex-shrink: 0;
 }
 

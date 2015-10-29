@@ -1,21 +1,21 @@
-.browser-view.browser-files .tab {
+.browser-files .tab {
 	width: calc(100% / 3);
 	display: flex;
 	flex-direction: column;
 }
 
-.browser-view.browser-files h2 {
+.browser-files h2 {
 	flex-shrink: 0;
 }
 
-.browser-view.browser-files .result-list > li.type-dir:after {
+.browser-files .result-list > li.type-dir:after {
 	content: "/";
 }
 
-.browser-view.browser-files .do-queue-all {
+.browser-files .do-queue-all {
 	cursor: pointer;
 }
 
-.browser-view.browser-files .do-queue-all:hover {
+.browser-files .do-queue-all:hover {
 	background-color: #333;
 }

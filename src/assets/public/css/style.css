@@ -38,6 +38,23 @@ h2:first-child {
 	background-color: #222;
 }
 
+/* Navbar */
+.nav > .nav-item > a.glyphicon {
+	font-size: 24px;
+	color: #f60;
+}
+
+.navbar-default .navbar-nav > .nav-item > a:hover {
+	text-decoration: underline;
+}
+
+.navbar-default .navbar-nav > .active > a,
+.navbar-default .navbar-nav > .active > a:hover,
+.navbar-default .navbar-nav > .active > a:focus {
+	background-color: #f60;
+	color: #333;
+}
+
 /* Forms and inputs */
 .btn.btn-default {
 	background-color: #f60;
