@@ -128,8 +128,10 @@
 
 			app.on('route', function(route) {
 				// Toggle visibility of the views.
-				for (var k in views) {
-					views[k].$el.toggleClass('hidden', k !== route);
+				if (route !== 'player') {
+					for (var k in views) {
+						views[k].$el.toggleClass('hidden', k !== route);
+					}
 				}
 
 				// Toggle the 'active' class of the navigation buttons.
@@ -142,22 +144,33 @@
 			});
 			app.on('route:player', function() {
 				$('.browser').addClass('expand-player');
-			})
-
-			// Make sure to focus on the view when it emits a request-focus event.
-			Object.keys(views).forEach(function(k) {
-				$('.views-container').append(views[k].$el);
-				views[k].on('request-focus', function() {
-					app.navigate(routeByName(k), { trigger: true });
-				});
 			});
-			// Enable navigation by clicking one of the naviation buttons.
-			$('.nav > .nav-item > a').each(function(i, el) {
-				var $el = $(el);
-				$el.on('click', function(event) {
-					event.preventDefault();
-					app.navigate($el.attr('href'), { trigger: true });
+
+			app.once('route', function(initRoute) {
+				// Make sure to focus on the view when it emits a request-focus event.
+				Object.keys(views).forEach(function(k) {
+					if (k !== initRoute) {
+						views[k].$el.addClass('hidden');
+					}
+					$('.views-container').append(views[k].$el);
+					views[k].on('request-focus', function() {
+						app.navigate(routeByName(k), { trigger: true });
+					});
 				});
+				// Enable navigation by clicking one of the naviation buttons.
+				$('.nav > .nav-item > a').each(function(i, el) {
+					var $el = $(el);
+					$el.on('click', function(event) {
+						event.preventDefault();
+						app.navigate($el.attr('href'), { trigger: true });
+					});
+				});
+
+				var playerView = new PlayerView({ model: player });
+				$('.browser-player').append(playerView.$el);
+
+				Hotkeys.player(player, $(document));
+				Hotkeys.browserSearch(views.search, $(document));
 			});
 
 			if (!Backbone.history.start()) {
@@ -167,12 +180,6 @@
 					replace: true,
 				});
 			}
-
-			var playerView = new PlayerView({ model: player });
-			$('.browser-player').append(playerView.$el);
-
-			Hotkeys.player(player, $(document));
-			Hotkeys.browserSearch(views.search, $(document));
 		});
 	</script>
 </body>
