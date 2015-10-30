@@ -6,3 +6,7 @@
 	flex-shrink: 0;
 	margin-bottom: 15px;
 }
+
+.browser-search > .result-list {
+	height: 100%;
+}
