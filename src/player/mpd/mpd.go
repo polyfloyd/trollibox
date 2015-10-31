@@ -1,7 +1,6 @@
 package mpd
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"log"
 	"regexp"
 	"strconv"
+	"strings"
 
 	player "../"
 	"../event"
@@ -53,14 +53,18 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 			return nil
 		}
 
-		chunks := make([]io.Reader, numChunks)
+		chunks := make([]io.Reader, numChunks+1)
+		totalLength := 0
 		for i := 0; i < numChunks; i++ {
 			if b64Data, err := mpdc.StickerGet(track.uri, fmt.Sprintf("image-%v", i)); err != nil {
 				return nil
 			} else {
-				chunks[i] = bytes.NewReader([]byte(b64Data))
+				chunks[i] = strings.NewReader(b64Data)
+				totalLength += len(b64Data)
 			}
 		}
+		// The padding seems to be getting lost somewhere along the way from MPD to here.
+		chunks[len(chunks)-1] = strings.NewReader([]string{"", "=", "==", "==="}[totalLength%4])
 		image = ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...)))
 		mime = "image/jpeg"
 		return nil
