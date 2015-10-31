@@ -34,10 +34,15 @@
 	cursor: pointer;
 }
 
+.browser-albums .tab-name-list ul {
+	line-height: 0;
+}
+
 .browser-albums .tab-name-list li {
 	width: 160px;
 	height: 160px;
 	display: inline-block;
+	line-height: initial;
 }
 
 @media (max-width: 991px) {
