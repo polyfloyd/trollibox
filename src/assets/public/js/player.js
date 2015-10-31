@@ -111,40 +111,44 @@ var Player = Backbone.Model.extend({
 	},
 
 	attachServerUpdater: function(name, path, getUpdateData) {
+		var self = this;
+
 		var waiting   = false;
 		var nextValue = undefined;
+
+		function update(value, cb) {
+			waiting = true;
+			$.ajax({
+				url:      URLROOT+path,
+				method:   'POST',
+				dataType: 'json',
+				data:     JSON.stringify(getUpdateData.call(self, value)),
+				success:  function() {
+					setTimeout(function() {
+						waiting = false;
+						if (typeof nextValue !== 'undefined') {
+							update(nextValue);
+							nextValue = undefined;
+						}
+					}, 200);
+				},
+				error:    function(res, status, message) {
+					waiting = false;
+					var err = cb(res.responseJSON.error || new Error(message));
+					self.trigger('error', err);
+					self.trigger('error:'+name, err);
+				},
+			});
+		}
+
 		this.on('change:'+name, function(obj, value, options) {
 			if (options.sender === this) {
 				return;
 			}
-			if (!waiting) {
-				$.ajax({
-					url:      URLROOT+path,
-					method:   'POST',
-					dataType: 'json',
-					data:     JSON.stringify(getUpdateData.call(this, value)),
-					context:  this,
-					success:  function() {
-						var self = this;
-						setTimeout(function() {
-							waiting = false;
-							if (typeof nextValue !== 'undefined') {
-								self.set(name, nextValue);
-								nextValue = undefined;
-							}
-						}, 200);
-					},
-					error:    function(res, status, message) {
-						waiting = false;
-						var err = res.responseJSON.error || new Error(message);
-						this.trigger('error', err);
-						this.trigger('error:'+name, err);
-					},
-				});
-				waiting = true;
-
-			} else {
+			if (waiting) {
 				nextValue = value;
+			} else {
+				update(value);
 			}
 		});
 	},
