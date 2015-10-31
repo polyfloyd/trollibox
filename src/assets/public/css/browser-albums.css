@@ -82,9 +82,10 @@
 	bottom: 0;
 }
 
-.browser-albums .tab-name-album {
+.browser-albums .tab.tab-name-album {
 	position: relative;
 	padding: 15px;
+	overflow: hidden;
 }
 
 .browser-albums .track-art span,
@@ -124,13 +125,16 @@
 
 .browser-albums .tab-name-album .album-art {
 	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	top: -4px;
+	left: -4px;;
+	right: -4px;
+	bottom: -4px;
 	z-index: 0;
 	opacity: 0.4;
 	background-position: 50%;
 	background-size: cover;
 	background-repeat: no-repeat;
+	-webkit-filter: blur(4px);
+	   -moz-filter: blur(4px);
+	        filter: blur(4px);
 }
