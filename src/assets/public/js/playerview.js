@@ -43,7 +43,7 @@ var PlayerView = Backbone.View.extend({
 	renderCurrent: function() {
 		var cur = this.model.get('current') || {};
 
-		showTrackArt(this.$('.track-art'), cur);
+		showTrackArt(this.$('.track-art'), this.model, cur);
 		this.$('.player-current .track-album').text(cur.album || '');
 		this.$('.player-current .track-artist').text(cur.artist || '');
 		this.$('.player-current .track-title').text(cur.title || '');

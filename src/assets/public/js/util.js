@@ -70,7 +70,7 @@ function durationToString(seconds) {
 	return s + sec;
 }
 
-function showTrackArt($elem, track, cb) {
+function showTrackArt($elem, player, track, cb) {
 	$elem.css('background-image', ''); // Reset to default.
 	if (!track) {
 		if (cb) cb(false);
@@ -86,7 +86,7 @@ function showTrackArt($elem, track, cb) {
 		return;
 	}
 
-	var url = URLROOT+'data/track/art/'+encodeURIComponent(track.id);
+	var url = URLROOT+'data/player/'+player.name+'/art/'+encodeURIComponent(track.id);
 	$.ajax({
 		method:   'HEAD',
 		url:      url,

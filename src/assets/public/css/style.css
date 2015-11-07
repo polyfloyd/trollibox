@@ -55,6 +55,16 @@ h2:first-child {
 	color: #333;
 }
 
+.player-selector {
+	background-color: transparent;
+	border: 1px solid #f60;
+}
+
+.player-selector option {
+	background-color: #222;
+	color: #f60;
+}
+
 /* Forms and inputs */
 .btn.btn-default {
 	background-color: #f60;

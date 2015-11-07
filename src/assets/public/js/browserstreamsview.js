@@ -24,7 +24,7 @@ var BrowserStreamsView = Backbone.View.extend({
 			var $el = $(this.streamTemplate({
 				title: stream.album || stream.id,
 			}));
-			showTrackArt($el.find('.track-art'), stream);
+			showTrackArt($el.find('.track-art'), this.model, stream);
 			$el.on('click', function() {
 				self.model.appendToPlaylist(stream);
 			});
@@ -44,7 +44,7 @@ var BrowserStreamsView = Backbone.View.extend({
 			$dialog.remove();
 		});
 		$dialog.find('input[name="art"]').on('input', function() {
-			showTrackArt($dialog.find('.art-preview'), { art: $(this).val()});
+			showTrackArt($dialog.find('.art-preview'), self.model, { art: $(this).val()});
 		});
 		$dialog.find('form').on('submit', function(event) {
 			event.preventDefault();

@@ -20,9 +20,10 @@ func getTemplate() *template.Template {
 	return pageTemplate
 }
 
-func htBrowserPage() func(res http.ResponseWriter, req *http.Request) {
+func htBrowserPage(playerName string) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		params := GetBaseParamMap()
+		params["player"] = playerName
 
 		if err := getTemplate().Execute(res, params); err != nil {
 			panic(err)

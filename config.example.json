@@ -4,9 +4,12 @@
 
 	"storage-dir": "~/.config/trollibox",
 
-	"mpd": {
-		"host":     "127.0.0.1",
-		"port":     6600,
-		"password": null
-	}
+	"mpd": [
+		{
+			"name":     "space",
+			"host":     "127.0.0.1",
+			"port":     6600,
+			"password": null
+		}
+	]
 }

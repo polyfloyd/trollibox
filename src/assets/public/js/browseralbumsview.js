@@ -98,7 +98,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 			discs:    discs,
 		})), { name: 'album' });
 
-		showTrackArt($tab.find('.album-art'), album[0]);
+		showTrackArt($tab.find('.album-art'), this.model, album[0]);
 		$tab.find('.album-info').on('click', function() {
 			self.model.appendToPlaylist(album);
 		});
@@ -126,7 +126,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 				title:    album.title,
 				duration: this.albumDuration(album.tracks),
 			}));
-			showTrackArt($el.find('.track-art'), album.tracks[0], function(success) {
+			showTrackArt($el.find('.track-art'), this.model, album.tracks[0], function(success) {
 				$el.toggleClass('show-details', !success);
 			});
 			$el.on('click', function() {

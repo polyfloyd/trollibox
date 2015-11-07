@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"mime"
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -31,8 +33,9 @@ var (
 )
 
 var (
-	config Config
-	static map[string][]string
+	config  Config
+	static  map[string][]string
+	players = map[string]player.Player{}
 )
 
 type Config struct {
@@ -41,11 +44,21 @@ type Config struct {
 
 	StorageDir string `json:"storage-dir"`
 
-	Mpd struct {
+	Mpd []struct {
+		Name     string  `json:"name"`
 		Host     string  `json:"host"`
 		Port     int     `json:"port"`
 		Password *string `json:"password"`
 	} `json:"mpd"`
+}
+
+func (conf *Config) Load(filename string) error {
+	if in, err := os.Open(filename); err != nil {
+		return fmt.Errorf("Could not open config file: %v", err)
+	} else if err := json.NewDecoder(in).Decode(conf); err != nil {
+		return fmt.Errorf("Unable to decode config: %v", err)
+	}
+	return nil
 }
 
 type AssetServeHandler struct {
@@ -66,10 +79,8 @@ func main() {
 	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
 	flag.Parse()
 
-	if in, err := os.Open(*configFile); err != nil {
-		log.Fatalf("Could not open config file: %v", err)
-	} else if err := json.NewDecoder(in).Decode(&config); err != nil {
-		log.Fatalf("Unable to decode config: %v", err)
+	if err := config.Load(*configFile); err != nil {
+		log.Fatal(err)
 	}
 
 	storeDir := strings.Replace(config.StorageDir, "~", os.Getenv("HOME"), 1)
@@ -86,18 +97,49 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to create queuer: %v", err)
 	}
-	mpdPlayer, err := mpd.NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password)
-	if err != nil {
-		log.Fatalf("Unable to create MPD player: %v", err)
+
+	addPlayer := func(pl player.Player, name string) error {
+		if match, _ := regexp.MatchString("^\\w+$", name); !match {
+			return fmt.Errorf("Invalid player name: %q", name)
+		}
+		if _, ok := players[name]; ok {
+			return fmt.Errorf("Duplicate player name: %q", name)
+		}
+		players[name] = pl
+		return nil
+	}
+	for _, mpdConf := range config.Mpd {
+		mpdPlayer, err := mpd.NewPlayer(mpdConf.Host, mpdConf.Port, mpdConf.Password)
+		if err != nil {
+			log.Fatalf("Unable to create MPD player: %v", err)
+		}
+		if err := addPlayer(mpdPlayer, mpdConf.Name); err != nil {
+			log.Fatal(err)
+		}
+	}
+	if len(players) == 0 {
+		log.Fatal("No players configured")
+	}
+	var defaultPlayer string
+	for name := range players {
+		defaultPlayer = name
+		break
 	}
 
-	go func() {
-		for {
-			log.Printf("Error while autoqueueing: %v", player.AutoQueue(queuer, mpdPlayer))
-		}
-	}()
+	for name, pl := range players {
+		go func(pl player.Player, name string) {
+			for {
+				log.Printf("Error while autoqueueing for %s: %v", name, player.AutoQueue(queuer, pl))
+			}
+		}(pl, name)
+	}
 
 	r := mux.NewRouter()
+	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
+	for name, pl := range players {
+		r.Path(fmt.Sprintf("/player/%s", name)).HandlerFunc(htBrowserPage(name))
+		htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).Subrouter(), pl, streamdb)
+	}
 
 	static = getStaticAssets(assets.AssetNames())
 	for _, file := range assets.AssetNames() {
@@ -107,9 +149,7 @@ func main() {
 		urlPath := strings.TrimPrefix(file, PUBLIC)
 		r.Path(urlPath).Handler(&AssetServeHandler{name: file})
 	}
-
-	r.Path("/").HandlerFunc(htBrowserPage())
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), mpdPlayer, queuer, streamdb)
+	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
@@ -150,10 +190,16 @@ func getStaticAssets(files []string) (static map[string][]string) {
 }
 
 func GetBaseParamMap() map[string]interface{} {
+	playerNames := make([]string, 0, len(players))
+	for name := range players {
+		playerNames = append(playerNames, name)
+	}
+	sort.Strings(playerNames)
 	return map[string]interface{}{
 		"urlroot": config.URLRoot,
 		"version": VERSION,
 		"assets":  static,
 		"time":    time.Now(),
+		"players": playerNames,
 	}
 }
