@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"./event"
 )
@@ -19,15 +20,15 @@ type StreamTrack struct {
 	ArtUrl      string `json:"art,omitempty"`
 }
 
-func (track StreamTrack) Uri() string   { return track.Url }
-func (StreamTrack) Artist() string      { return "" }
-func (track StreamTrack) Title() string { return track.StreamTitle }
-func (StreamTrack) Genre() string       { return "" }
-func (StreamTrack) Album() string       { return "" }
-func (StreamTrack) AlbumArtist() string { return "" }
-func (StreamTrack) AlbumTrack() string  { return "" }
-func (StreamTrack) AlbumDisc() string   { return "" }
-func (StreamTrack) Duration() int       { return 0 }
+func (track StreamTrack) Uri() string       { return track.Url }
+func (StreamTrack) Artist() string          { return "" }
+func (track StreamTrack) Title() string     { return track.StreamTitle }
+func (StreamTrack) Genre() string           { return "" }
+func (StreamTrack) Album() string           { return "" }
+func (StreamTrack) AlbumArtist() string     { return "" }
+func (StreamTrack) AlbumTrack() string      { return "" }
+func (StreamTrack) AlbumDisc() string       { return "" }
+func (StreamTrack) Duration() time.Duration { return 0 }
 
 func (track StreamTrack) Art() (image io.ReadCloser, mime string) {
 	if track.ArtUrl == "" {

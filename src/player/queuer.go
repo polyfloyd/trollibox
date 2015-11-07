@@ -24,14 +24,15 @@ const (
 func AutoQueue(queuer *Queuer, pl Player) error {
 	listener := pl.Events().Listen()
 	defer pl.Events().Unlisten(listener)
+
 	for {
 		if ev := <-listener; ev != "playlist-end" {
 			continue
 		}
 
-		tracks, err := pl.ListTracks("", true)
+		tracks, err := pl.TrackInfo()
 		if err != nil {
-			return err
+			return fmt.Errorf("Could not get tracks", err)
 		}
 		if len(tracks) == 0 {
 			continue // No tracks to queue, too bad.
@@ -44,11 +45,15 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 				continue
 			}
 		}
-		if err := pl.Queue(track, "system"); err != nil {
-			return err
+		err = PlaylistAppend(pl, PlaylistTrack{
+			TrackIdentity: track,
+			QueuedBy:      "system",
+		})
+		if err != nil {
+			return fmt.Errorf("Could not append to playlist: %v", err)
 		}
 		if err := pl.SetState(PlayStatePlaying); err != nil {
-			return err
+			return fmt.Errorf("Unable to begin playback: %v", err)
 		}
 	}
 }
@@ -102,19 +107,19 @@ func (rule SelectionRule) MatchFunc() (func(Track) bool, error) {
 
 	// The duration is currently the only integer attribute.
 	if float64Val, ok := rule.Value.(float64); ok && rule.Attribute == "duration" {
-		intVal := int(float64Val)
+		durVal := time.Duration(float64Val * float64(time.Second))
 		switch rule.Operation {
 		case OP_EQUALS:
 			return func(track Track) bool {
-				return inv(track.Duration() == intVal)
+				return inv(track.Duration() == durVal)
 			}, nil
 		case OP_GREATER:
 			return func(track Track) bool {
-				return inv(track.Duration() > intVal)
+				return inv(track.Duration() > durVal)
 			}, nil
 		case OP_LESS:
 			return func(track Track) bool {
-				return inv(track.Duration() < intVal)
+				return inv(track.Duration() < durVal)
 			}, nil
 		}
 
@@ -298,5 +303,5 @@ func (dummyTrack) Album() string                           { return "" }
 func (dummyTrack) AlbumArtist() string                     { return "" }
 func (dummyTrack) AlbumTrack() string                      { return "" }
 func (dummyTrack) AlbumDisc() string                       { return "" }
-func (dummyTrack) Duration() int                           { return 0 }
+func (dummyTrack) Duration() time.Duration                 { return 0 }
 func (dummyTrack) Art() (image io.ReadCloser, mime string) { return nil, "" }

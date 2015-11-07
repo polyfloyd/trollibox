@@ -14,13 +14,11 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// Dirty hack to remove an extra "Track" JSON object when serializing.
 func trackJson(tr player.Track) interface{} {
 	if tr == nil {
 		return nil
 	}
-
-	track := &struct {
+	return &struct {
 		Uri         string `json:"id"`
 		Artist      string `json:"artist,omitempty"`
 		Title       string `json:"title,omitempty"`
@@ -30,8 +28,6 @@ func trackJson(tr player.Track) interface{} {
 		AlbumTrack  string `json:"albumtrack,omitempty"`
 		AlbumDisc   string `json:"albumdisc,omitempty"`
 		Duration    int    `json:"duration"`
-		QueuedBy    string `json:"queuedby,omitempty"`
-		Progress    int    `json:"progress,omitempty"`
 	}{
 		Uri:         tr.Uri(),
 		Artist:      tr.Artist(),
@@ -41,14 +37,38 @@ func trackJson(tr player.Track) interface{} {
 		AlbumArtist: tr.AlbumArtist(),
 		AlbumTrack:  tr.AlbumTrack(),
 		AlbumDisc:   tr.AlbumDisc(),
-		Duration:    tr.Duration(),
+		Duration:    int(tr.Duration() / time.Second),
 	}
+}
 
-	if plTr, ok := tr.(player.PlaylistTrack); ok {
-		track.QueuedBy = plTr.QueuedBy()
-		track.Progress = plTr.Progress()
+func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
+	return &struct {
+		Uri         string `json:"id"`
+		Artist      string `json:"artist,omitempty"`
+		Title       string `json:"title,omitempty"`
+		Genre       string `json:"genre,omitempty"`
+		Album       string `json:"album,omitempty"`
+		AlbumArtist string `json:"albumartist,omitempty"`
+		AlbumTrack  string `json:"albumtrack,omitempty"`
+		AlbumDisc   string `json:"albumdisc,omitempty"`
+		Duration    int    `json:"duration"`
+
+		QueuedBy string `json:"queuedby,omitempty"`
+		Progress int    `json:"progress,omitempty"`
+	}{
+		Uri:         plTr.Uri(),
+		Artist:      tr.Artist(),
+		Title:       tr.Title(),
+		Genre:       tr.Genre(),
+		Album:       tr.Album(),
+		AlbumArtist: tr.AlbumArtist(),
+		AlbumTrack:  tr.AlbumTrack(),
+		AlbumDisc:   tr.AlbumDisc(),
+		Duration:    int(tr.Duration() / time.Second),
+
+		QueuedBy: plTr.QueuedBy,
+		Progress: int(plTr.Progress / time.Second),
 	}
-	return track
 }
 
 func trackJsonList(inList []player.Track) (outList []interface{}) {
@@ -59,12 +79,22 @@ func trackJsonList(inList []player.Track) (outList []interface{}) {
 	return
 }
 
-func pltrackJsonList(inList []player.PlaylistTrack) (outList []interface{}) {
-	outList = make([]interface{}, len(inList))
-	for i, tr := range inList {
-		outList[i] = trackJson(tr)
+func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interface{}, error) {
+	outList := make([]interface{}, len(inList))
+	ids := make([]player.TrackIdentity, len(inList))
+	for i, id := range inList {
+		ids[i] = id
 	}
-	return
+
+	tracks, err := pl.TrackInfo(ids...)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, tr := range inList {
+		outList[i] = plTrackJson(tr, tracks[i])
+	}
+	return outList, nil
 }
 
 func socketHandler(pl player.Player) func(*websocket.Conn) {
@@ -127,7 +157,7 @@ func htPlayerProgress(pl player.Player) func(res http.ResponseWriter, req *http.
 			panic(err)
 		}
 
-		if err := pl.Seek(data.Progress); err != nil {
+		if err := pl.Seek(time.Duration(data.Progress) * time.Second); err != nil {
 			panic(err)
 		}
 
@@ -203,28 +233,38 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 func htPlayerCurrentTrack(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		if tracks, err := pl.Playlist(); err != nil {
+
+		tracks, err := pl.Playlist()
+		if err != nil {
 			panic(err)
-		} else if state, err := pl.State(); err != nil {
+		}
+		if len(tracks) > 0 {
+			tracks = tracks[0:1]
+		}
+		trJson, err := pltrackJsonList(tracks, pl)
+		if err != nil {
 			panic(err)
+		}
+		state, err := pl.State()
+		if err != nil {
+			panic(err)
+		}
+
+		if len(tracks) == 0 {
+			err = json.NewEncoder(res).Encode(map[string]interface{}{
+				"progress": 0,
+				"track":    nil,
+				"state":    state.Name(),
+			})
 		} else {
-			var err error
-			if len(tracks) == 0 {
-				err = json.NewEncoder(res).Encode(map[string]interface{}{
-					"progress": 0,
-					"track":    nil,
-					"state":    state.Name(),
-				})
-			} else {
-				err = json.NewEncoder(res).Encode(map[string]interface{}{
-					"progress": tracks[0].Progress(),
-					"track":    trackJson(tracks[0]),
-					"state":    state.Name(),
-				})
-			}
-			if err != nil {
-				panic(err)
-			}
+			err = json.NewEncoder(res).Encode(map[string]interface{}{
+				"progress": int(tracks[0].Progress / time.Second),
+				"track":    trJson[0],
+				"state":    state.Name(),
+			})
+		}
+		if err != nil {
+			panic(err)
 		}
 	}
 }
@@ -235,10 +275,14 @@ func htPlayerGetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 		if err != nil {
 			panic(err)
 		}
+		trJson, err := pltrackJsonList(tracks, pl)
+		if err != nil {
+			panic(err)
+		}
 
 		res.Header().Set("Content-Type", "application/json")
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
-			"tracks": pltrackJsonList(tracks),
+			"tracks": trJson,
 		})
 		if err != nil {
 			panic(err)
@@ -257,7 +301,7 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 			panic(err)
 		}
 
-		if err := pl.SetPlaylist(player.TrackIdentities(data.TrackIds)); err != nil {
+		if err := player.SetPlaylistIds(pl, player.TrackIdentities(data.TrackIds...)); err != nil {
 			panic(err)
 		}
 
@@ -270,7 +314,7 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 
 func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	getResponse := func(path string, wr io.Writer) error {
-		tracks, err := pl.ListTracks(path, true)
+		tracks, err := pl.TrackInfo()
 		if err != nil {
 			return err
 		}
@@ -327,7 +371,7 @@ func htTrackArt(pl player.Player, streamdb *player.StreamDB) func(res http.Respo
 		if stream := streamdb.StreamByURL(fixStreamUri(uri)); stream != nil {
 			track = stream
 		} else {
-			tracks, err := pl.ListTracks(uri, false)
+			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)[0])
 			if err != nil {
 				panic(err)
 			}
@@ -354,7 +398,7 @@ func htTrackArtProbe(pl player.Player, streamdb *player.StreamDB) func(res http.
 		if stream := streamdb.StreamByURL(fixStreamUri(uri)); stream != nil {
 			track = stream
 		} else {
-			tracks, err := pl.ListTracks(uri, false)
+			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)[0])
 			if err == nil {
 				if len(tracks) > 0 {
 					track = tracks[0]

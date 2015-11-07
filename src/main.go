@@ -67,33 +67,33 @@ func main() {
 	flag.Parse()
 
 	if in, err := os.Open(*configFile); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not open config file: %v", err)
 	} else if err := json.NewDecoder(in).Decode(&config); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to decode config: %v", err)
 	}
 
 	storeDir := strings.Replace(config.StorageDir, "~", os.Getenv("HOME"), 1)
 	if err := os.MkdirAll(storeDir, 0755); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to create config dir: %v", err)
 	}
 	log.Printf("Using \"%s\" for storage", storeDir)
 
 	streamdb, err := player.NewStreamDB(path.Join(storeDir, "streams.json"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to create stream database: %v", err)
 	}
 	queuer, err := player.NewQueuer(path.Join(storeDir, "queuer.json"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to create queuer: %v", err)
 	}
 	mpdPlayer, err := mpd.NewPlayer(config.Mpd.Host, config.Mpd.Port, config.Mpd.Password)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unable to create MPD player: %v", err)
 	}
 
 	go func() {
 		for {
-			log.Printf("Error during in autoqueuer: %v", player.AutoQueue(queuer, mpdPlayer))
+			log.Printf("Error while autoqueueing: %v", player.AutoQueue(queuer, mpdPlayer))
 		}
 	}()
 
@@ -119,7 +119,7 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	log.Fatal(server.ListenAndServe())
+	log.Fatalf("Unable to start webserver: %v", server.ListenAndServe())
 }
 
 func getStaticAssets(files []string) (static map[string][]string) {

@@ -15,10 +15,10 @@ var Player = Backbone.Model.extend({
 	initialize: function() {
 		this.reloaders = {};
 
-		this.attachServerReloader('server-event:mixer', 'data/player/volume', function(data) {
+		this.attachServerReloader('server-event:volume', 'data/player/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
-		this.attachServerReloader('server-event:player', 'data/player/current', function(data) {
+		this.attachServerReloader('server-event:playstate', 'data/player/current', function(data) {
 			this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
 			this.setInternal('progress', data.progress);
 			this.setInternal('state',    data.state);
@@ -28,7 +28,7 @@ var Player = Backbone.Model.extend({
 				return !!track.id;
 			}).map(this.fillMissingTrackFields, this));
 		});
-		this.attachServerReloader('server-event:update', 'data/track/browse/', function(data) {
+		this.attachServerReloader('server-event:tracks', 'data/track/browse/', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 		this.attachServerReloader('server-event:streams-update', 'data/streams', function(data) {
