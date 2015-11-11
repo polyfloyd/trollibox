@@ -19,6 +19,7 @@ import (
 	assets "./assets-go"
 	"./player"
 	"./player/mpd"
+	"./player/slimserver"
 	"github.com/gorilla/mux"
 )
 
@@ -50,6 +51,14 @@ type Config struct {
 		Port     int     `json:"port"`
 		Password *string `json:"password"`
 	} `json:"mpd"`
+
+	SlimServer *struct {
+		Host     string  `json:"host"`
+		Port     int     `json:"port"`
+		Username *string `json:"username"`
+		Password *string `json:"password"`
+		WebUrl   string  `json:"weburl"`
+	} `json:"slimserver"`
 }
 
 func (conf *Config) Load(filename string) error {
@@ -117,6 +126,30 @@ func main() {
 			log.Fatal(err)
 		}
 	}
+
+	if config.SlimServer != nil {
+		slimServ, err := slimserver.Connect(
+			config.SlimServer.Host,
+			config.SlimServer.Port,
+			config.SlimServer.Username,
+			config.SlimServer.Password,
+			config.SlimServer.WebUrl,
+		)
+		if err != nil {
+			log.Fatalf("Unable to connect to SlimServer: %v", err)
+		}
+		players, err := slimServ.Players()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, pl := range players {
+			if err := addPlayer(pl, pl.Name); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+
 	if len(players) == 0 {
 		log.Fatal("No players configured")
 	}

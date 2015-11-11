@@ -1,7 +1,7 @@
 Trollibox
 =========
 
-The hackerspace friendly MPD web client.
+The hackerspace friendly ~~MPD~~ music player web client.
 
 License: GPLv3.
 
@@ -50,10 +50,29 @@ to change:
   // saved to MPD.
   "storage-dir": "~/.config/trollibox",
 
-  "mpd": {
+  // The sections below list options to configure the players that Trollibox
+  // will control. Each player is identified by a unique "name" property.
+
+  // MPD instances to control.
+  "mpd": [
+    {
+      "name":        "space",
+      "host":        "127.0.0.1",
+      "port":        6600,
+      "password":    null
+    }
+  ],
+
+  // Logitech SlimServer to control. Set to null if you don't want to configure
+  // a SlimServer.
+  "slimserver": {
     "host":     "127.0.0.1",
     "port":     6600,
-    "password": null
+    "username": null,
+    "password": null,
+
+    // The root of the SlimServer's web interface. Used to query track art.
+    "weburl": "http://127.0.0.1:9000/"
   }
 }
 ```

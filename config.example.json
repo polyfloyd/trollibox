@@ -11,5 +11,13 @@
 			"port":     6600,
 			"password": null
 		}
-	]
+	],
+
+	"slimserver": {
+		"host":     "127.0.0.1",
+		"port":     6600,
+		"username": null,
+		"password": null,
+		"weburl":   "http://127.0.0.1:9000/"
+	}
 }
