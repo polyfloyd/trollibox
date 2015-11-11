@@ -11,10 +11,26 @@ var BrowserFilesView = Backbone.View.extend({
 		this.updateTree();
 	},
 
+	determineCommonPath: function() {
+		this.commonPath = '';
+		if (this.model.get('tracks').length > 0) {
+			this.commonPath = this.model.get('tracks').reduce(function(commonPath, track) {
+				for (var i = 0; i < track.id.length; i++) {
+					if (track.id[i] != commonPath[i]) {
+						return commonPath.substring(0, i);
+					}
+				}
+				return commonPath;
+			}, this.model.get('tracks')[0].id);
+		}
+	},
+
 	updateTree: function() {
 		var self = this;
+		this.determineCommonPath();
 		this.tree = this.model.get('tracks').reduce(function(tree, track) {
-			self.trimSlashes(track.id.replace(/^\w+:\/+/, '')).split('/').reduce(function(prev, pathPart, i, parts) {
+			var idPath = track.id.substring(self.commonPath.length);
+			self.trimSlashes(idPath).split('/').reduce(function(prev, pathPart, i, parts) {
 				var path = self.join(prev[0], pathPart);
 				var dir  = prev[1].files;
 
@@ -128,11 +144,12 @@ var BrowserFilesView = Backbone.View.extend({
 	},
 
 	getTracksInDir: function(path) {
+		var self = this;
 		if (path == '' || path == '/') {
 			return this.model.get('tracks');
 		}
 		return this.model.get('tracks').filter(function(track) {
-			return track.id.replace(/^\w+:\/+/, '').indexOf(path) === 0;
+			return track.id.substring(self.commonPath.length).indexOf(path) === 0;
 		});
 	},
 
