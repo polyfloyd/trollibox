@@ -24,36 +24,42 @@ const (
 func AutoQueue(queuer *Queuer, pl Player) error {
 	listener := pl.Events().Listen()
 	defer pl.Events().Unlisten(listener)
+	go func() {
+		listener <- "tracks"
+	}()
 
+	var tracks []Track
 	for {
-		if ev := <-listener; ev != "playlist-end" {
-			continue
-		}
-
-		tracks, err := pl.TrackInfo()
-		if err != nil {
-			return fmt.Errorf("Could not get tracks", err)
-		}
-		if len(tracks) == 0 {
-			continue // No tracks to queue, too bad.
-		}
-
-		track := queuer.SelectRandomTrack(tracks)
-		if track == nil {
-			track = queuer.RandomTrack(tracks)
-			if track == nil {
-				continue
+		switch <-listener {
+		case "tracks":
+			var err error
+			tracks, err = pl.TrackInfo()
+			if err != nil {
+				return fmt.Errorf("Could not get tracks", err)
 			}
-		}
-		err = PlaylistAppend(pl, PlaylistTrack{
-			TrackIdentity: track,
-			QueuedBy:      "system",
-		})
-		if err != nil {
-			return fmt.Errorf("Could not append to playlist: %v", err)
-		}
-		if err := pl.SetState(PlayStatePlaying); err != nil {
-			return fmt.Errorf("Unable to begin playback: %v", err)
+
+		case "playlist-end":
+			if len(tracks) == 0 {
+				continue // No tracks to queue, too bad.
+			}
+
+			track := queuer.SelectRandomTrack(tracks)
+			if track == nil {
+				track = queuer.RandomTrack(tracks)
+				if track == nil {
+					continue
+				}
+			}
+			err := PlaylistAppend(pl, PlaylistTrack{
+				TrackIdentity: track,
+				QueuedBy:      "system",
+			})
+			if err != nil {
+				return fmt.Errorf("Could not append to playlist: %v", err)
+			}
+			if err := pl.SetState(PlayStatePlaying); err != nil {
+				return fmt.Errorf("Unable to begin playback: %v", err)
+			}
 		}
 	}
 }
