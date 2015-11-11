@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"./player"
+	"./stream"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
@@ -112,7 +113,7 @@ func socketHandler(pl player.Player) func(*websocket.Conn) {
 	}
 }
 
-func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *player.StreamDB) {
+func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB) {
 	r.Path("/state").Methods("POST").HandlerFunc(htPlayerSetState(pl))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
 	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerProgress(pl))
@@ -339,7 +340,7 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 	}
 }
 
-func htTrackArt(pl player.Player, streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		uri := fixUri(mux.Vars(req)["path"])
 
@@ -366,7 +367,7 @@ func htTrackArt(pl player.Player, streamdb *player.StreamDB) func(res http.Respo
 	}
 }
 
-func htTrackArtProbe(pl player.Player, streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArtProbe(pl player.Player, streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		uri := fixUri(mux.Vars(req)["path"])
 

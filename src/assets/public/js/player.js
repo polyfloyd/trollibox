@@ -309,6 +309,21 @@ var Player = Backbone.Model.extend({
 		});
 	},
 
+	loadDefaultStreams: function() {
+		$.ajax({
+			url:      URLROOT+'data/streams/loaddefault',
+			method:   'POST',
+			dataType: 'json',
+			context:  this,
+			success:  function() {
+				this.reload('server-event:streams-update');
+			},
+			error:    function(req, str, err) {
+				this.trigger('error', err);
+			},
+		});
+	},
+
 	addDefaultQueueRule: function() {
 		this.set('queuerules', this.get('queuerules').concat([{
 			attribute: 'artist',

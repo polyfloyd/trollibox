@@ -20,6 +20,7 @@ import (
 	"./player"
 	"./player/mpd"
 	"./player/slimserver"
+	"./stream"
 	"github.com/gorilla/mux"
 )
 
@@ -98,7 +99,7 @@ func main() {
 	}
 	log.Printf("Using \"%s\" for storage", storeDir)
 
-	streamdb, err := player.NewStreamDB(path.Join(storeDir, "streams.json"))
+	streamdb, err := stream.NewDB(path.Join(storeDir, "streams.json"))
 	if err != nil {
 		log.Fatalf("Unable to create stream database: %v", err)
 	}

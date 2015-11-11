@@ -6,18 +6,21 @@ import (
 	"regexp"
 
 	"./player"
+	"./stream"
+	"./stream/digitallyimported"
 	"github.com/gorilla/mux"
 )
 
-func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *player.StreamDB) {
+func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB) {
 	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuer))
 	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuer))
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
 	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
+	r.Path("/streams/loaddefault").Methods("POST").HandlerFunc(htStreamsLoadDefaults(streamdb))
 }
 
-func htStreamsList(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
@@ -27,10 +30,10 @@ func htStreamsList(streamdb *player.StreamDB) func(res http.ResponseWriter, req 
 	}
 }
 
-func htStreamsAdd(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
-			Stream player.StreamTrack `json:"stream"`
+			Stream stream.Track `json:"stream"`
 		}
 
 		defer req.Body.Close()
@@ -38,7 +41,7 @@ func htStreamsAdd(streamdb *player.StreamDB) func(res http.ResponseWriter, req *
 			panic(err)
 		}
 
-		if err := streamdb.AddStream(data.Stream); err != nil {
+		if err := streamdb.AddStreams(data.Stream); err != nil {
 			panic(err)
 		}
 
@@ -47,10 +50,26 @@ func htStreamsAdd(streamdb *player.StreamDB) func(res http.ResponseWriter, req *
 	}
 }
 
-func htStreamsRemove(streamdb *player.StreamDB) func(res http.ResponseWriter, req *http.Request) {
+func htStreamsLoadDefaults(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		streams, err := digitallyimported.Streams()
+		if err != nil {
+			panic(err)
+		}
+
+		if err := streamdb.AddStreams(streams...); err != nil {
+			panic(err)
+		}
+
+		res.Header().Set("Content-Type", "application/json")
+		res.Write([]byte("{}"))
+	}
+}
+
+func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		var data struct {
-			Stream player.StreamTrack `json:"stream"`
+			Stream stream.Track `json:"stream"`
 		}
 
 		defer req.Body.Close()

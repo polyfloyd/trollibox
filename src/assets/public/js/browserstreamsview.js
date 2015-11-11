@@ -5,7 +5,8 @@ var BrowserStreamsView = Backbone.View.extend({
 	className: 'view browser-streams',
 
 	events: {
-		'click .do-add-stream': 'doShowAddDialog',
+		'click .do-add-stream':   'doShowAddDialog',
+		'click .do-load-default': 'doLoadDefaults',
 	},
 
 	initialize: function() {
@@ -73,10 +74,20 @@ var BrowserStreamsView = Backbone.View.extend({
 		});
 	},
 
+	doLoadDefaults: function() {
+		if (confirm('Load default stream presets?')) {
+			this.model.loadDefaultStreams();
+		}
+	},
+
 	template: _.template(
-		'<div class="album-list">'+
-			'<h2>Streams <span class="glyphicon glyphicon-plus do-add-stream"></span></h2>'+
-			'<ul class="result-list "></ul>'+
+		'<div>'+
+			'<h2>'+
+				'Streams '+
+				'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
+				'<span class="do-load-default">load defaults</span>'+
+			'</h2>'+
+			'<ul class="result-list"></ul>'+
 		'</div>'
 	),
 	streamTemplate: _.template(
