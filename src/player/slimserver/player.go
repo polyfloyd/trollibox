@@ -128,7 +128,7 @@ func (pl *Player) reloadPlaylist() error {
 		if err != nil {
 			return err
 		}
-		pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(trackIds...))
+		pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities("", trackIds...))
 		pl.Emit("playlist")
 	}
 
@@ -152,7 +152,7 @@ func (pl *Player) serverPlaylist() ([]string, error) {
 			return nil, err
 		}
 		dec, _ := url.QueryUnescape(res[4])
-		trackIds[i] = strings.TrimPrefix(dec, "file:///")
+		trackIds[i] = dec
 	}
 	return trackIds, nil
 }
@@ -411,7 +411,7 @@ func (track *Track) setSlimAttr(key, value string) {
 	switch key {
 	case "url":
 		uri, _ := url.QueryUnescape(value)
-		track.uri = strings.TrimPrefix(uri, "file:///")
+		track.uri = uri
 	case "trackartist":
 		track.artist = value
 	case "title":

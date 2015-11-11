@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,7 +16,7 @@ import (
 	"github.com/polyfloyd/gompd/mpd"
 )
 
-var nonMpdTrackUri = regexp.MustCompile("^[a-z]+:\\/\\/")
+const URI_SCHEMA = "mpd://"
 
 type Track struct {
 	player *Player
@@ -33,7 +32,7 @@ type Track struct {
 	duration    time.Duration
 }
 
-func (track Track) Uri() string             { return track.uri }
+func (track Track) Uri() string             { return URI_SCHEMA + track.uri }
 func (track Track) Artist() string          { return track.artist }
 func (track Track) Title() string           { return track.title }
 func (track Track) Genre() string           { return track.genre }
@@ -170,8 +169,10 @@ func (pl *Player) mainLoop() {
 			fallthrough
 
 		case "mpd-playlist":
-			pl.playlistLock.Lock()
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
+				pl.playlistLock.Lock()
+				defer pl.playlistLock.Unlock()
+
 				if err := pl.removePlayedTracks(mpdc); err != nil {
 					return err
 				}
@@ -212,7 +213,6 @@ func (pl *Player) mainLoop() {
 			if err != nil {
 				log.Println(err)
 			}
-			pl.playlistLock.Unlock()
 
 		case "mpd-mixer":
 			pl.Emit("volume")
@@ -251,7 +251,7 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 	if len(pl.playlist) == len(idStrs) {
 		equal := true
 		for i, id := range idStrs {
-			if id != pl.playlist[i].Uri() {
+			if id != uriToMpd(pl.playlist[i].Uri()) {
 				equal = false
 				break
 			}
@@ -261,7 +261,7 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 		}
 	}
 
-	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(idStrs...))
+	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(URI_SCHEMA, idStrs...))
 	return true, nil
 }
 
@@ -310,7 +310,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 		} else {
 			songs = make([]mpd.Attrs, len(identities))
 			for i, id := range identities {
-				s, err := mpdc.ListAllInfo(id.Uri())
+				s, err := mpdc.ListAllInfo(uriToMpd(id.Uri()))
 				if err != nil {
 					return err
 				}
@@ -376,7 +376,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 
 		// Figure out how many tracks at the beginning of the playlist are unchanged.
 		delStart := 0
-		for len(songs) > delStart && len(pl.playlist) > delStart && pl.playlist[delStart].Uri() == songs[delStart]["file"] {
+		for len(songs) > delStart && len(pl.playlist) > delStart && uriToMpd(pl.playlist[delStart].Uri()) == songs[delStart]["file"] {
 			delStart++
 		}
 
@@ -390,7 +390,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 		// Queue the new tracks.
 		cmd := mpdc.BeginCommandList()
 		for _, track := range plist[delStart:] {
-			cmd.Add(track.Uri())
+			cmd.Add(uriToMpd(track.Uri()))
 		}
 		return cmd.End()
 	})
@@ -522,15 +522,15 @@ func (player *Player) Events() *event.Emitter {
 }
 
 func incrementPlayCount(uri string, mpdc *mpd.Client) error {
-	if !isMpdUri(uri) {
+	if !strings.HasPrefix(uri, URI_SCHEMA) {
 		return nil
 	}
 
 	var playCount int64
-	if str, err := mpdc.StickerGet(uri, "play-count"); err == nil {
+	if str, err := mpdc.StickerGet(uriToMpd(uri), "play-count"); err == nil {
 		playCount, _ = strconv.ParseInt(str, 10, 32)
 	}
-	if err := mpdc.StickerSet(uri, "play-count", strconv.FormatInt(playCount+1, 10)); err != nil {
+	if err := mpdc.StickerSet(uriToMpd(uri), "play-count", strconv.FormatInt(playCount+1, 10)); err != nil {
 		return fmt.Errorf("Unable to set play-count %v", err)
 	}
 	return nil
@@ -546,9 +546,6 @@ func statusAttrInt(status mpd.Attrs, attr string) (int, bool) {
 	return 0, false
 }
 
-func isMpdUri(uri string) bool {
-	if len(uri) == 0 {
-		return false
-	}
-	return !nonMpdTrackUri.MatchString(uri)
+func uriToMpd(uri string) string {
+	return strings.TrimPrefix(uri, URI_SCHEMA)
 }

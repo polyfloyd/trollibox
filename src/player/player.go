@@ -167,10 +167,10 @@ func (tr trackID) Uri() string {
 	return string(tr)
 }
 
-func TrackIdentities(uris ...string) []TrackIdentity {
+func TrackIdentities(prefix string, uris ...string) []TrackIdentity {
 	tracks := make([]TrackIdentity, len(uris))
 	for i, uri := range uris {
-		tracks[i] = trackID(uri)
+		tracks[i] = trackID(prefix + uri)
 	}
 	return tracks
 }

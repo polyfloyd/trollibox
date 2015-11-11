@@ -14,7 +14,7 @@ var BrowserFilesView = Backbone.View.extend({
 	updateTree: function() {
 		var self = this;
 		this.tree = this.model.get('tracks').reduce(function(tree, track) {
-			self.trimSlashes(track.id).split('/').reduce(function(prev, pathPart, i, parts) {
+			self.trimSlashes(track.id.replace(/^\w+:\/+/, '')).split('/').reduce(function(prev, pathPart, i, parts) {
 				var path = self.join(prev[0], pathPart);
 				var dir  = prev[1].files;
 
@@ -132,7 +132,7 @@ var BrowserFilesView = Backbone.View.extend({
 			return this.model.get('tracks');
 		}
 		return this.model.get('tracks').filter(function(track) {
-			return track.id.indexOf(path) === 0;
+			return track.id.replace(/^\w+:\/+/, '').indexOf(path) === 0;
 		});
 	},
 

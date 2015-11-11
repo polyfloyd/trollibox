@@ -109,7 +109,7 @@ func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 
 // "//" Gets converted to "/" in URLs, resulting in streams not being
 // recognised. This is hopefully a temporary fix. :(
-func fixStreamUri(uri string) string {
-	re := regexp.MustCompile("^([a-z]+):\\/([^\\/])")
-	return re.ReplaceAllString(uri, "$1://$2")
+func fixUri(uri string) string {
+	re := regexp.MustCompile("^([a-z]+):\\/\\/?")
+	return re.ReplaceAllString(uri, "$1://")
 }

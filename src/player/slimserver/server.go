@@ -186,10 +186,23 @@ func queryEscape(str string) string {
 }
 
 func encodeUri(uri string) string {
-	split := strings.Split(strings.TrimPrefix(uri, "file:///"), "/")
+	i := strings.Index(uri, "://")
+	schema, path := uri[:i], uri[i+3:]
+	if path[0] == '/' {
+		path = path[1:]
+	}
+
+	split := strings.Split(path, "/")
 	encodedParts := make([]string, len(split))
 	for i, part := range split {
 		encodedParts[i] = queryEscape(part)
 	}
-	return "file:///" + strings.Join(encodedParts, "/")
+
+	var join string
+	if schema == "file" {
+		join = ":///"
+	} else {
+		join = "://"
+	}
+	return schema + join + strings.Join(encodedParts, "/")
 }
