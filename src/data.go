@@ -21,12 +21,9 @@ func htStreamsList(streamdb *player.StreamDB) func(res http.ResponseWriter, req 
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
-		err := json.NewEncoder(res).Encode(map[string]interface{}{
+		json.NewEncoder(res).Encode(map[string]interface{}{
 			"streams": streamdb.Streams(),
 		})
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
@@ -46,9 +43,7 @@ func htStreamsAdd(streamdb *player.StreamDB) func(res http.ResponseWriter, req *
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -68,9 +63,7 @@ func htStreamsRemove(streamdb *player.StreamDB) func(res http.ResponseWriter, re
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -78,12 +71,9 @@ func htQueuerulesGet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
-		err := json.NewEncoder(res).Encode(map[string]interface{}{
+		json.NewEncoder(res).Encode(map[string]interface{}{
 			"queuerules": queuer.Rules(),
 		})
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
@@ -113,9 +103,7 @@ func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 			panic(err)
 		}
 
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 

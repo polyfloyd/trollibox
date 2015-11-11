@@ -134,9 +134,7 @@ func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Requ
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -156,9 +154,7 @@ func htPlayerProgress(pl player.Player) func(res http.ResponseWriter, req *http.
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -178,9 +174,7 @@ func htPlayerSetState(pl player.Player) func(res http.ResponseWriter, req *http.
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -192,12 +186,9 @@ func htPlayerGetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		err = json.NewEncoder(res).Encode(map[string]interface{}{
+		json.NewEncoder(res).Encode(map[string]interface{}{
 			"volume": volume,
 		})
-		if err != nil {
-			panic(err)
-		}
 	}
 }
 
@@ -217,9 +208,7 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -245,20 +234,17 @@ func htPlayerCurrentTrack(pl player.Player) func(res http.ResponseWriter, req *h
 		}
 
 		if len(tracks) == 0 {
-			err = json.NewEncoder(res).Encode(map[string]interface{}{
+			json.NewEncoder(res).Encode(map[string]interface{}{
 				"progress": 0,
 				"track":    nil,
 				"state":    state.Name(),
 			})
 		} else {
-			err = json.NewEncoder(res).Encode(map[string]interface{}{
+			json.NewEncoder(res).Encode(map[string]interface{}{
 				"progress": int(tracks[0].Progress / time.Second),
 				"track":    trJson[0],
 				"state":    state.Name(),
 			})
-		}
-		if err != nil {
-			panic(err)
 		}
 	}
 }
@@ -300,9 +286,7 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 		}
 
 		res.Header().Set("Content-Type", "application/json")
-		if _, err := res.Write([]byte("{}")); err != nil {
-			panic(err)
-		}
+		res.Write([]byte("{}"))
 	}
 }
 
@@ -346,9 +330,7 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 			cacheMutex.Lock()
 			buf := cachedRoot
 			cacheMutex.Unlock()
-			if _, err := res.Write(buf.Bytes()); err != nil {
-				panic(err)
-			}
+			res.Write(buf.Bytes())
 		} else {
 			if err := getResponse(path, res); err != nil {
 				panic(err)
