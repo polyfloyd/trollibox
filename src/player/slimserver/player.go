@@ -320,7 +320,6 @@ func (pl *Player) Next() error {
 		if _, err := pl.Serv.request(pl.ID, "playlist", "delete", "0"); err != nil {
 			return err
 		}
-		pl.Emit("playlist-end")
 	}
 	return nil
 
