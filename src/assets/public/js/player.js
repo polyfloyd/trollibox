@@ -19,7 +19,7 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:volume', 'data/player/'+this.name+'/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
-		this.attachServerReloader('server-event:playstate', 'data/player/'+this.name+'/current', function(data) {
+		this.attachServerReloader('server-event:playlist server-event:playstate', 'data/player/'+this.name+'/current', function(data) {
 			this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
 			this.setInternal('progress', data.progress);
 			this.setInternal('state',    data.state);
