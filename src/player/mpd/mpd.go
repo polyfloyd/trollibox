@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -32,7 +33,7 @@ type Track struct {
 	duration    time.Duration
 }
 
-func (track Track) Uri() string             { return URI_SCHEMA + track.uri }
+func (track Track) Uri() string             { return mpdToUri(track.uri) }
 func (track Track) Artist() string          { return track.artist }
 func (track Track) Title() string           { return track.title }
 func (track Track) Genre() string           { return track.genre }
@@ -241,17 +242,17 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	idStrs := make([]string, len(songs))
+	uris := make([]string, len(songs))
 	for i, song := range songs {
-		idStrs[i] = song["file"]
+		uris[i] = mpdToUri(song["file"])
 	}
 
 	// Check wether the argument playlist is equal to the stored playlist. If
 	// it is, don't do anything
-	if len(pl.playlist) == len(idStrs) {
+	if len(pl.playlist) == len(uris) {
 		equal := true
-		for i, id := range idStrs {
-			if id != uriToMpd(pl.playlist[i].Uri()) {
+		for i, uri := range uris {
+			if uri != pl.playlist[i].Uri() {
 				equal = false
 				break
 			}
@@ -261,7 +262,7 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 		}
 	}
 
-	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(URI_SCHEMA, idStrs...))
+	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities("", uris...))
 	return true, nil
 }
 
@@ -310,13 +311,26 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 		} else {
 			songs = make([]mpd.Attrs, len(identities))
 			for i, id := range identities {
-				s, err := mpdc.ListAllInfo(uriToMpd(id.Uri()))
-				if err != nil {
-					return err
+				uri := id.Uri()
+				if strings.HasPrefix(uri, URI_SCHEMA) {
+					s, err := mpdc.ListAllInfo(uriToMpd(uri))
+					if err != nil {
+						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+					}
+					if len(s) > 0 {
+						songs[i] = s[0]
+						continue
+					}
+				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].Uri() == uri {
+					song, err := mpdc.CurrentSong()
+					if err != nil {
+						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+					}
+					songs[i] = song
+					songs[i]["Album"] = song["Name"]
+					continue
 				}
-				if len(s) > 0 {
-					songs[i] = s[0]
-				}
+				songs[i] = mpd.Attrs{"file": uri}
 			}
 		}
 
@@ -531,7 +545,7 @@ func incrementPlayCount(uri string, mpdc *mpd.Client) error {
 		playCount, _ = strconv.ParseInt(str, 10, 32)
 	}
 	if err := mpdc.StickerSet(uriToMpd(uri), "play-count", strconv.FormatInt(playCount+1, 10)); err != nil {
-		return fmt.Errorf("Unable to set play-count %v", err)
+		return fmt.Errorf("Unable to set play-count: %v", err)
 	}
 	return nil
 }
@@ -548,4 +562,11 @@ func statusAttrInt(status mpd.Attrs, attr string) (int, bool) {
 
 func uriToMpd(uri string) string {
 	return strings.TrimPrefix(uri, URI_SCHEMA)
+}
+
+func mpdToUri(song string) string {
+	if strings.Index(song, "://") == -1 {
+		return URI_SCHEMA + song
+	}
+	return song
 }
