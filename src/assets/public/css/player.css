@@ -11,11 +11,13 @@
 
 .player-current .track-album {
 	text-align: center;
+	word-wrap: break-word;
 }
 
 .player-current .track-title {
 	margin-bottom: 0;
 	font-size: 1.3em;
+	word-wrap: break-word;
 }
 
 .player-current .track-artist {
