@@ -3,12 +3,23 @@ Trollibox
 
 The hackerspace friendly ~~MPD~~ music player web client.
 
-License: GPLv3.
+Features:
+* Control multiple music players from one webinterface
+* Support for MPD
+* Support for Logitech SlimServer and SqueezeBoxes
+* Track art
+* Listen to web radio stations
+* Search-as-you-type for tracks
+* Filebrowser
+* Albumbrowser
+* Queue random tracks when the playlist is done.
+* Free Open Source Software (GPLv3)
 
 ## Installing
 
 We're not using semantic versioning yet, but it is safe to install from the
-master branch.
+master branch. Altough this also means that some things (like the stored stream
+database) may break if you update it.
 
 ### Building
 Clone the repository into your [$GOPATH](https://www.youtube.com/watch?v=XCsL89YtqCs).
@@ -47,13 +58,14 @@ to change:
   "url-root":       "http://localhost:3000/",
 
   // The directory which Trollibox will use to store data which can not be
-  // saved to MPD.
+  // saved to configured players.
   "storage-dir": "~/.config/trollibox",
 
   // The sections below list options to configure the players that Trollibox
   // will control. Each player is identified by a unique "name" property.
 
-  // MPD instances to control.
+  // MPD instances to control. Leave emtpy if you don't want to configure any
+  // MPD instances.
   "mpd": [
     {
       "name":        "space",
@@ -64,7 +76,8 @@ to change:
   ],
 
   // Logitech SlimServer to control. Set to null if you don't want to configure
-  // a SlimServer.
+  // a SlimServer. The players along with their names are automatically
+  // detected.
   "slimserver": {
     "host":     "127.0.0.1",
     "port":     6600,
@@ -77,11 +90,11 @@ to change:
 }
 ```
 
-### Track Art
+### Track Art and MPD
 
 Since MPD does not natively support art embedded in tracks, track art is
 presented to Trollibox through stickers. These stickers need to be added by
-running the [enclosed python script](util/mpd-meta-hack.py). It will look for
+running the [enclosed python script](support/mpd-artwork.py). It will look for
 the art embedded in the track.
 
 The script requires Python3 and the pillow, python-mpd2 and mutagen packages,
@@ -115,30 +128,27 @@ The `matches` operation takes a regular expression in
 
 ### Streams
 
-MPD supports streams, and so does Trollibox! Add streams using the streams
-interface on the browser page.
+Trollibox has support for HTTP streams. You can create a custom collection
+using the Streams interface.
 
 
 ## Q & A
 
-Q: What does the asterisk next to queued tracks indicate?
+#### What does the asterisk next to queued tracks indicate?
+See [Queueing Tracks](#queueing-tracks).
 
-A: See [Queueing Tracks](#queueing-tracks).
+#### Where is the button to update the library?
+There isn't. Trollibox is only a browser/player. Managing the files of the
+library is out of the scope of this project, which includes updating the
+player's database.
 
-Q: Where is the button to update the library?
+#### How do I add stuff to the library?
+Using whatever options the player you are using is giving you. Trollibox is
+only a browser/player. You should manage your library in some other way.
 
-A: There isn't. Trollibox is only a browser/player. Managing the files of the
-   library is out of the scope of this project, which includes updating MPD.
-
-Q: How do I add stuff to the library?
-
-A: You can't. Trollibox is only a browser/player. You should manage your
-   library in some other way.
-
-Q: I can't see the player on my phone.
-
-A: The player is hidden on small screens to preserve space. The player is
-   accessible on a separate page for such devices.
+#### I can't see the player on my phone.
+The player is hidden on small screens to preserve space. The player is
+accessible on a separate view for such devices.
 
 
 ## Screenshots
