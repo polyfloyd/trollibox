@@ -79,7 +79,7 @@ to change:
   // detected.
   "slimserver": {
     "host":     "127.0.0.1",
-    "port":     6600,
+    "port":     9090,
     "username": null,
     "password": null,
 
