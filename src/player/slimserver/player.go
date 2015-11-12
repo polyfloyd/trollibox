@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -60,6 +61,12 @@ func (pl *Player) eventLoop() {
 				if err := pl.reloadPlaylist(); err != nil {
 					log.Println(err)
 					continue
+				}
+				if len(line) >= 3 && line[2] == "newsong" {
+					// It takes a while to get the metainformation from HTTP
+					// streams. Emit another change event to inform that the
+					// loading has been completed.
+					pl.Emit("playlist")
 				}
 				if len(line) >= 2 && line[2] == "stop" {
 					pl.maybeEmitPlaylistEnd()
@@ -233,16 +240,36 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 
 	tracks := make([]player.Track, len(identities))
 	for i, id := range identities {
-		attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.Uri()))
-		if err != nil {
-			return nil, err
+		uri := id.Uri()
+		if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].Uri() == uri {
+			tr := &Track{
+				serv:  pl.Serv,
+				uri:   uri,
+				album: uri,
+			}
+			artistRes, err := pl.Serv.request(pl.ID, "artist", "?")
+			if err == nil && len(artistRes) >= 3 {
+				tr.artist = artistRes[2]
+			}
+			titleRes, err := pl.Serv.request(pl.ID, "title", "?")
+			if err == nil && len(titleRes) >= 3 {
+				tr.title = titleRes[2]
+			}
+			tracks[i] = tr
+
+		} else {
+			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.Uri()))
+			if err != nil {
+				return nil, err
+			}
+
+			tr := &Track{serv: pl.Serv}
+			for k, v := range attrs {
+				tr.setSlimAttr(k, v)
+			}
+			tracks[i] = tr
 		}
 
-		tr := &Track{serv: pl.Serv}
-		for k, v := range attrs {
-			tr.setSlimAttr(k, v)
-		}
-		tracks[i] = tr
 	}
 	return tracks, nil
 }
