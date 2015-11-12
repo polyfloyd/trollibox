@@ -262,7 +262,7 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 		}
 	}
 
-	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities("", uris...))
+	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(uris...))
 	return true, nil
 }
 

@@ -128,7 +128,7 @@ func (pl *Player) reloadPlaylist() error {
 		if err != nil {
 			return err
 		}
-		pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities("", trackIds...))
+		pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(trackIds...))
 		pl.Emit("playlist")
 	}
 

@@ -282,7 +282,7 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 			panic(err)
 		}
 
-		if err := player.SetPlaylistIds(pl, player.TrackIdentities("", data.TrackIds...)); err != nil {
+		if err := player.SetPlaylistIds(pl, player.TrackIdentities(data.TrackIds...)); err != nil {
 			panic(err)
 		}
 
@@ -348,7 +348,7 @@ func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWri
 		if stream := streamdb.StreamByURL(uri); stream != nil {
 			track = stream
 		} else {
-			tracks, err := pl.TrackInfo(player.TrackIdentities("", uri)[0])
+			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)[0])
 			if err != nil {
 				panic(err)
 			}
@@ -375,7 +375,7 @@ func htTrackArtProbe(pl player.Player, streamdb *stream.DB) func(res http.Respon
 		if stream := streamdb.StreamByURL(uri); stream != nil {
 			track = stream
 		} else {
-			tracks, err := pl.TrackInfo(player.TrackIdentities("", uri)[0])
+			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)[0])
 			if err == nil {
 				if len(tracks) > 0 {
 					track = tracks[0]
