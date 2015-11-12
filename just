@@ -44,6 +44,9 @@ case ${1:-} in
 			npm install --prefix "$LIB" "uglifyjs" "minify" "bower"
 		fi
 
+		echo "*** Installing go-bindata ***"
+		GOPATH="$GOPATH" go get -u github.com/jteeuwen/go-bindata/...
+
 		echo "*** Installing Dependencies ***"
 		cd "$WORKSPACE/src"
 		GOPATH="$GOPATH" "$GPM" install
@@ -103,7 +106,7 @@ case ${1:-} in
 		ASSETS_OUT="$WORKSPACE/src/assets-go"
 		mkdir -p "$ASSETS_OUT"
 
-		go-bindata \
+		"$GOPATH/bin/go-bindata" \
 			${INCLUDE_FLAGS:-} \
 			-nocompress \
 			-pkg="static" \

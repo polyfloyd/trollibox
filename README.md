@@ -26,7 +26,6 @@ Clone the repository into your [$GOPATH](https://www.youtube.com/watch?v=XCsL89Y
 
 The following tools are required to build Trollibox:
 * Golang
-* [go-bindata](https://github.com/jteeuwen/go-bindata)
 * NPM
 
 Once you got that sorted out, its time to build trollibox. Build it by simply running:
