@@ -71,13 +71,13 @@ func (conf *Config) Load(filename string) error {
 	return nil
 }
 
-type AssetServeHandler struct {
-	name string
-}
+type AssetServeHandler string
 
-func (h *AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(h.name)))
-	http.ServeContent(w, req, h.name, HttpCacheTime(), bytes.NewReader(assets.MustAsset(h.name)))
+func (h AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	name := string(h)
+	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
+	info, _ := assets.AssetInfo(name)
+	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
 }
 
 func main() {
@@ -181,7 +181,7 @@ func main() {
 			continue
 		}
 		urlPath := strings.TrimPrefix(file, PUBLIC)
-		r.Path(urlPath).Handler(&AssetServeHandler{name: file})
+		r.Path(urlPath).Handler(AssetServeHandler(file))
 	}
 	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb)
 

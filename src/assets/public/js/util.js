@@ -86,11 +86,12 @@ function showTrackArt($elem, player, track, cb) {
 		return;
 	}
 
-	var url = URLROOT+'data/player/'+player.name+'/art/'+encodeURIComponent(track.id);
+	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.id);
 	$.ajax({
-		method:   'HEAD',
+		method:   'GET',
 		url:      url,
 		complete: function(xhr, state) {
+			// TODO: Use the response as image.
 			if (state !== 'error') {
 				setUrl(url);
 			}

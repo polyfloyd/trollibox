@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-	"regexp"
 
 	"./player"
 	"./stream"
@@ -20,10 +19,19 @@ func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB) {
 	r.Path("/streams/loaddefault").Methods("POST").HandlerFunc(htStreamsLoadDefaults(streamdb))
 }
 
+// Writes an error to the client or an empty object if err is nil.
+func writeError(res http.ResponseWriter, err error) {
+	if err == nil {
+		res.Write([]byte("{}"))
+	}
+	json.NewEncoder(res).Encode(map[string]interface{}{
+		"error": err.Error(),
+	})
+}
+
 func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"streams": streamdb.Streams(),
 		})
@@ -32,56 +40,57 @@ func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.
 
 func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
 		var data struct {
 			Stream stream.Track `json:"stream"`
 		}
-
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
 
 		if err := streamdb.AddStreams(data.Stream); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
-
-		res.Header().Set("Content-Type", "application/json")
 		res.Write([]byte("{}"))
 	}
 }
 
 func htStreamsLoadDefaults(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
 		streams, err := digitallyimported.Streams()
 		if err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
 
 		if err := streamdb.AddStreams(streams...); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
-
-		res.Header().Set("Content-Type", "application/json")
 		res.Write([]byte("{}"))
 	}
 }
 
 func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
 		var data struct {
 			Stream stream.Track `json:"stream"`
 		}
-
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
 
 		if err := streamdb.RemoveStreamByUrl(data.Stream.Url); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
-
-		res.Header().Set("Content-Type", "application/json")
 		res.Write([]byte("{}"))
 	}
 }
@@ -89,7 +98,6 @@ func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *htt
 func htQueuerulesGet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"queuerules": queuer.Rules(),
 		})
@@ -98,16 +106,16 @@ func htQueuerulesGet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 
 func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
 		var data struct {
 			Rules []player.SelectionRule `json:"queuerules"`
 		}
-
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			panic(err)
+			writeError(res, err)
+			return
 		}
 
-		res.Header().Set("Content-Type", "application/json")
 		if err := queuer.SetRules(data.Rules); err != nil {
 			if err, ok := err.(player.RuleError); ok {
 				res.WriteHeader(400)
@@ -119,16 +127,9 @@ func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 				})
 				return
 			}
-			panic(err)
+			writeError(res, err)
+			return
 		}
-
 		res.Write([]byte("{}"))
 	}
-}
-
-// "//" Gets converted to "/" in URLs, resulting in streams not being
-// recognised. This is hopefully a temporary fix. :(
-func fixUri(uri string) string {
-	re := regexp.MustCompile("^([a-z]+):\\/\\/?")
-	return re.ReplaceAllString(uri, "$1://")
 }

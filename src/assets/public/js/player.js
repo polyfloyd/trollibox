@@ -16,20 +16,26 @@ var Player = Backbone.Model.extend({
 		this.reloaders = {};
 		this.name      = args.name;
 
+		this.attachServerReloader('server-event:playstate', 'data/player/'+this.name+'/playstate', function(data) {
+			this.setInternal('state', data.playstate);
+		});
 		this.attachServerReloader('server-event:volume', 'data/player/'+this.name+'/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
-		this.attachServerReloader('server-event:playlist server-event:playstate', 'data/player/'+this.name+'/current', function(data) {
-			this.setInternal('current',  data.track ? this.fillMissingTrackFields(data.track) : null);
-			this.setInternal('progress', data.progress);
-			this.setInternal('state',    data.state);
-		});
 		this.attachServerReloader('server-event:playlist', 'data/player/'+this.name+'/playlist', function(data) {
-			this.setInternal('playlist', data.tracks.filter(function(track) {
-				return !!track.id;
-			}).map(this.fillMissingTrackFields, this));
+			var pl = data.tracks.map(this.fillMissingTrackFields, this);
+			this.setInternal('playlist', pl);
+			if (pl.length > 0 && (!this.get('current') || pl[0].id != this.get('current').id)) {
+				this.setInternal('current', pl[0]);
+				this.setInternal('progress', data.tracks[0].progress);
+			}
+			if (pl.length == 0) {
+				console.log('set current null')
+				this.setInternal('current', null);
+				this.setInternal('progress', 0);
+			}
 		});
-		this.attachServerReloader('server-event:tracks', 'data/player/'+this.name+'/browse/', function(data) {
+		this.attachServerReloader('server-event:tracks', 'data/player/'+this.name+'/tracks', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 
@@ -43,8 +49,8 @@ var Player = Backbone.Model.extend({
 		this.attachServerUpdater('progress', 'data/player/'+this.name+'/progress', function(value) {
 			return { progress: value };
 		});
-		this.attachServerUpdater('state', 'data/player/'+this.name+'/state', function(value) {
-			return { state: value };
+		this.attachServerUpdater('state', 'data/player/'+this.name+'/playstate', function(value) {
+			return { playstate: value };
 		});
 		this.attachServerUpdater('volume', 'data/player/'+this.name+'/volume', function(value) {
 			return { volume: value };
@@ -172,7 +178,9 @@ var Player = Backbone.Model.extend({
 				this.reloaders[k].call(this);
 			}
 		} else {
-			this.reloaders[name].call(this);
+			if (this.reloaders[name]) {
+				this.reloaders[name].call(this);
+			}
 		}
 	},
 
