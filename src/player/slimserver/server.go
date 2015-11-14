@@ -150,7 +150,7 @@ func (serv *Server) Players() ([]*Player, error) {
 
 	players := make([]*Player, 0, numPlayers)
 	for i := 0; i < int(numPlayers); i++ {
-		attrs, err := serv.requestAttrs("players", strconv.Itoa(i))
+		attrs, err := serv.requestAttrs("players", strconv.Itoa(i), "1")
 		if err != nil {
 			return nil, err
 		}
