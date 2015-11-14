@@ -118,6 +118,7 @@ func main() {
 		players[name] = pl
 		return nil
 	}
+
 	for _, mpdConf := range config.Mpd {
 		mpdPlayer, err := mpd.NewPlayer(mpdConf.Host, mpdConf.Port, mpdConf.Password)
 		if err != nil {
@@ -127,7 +128,6 @@ func main() {
 			log.Fatal(err)
 		}
 	}
-
 	if config.SlimServer != nil {
 		slimServ, err := slimserver.Connect(
 			config.SlimServer.Host,
@@ -171,8 +171,13 @@ func main() {
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
 	for name, pl := range players {
-		r.Path(fmt.Sprintf("/player/%s", name)).HandlerFunc(htBrowserPage(name))
-		htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).Subrouter(), pl, streamdb)
+		func(name string, pl player.Player) {
+			playerOnline := func(r *http.Request, rm *mux.RouteMatch) bool {
+				return pl.Available()
+			}
+			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(name))
+			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb)
+		}(name, pl)
 	}
 
 	static = getStaticAssets(assets.AssetNames())

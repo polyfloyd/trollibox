@@ -155,7 +155,7 @@ func (serv *Server) Players() ([]*Player, error) {
 			return nil, err
 		}
 
-		if attrs["isplayer"] != "1" || attrs["connected"] != "1" {
+		if attrs["isplayer"] != "1" {
 			continue
 		}
 

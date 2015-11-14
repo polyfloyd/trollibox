@@ -137,20 +137,20 @@ func (pl *Player) eventLoop() {
 	for {
 		watcher, err := mpd.NewWatcher("tcp", pl.addr, pl.passwd)
 		if err != nil {
-			log.Println(err)
-			// Prevent flooding stdout if the connection is lost.
+			// Limit the number of reconnection attempts to one per second.
 			time.Sleep(time.Second)
 			continue
 		}
 		defer watcher.Close()
+		pl.Emit("availability")
 
 	loop:
 		for {
 			select {
 			case event := <-watcher.Event:
 				pl.Emit("mpd-" + event)
-			case err := <-watcher.Error:
-				log.Println(err)
+			case <-watcher.Error:
+				pl.Emit("availability")
 				break loop
 			}
 		}
@@ -529,6 +529,10 @@ func (player *Player) SetVolume(vol float32) error {
 		player.lastVolume = vol
 		return mpdc.SetVolume(int(vol * 100))
 	})
+}
+
+func (pl *Player) Available() bool {
+	return pl.withMpd(func(mpdc *mpd.Client) error { return nil }) == nil
 }
 
 func (player *Player) Events() *event.Emitter {

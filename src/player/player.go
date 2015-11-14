@@ -84,6 +84,9 @@ type Player interface {
 	// nothing is playing.
 	SetVolume(vol float32) error
 
+	// Reports wether the player is online and reachable.
+	Available() bool
+
 	// Gets the event emitter for this player. The following events are emitted:
 	//   "playlist"     After the playlist was changed. Includes changes to the
 	//                  currently playing track.
@@ -93,6 +96,7 @@ type Player interface {
 	//   "seek"         After the playback offset of the currently playing track was changed.
 	//   "tracks"       After the track library was changed.
 	//   "volume"       After the volume was changed.
+	//   "availability" After the player comes online or goes offline.
 	Events() *event.Emitter
 }
 

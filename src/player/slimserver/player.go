@@ -35,7 +35,9 @@ func (pl *Player) eventLoop() {
 	for {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
-			log.Println(err)
+			pl.Emit("availability")
+			time.Sleep(time.Second)
+			continue
 		}
 
 		scanner := bufio.NewScanner(conn)
@@ -80,9 +82,14 @@ func (pl *Player) eventLoop() {
 
 			case line[1] == "mixer" && line[2] == "volume":
 				pl.Emit("volume")
+
+			case line[1] == "client":
+				pl.Emit("availability")
 			}
 		}
-		log.Println(scanner.Err())
+		if err := scanner.Err(); err != nil {
+			log.Println(err)
+		}
 		time.Sleep(time.Second)
 	}
 }
@@ -349,7 +356,6 @@ func (pl *Player) Next() error {
 		}
 	}
 	return nil
-
 }
 
 func (pl *Player) State() (player.PlayState, error) {
@@ -408,6 +414,18 @@ func (pl *Player) SetVolume(vol float32) error {
 	}
 	_, err = pl.Serv.request(pl.ID, "mixer", "volume", strconv.Itoa(int(vol*100)))
 	return err
+}
+
+func (pl *Player) Available() bool {
+	powerRes, err := pl.Serv.request(pl.ID, "power", "?")
+	if err != nil {
+		return false
+	}
+	connectedRes, err := pl.Serv.request(pl.ID, "connected", "?")
+	if err != nil {
+		return false
+	}
+	return powerRes[2] == "1" && connectedRes[2] == "1"
 }
 
 func (pl *Player) Events() *event.Emitter {
