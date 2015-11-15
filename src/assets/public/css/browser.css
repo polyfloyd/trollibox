@@ -1,6 +1,6 @@
 .browser {
 	height: calc(100% - 50px); /* Minus navbar */
-	display: flex;
+	position: relative;
 	overflow: hidden; /* Prevent the scrollbar from showing when the player is expanded */
 }
 
@@ -9,21 +9,33 @@
 		width   0.4s,
 		margin  0.4s,
 		padding 0.4s,
+		right   0.4s,
 		opacity 0.4s;
 }
 
 .views-container {
-	width: 100%;
+	width: calc(100% - 300px - 15px);
 	height: 100%;
 	padding: 15px;
-	display: flex;
-	flex-grow: 1;
+	overflow: hidden;
 }
 
 .views-container > * {
-	width: 100%;
+	width: calc(100vw - 300px - 15px*3);
 	height: 100%;
 	display: flex;
+}
+
+@media (max-width: 991px) {
+
+	.views-container,
+	.browser .views-container > * {
+		width: 100%;
+	}
+
+}
+
+@media (min-width: 992px) {
 }
 
 .views-container > .view > * {
@@ -77,16 +89,13 @@
 }
 
 .browser.expand-player .views-container {
-	width: 0;
-	padding-left: 0;
-	padding-right: 0;
 	opacity: 0;
 }
 
 .browser.expand-player .browser-player {
 	width: calc(100% - 2*15px);
 	margin: 15px;
-	display: block !important;
+	display: block;
 }
 
 .browser-player {
@@ -94,7 +103,25 @@
 	height: calc(100% - 2*15px);
 	margin: 15px;
 	margin-left: 0;
-	flex-shrink: 0;
+	position: absolute;
+	top: 0;
+	right: 0;
+}
+
+@media (max-width: 991px) {
+
+	.browser .browser-player {
+		right: calc(-300px - 15px);
+	}
+
+	.browser.expand-player .browser-player {
+		width: calc(100% - 15px*2);
+		right: 0;
+	}
+
+}
+
+@media (min-width: 992px) {
 }
 
 .browser-player .player {
