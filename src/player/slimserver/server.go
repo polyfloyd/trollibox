@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"../event"
+	"../../util"
 )
 
 type Server struct {
@@ -164,7 +164,7 @@ func (serv *Server) Players() ([]*Player, error) {
 			Name:    attrs["name"],
 			Model:   attrs["model"],
 			Serv:    serv,
-			Emitter: event.NewEmitter(),
+			Emitter: util.NewEmitter(),
 		})
 	}
 

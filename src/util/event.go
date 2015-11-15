@@ -1,4 +1,4 @@
-package event
+package util
 
 import (
 	"sync"
@@ -10,9 +10,7 @@ type Emitter struct {
 }
 
 func NewEmitter() *Emitter {
-	return &Emitter{
-		listeners: map[chan string]bool{},
-	}
+	return &Emitter{listeners: map[chan string]bool{}}
 }
 
 func (emitter *Emitter) Emit(event string) {

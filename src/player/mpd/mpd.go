@@ -13,7 +13,7 @@ import (
 	"time"
 
 	player "../"
-	"../event"
+	"../../util"
 	"github.com/polyfloyd/gompd/mpd"
 )
 
@@ -80,7 +80,7 @@ type playlistAttrs struct {
 }
 
 type Player struct {
-	*event.Emitter
+	*util.Emitter
 
 	addr, passwd string
 
@@ -109,7 +109,7 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 	}
 
 	player := &Player{
-		Emitter: event.NewEmitter(),
+		Emitter: util.NewEmitter(),
 		addr:    addr,
 		passwd:  passwd,
 	}
@@ -535,7 +535,7 @@ func (pl *Player) Available() bool {
 	return pl.withMpd(func(mpdc *mpd.Client) error { return nil }) == nil
 }
 
-func (player *Player) Events() *event.Emitter {
+func (player *Player) Events() *util.Emitter {
 	return player.Emitter
 }
 

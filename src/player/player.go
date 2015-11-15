@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"./event"
+	"../util"
 )
 
 const (
@@ -97,7 +97,7 @@ type Player interface {
 	//   "tracks"       After the track library was changed.
 	//   "volume"       After the volume was changed.
 	//   "availability" After the player comes online or goes offline.
-	Events() *event.Emitter
+	Events() *util.Emitter
 }
 
 type TrackIdentity interface {

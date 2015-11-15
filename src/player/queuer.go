@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"./event"
+	"../util"
 )
 
 const (
@@ -171,19 +171,19 @@ func (rule *SelectionRule) String() string {
 
 // The Queuer controls which tracks are added to the playlist.
 type Queuer struct {
-	*event.Emitter
+	*util.Emitter
 
 	rand *rand.Rand
 
-	storage *PersistentStorage
+	storage *util.PersistentStorage
 }
 
 func NewQueuer(file string) (queuer *Queuer, err error) {
 	queuer = &Queuer{
-		Emitter: event.NewEmitter(),
+		Emitter: util.NewEmitter(),
 		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	if queuer.storage, err = NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
+	if queuer.storage, err = util.NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
 		return nil, err
 	}
 	// Check the integrity of the rules.

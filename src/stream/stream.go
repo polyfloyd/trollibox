@@ -11,8 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"../player"
-	"../player/event"
+	"../util"
 )
 
 type Track struct {
@@ -50,15 +49,15 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 }
 
 type DB struct {
-	*event.Emitter
-	storage *player.PersistentStorage
+	*util.Emitter
+	storage *util.PersistentStorage
 }
 
 func NewDB(file string) (db *DB, err error) {
 	db = &DB{
-		Emitter: event.NewEmitter(),
+		Emitter: util.NewEmitter(),
 	}
-	if db.storage, err = player.NewPersistentStorage(file, &[]Track{}); err != nil {
+	if db.storage, err = util.NewPersistentStorage(file, &[]Track{}); err != nil {
 		return nil, err
 	}
 	return db, nil

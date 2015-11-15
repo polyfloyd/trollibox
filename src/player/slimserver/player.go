@@ -15,7 +15,7 @@ import (
 	"time"
 
 	player "../"
-	"../event"
+	"../../util"
 )
 
 type Player struct {
@@ -28,7 +28,7 @@ type Player struct {
 	playlist       []player.PlaylistTrack
 	playlistLock   sync.Mutex
 	playlistWasSet bool
-	*event.Emitter
+	*util.Emitter
 }
 
 func (pl *Player) eventLoop() {
@@ -428,7 +428,7 @@ func (pl *Player) Available() bool {
 	return powerRes[2] == "1" && connectedRes[2] == "1"
 }
 
-func (pl *Player) Events() *event.Emitter {
+func (pl *Player) Events() *util.Emitter {
 	return pl.Emitter
 }
 
