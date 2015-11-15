@@ -28,6 +28,7 @@ type Player struct {
 	playlist       []player.PlaylistTrack
 	playlistLock   sync.Mutex
 	playlistWasSet bool
+	lastTrack      string
 	*util.Emitter
 }
 
@@ -64,7 +65,15 @@ func (pl *Player) eventLoop() {
 					log.Println(err)
 					continue
 				}
-				if len(line) >= 3 && line[2] == "newsong" {
+				if len(line) >= 4 && line[2] == "newsong" && pl.lastTrack != line[3] {
+					pl.lastTrack = line[3]
+					if len(pl.playlist) > 0 && pl.playlist[0].Progress != 0 {
+						if err := pl.Seek(pl.playlist[0].Progress); err != nil {
+							log.Println(err)
+							continue
+						}
+					}
+
 					// It takes a while to get the metainformation from HTTP
 					// streams. Emit another change event to inform that the
 					// loading has been completed.
@@ -284,15 +293,18 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 func (pl *Player) Playlist() ([]player.PlaylistTrack, error) {
 	pl.playlistLock.Lock()
 	defer pl.playlistLock.Unlock()
-	if len(pl.playlist) > 0 {
+
+	plist := make([]player.PlaylistTrack, len(pl.playlist))
+	copy(plist, pl.playlist)
+	if len(plist) > 0 {
 		res, err := pl.Serv.request(pl.ID, "time", "?")
 		if err != nil {
 			return nil, err
 		}
 		d, _ := strconv.ParseFloat(res[2], 64)
-		pl.playlist[0].Progress = time.Duration(d) * time.Second
+		plist[0].Progress = time.Duration(d) * time.Second
 	}
-	return pl.playlist, nil
+	return plist, nil
 }
 
 func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
@@ -331,6 +343,9 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 		}
 	}
 
+	if delStart == 0 && len(plist) > 0 {
+		return pl.SetState(player.PlayStatePlaying)
+	}
 	return nil
 }
 
