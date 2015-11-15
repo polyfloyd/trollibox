@@ -93,7 +93,7 @@ type Player interface {
 	//   "playlist-end" After the playlist has ended or an attempt was made to
 	//                  play a track when no more tracks are available for playing.
 	//   "playstate"    After the playstate was changed.
-	//   "seek"         After the playback offset of the currently playing track was changed.
+	//   "progress"     After the playback offset of the currently playing track was changed.
 	//   "tracks"       After the track library was changed.
 	//   "volume"       After the volume was changed.
 	//   "availability" After the player comes online or goes offline.

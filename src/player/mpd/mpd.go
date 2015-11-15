@@ -167,6 +167,7 @@ func (pl *Player) mainLoop() {
 		switch <-listener {
 		case "mpd-player":
 			pl.Emit("playstate")
+			pl.Emit("progress")
 			fallthrough
 
 		case "mpd-playlist":

@@ -107,10 +107,11 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB) {
 	r.Path("/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
 	r.Path("/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl))
 	r.Path("/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(pl))
+	r.Path("/progress").Methods("GET").HandlerFunc(htPlayerGetProgress(pl))
+	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerSetProgress(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
-	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerProgress(pl))
 	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl)))
 }
 
@@ -140,7 +141,7 @@ func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Requ
 	}
 }
 
-func htPlayerProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		var data struct {
@@ -157,6 +158,27 @@ func htPlayerProgress(pl player.Player) func(res http.ResponseWriter, req *http.
 			return
 		}
 		res.Write([]byte("{}"))
+	}
+}
+
+func htPlayerGetProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+		plist, err := pl.Playlist()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+
+		var progress time.Duration
+		if len(plist) > 0 {
+			progress = plist[0].Progress
+		} else {
+			progress = 0
+		}
+		json.NewEncoder(res).Encode(map[string]interface{}{
+			"progress": int(progress / time.Second),
+		})
 	}
 }
 

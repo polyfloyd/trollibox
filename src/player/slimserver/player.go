@@ -87,7 +87,7 @@ func (pl *Player) eventLoop() {
 				pl.Emit("playstate")
 
 			case line[1] == "time":
-				pl.Emit("seek")
+				pl.Emit("progress")
 
 			case line[1] == "mixer" && line[2] == "volume":
 				pl.Emit("volume")

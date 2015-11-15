@@ -22,6 +22,9 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:volume', 'data/player/'+this.name+'/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
+		this.attachServerReloader('server-event:progress', 'data/player/'+this.name+'/progress', function(data) {
+			this.setInternal('progress', data.progress);
+		});
 		this.attachServerReloader('server-event:playlist', 'data/player/'+this.name+'/playlist', function(data) {
 			var pl = data.tracks.map(this.fillMissingTrackFields, this);
 			this.setInternal('playlist', pl);
@@ -30,7 +33,6 @@ var Player = Backbone.Model.extend({
 				this.setInternal('progress', data.tracks[0].progress);
 			}
 			if (pl.length == 0) {
-				console.log('set current null')
 				this.setInternal('current', null);
 				this.setInternal('progress', 0);
 			}
