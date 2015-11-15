@@ -124,7 +124,7 @@ var Player = Backbone.Model.extend({
 		var waiting   = false;
 		var nextValue = undefined;
 
-		function update(value, cb) {
+		function update(value) {
 			waiting = true;
 			$.ajax({
 				url:      URLROOT+path,
@@ -142,7 +142,7 @@ var Player = Backbone.Model.extend({
 				},
 				error:    function(res, status, message) {
 					waiting = false;
-					var err = cb(res.responseJSON.error || new Error(message));
+					var err = res.responseJSON.error || new Error(message);
 					self.trigger('error', err);
 					self.trigger('error:'+name, err);
 				},

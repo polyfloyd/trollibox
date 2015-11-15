@@ -117,7 +117,7 @@ func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 		}
 
 		if err := queuer.SetRules(data.Rules); err != nil {
-			if err, ok := err.(player.RuleError); ok {
+			if err, ok := err.(*player.RuleError); ok {
 				res.WriteHeader(400)
 				json.NewEncoder(res).Encode(map[string]interface{}{
 					"error": map[string]interface{}{
