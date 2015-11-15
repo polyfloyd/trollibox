@@ -72,28 +72,19 @@ function durationToString(seconds) {
 
 function showTrackArt($elem, player, track, cb) {
 	$elem.css('background-image', ''); // Reset to default.
-	if (!track) {
+	if (!track || !track.id) {
 		if (cb) cb(false);
 		return;
 	}
 
-	function setUrl(url) {
-		$elem.css('background-image', 'url(\''+url.replace(/'/g, '\\\'')+'\')');
-	}
-
-	if (!track.id) {
-		if (cb) cb(false);
-		return;
-	}
-
-	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.id);
+	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.id).replace(/'/g, '%27');
 	$.ajax({
 		method:   'GET',
 		url:      url,
 		complete: function(xhr, state) {
 			// TODO: Use the response as image.
 			if (state !== 'error') {
-				setUrl(url);
+				$elem.css('background-image', 'url(\''+url+'\')');
 			}
 			if (cb) cb(state !== 'error');
 		},

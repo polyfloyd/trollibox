@@ -182,6 +182,7 @@ func queryEscape(str string) string {
 	str = url.QueryEscape(str)
 	str = strings.Replace(str, "+", "%20", -1)
 	str = strings.Replace(str, "%26", "&", -1)
+	str = strings.Replace(str, "%2C", ",", -1)
 	return str
 }
 
