@@ -109,7 +109,20 @@ func (pl *Player) removePlayedTracks() error {
 	if err != nil {
 		return err
 	}
-	if index, _ := strconv.Atoi(res[3]); index > 0 {
+
+	// If the playlist ends, one track is left to be removed.
+	index, _ := strconv.Atoi(res[3])
+	if index == 0 {
+		if state, _ := pl.State(); state == player.PlayStateStopped {
+			if res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?"); err != nil {
+				return err
+			} else if res[3] == "1" {
+				index = 1
+			}
+		}
+	}
+
+	if index > 0 {
 		for i := 0; i < index; i++ {
 			if _, err := pl.Serv.request(pl.ID, "playlist", "delete", "0"); err != nil {
 				return err
