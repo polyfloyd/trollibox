@@ -41,3 +41,12 @@ ul.result-list li em {
 ul.result-list li .track-artist:after {
 	content: " - ";
 }
+
+ul.result-list.grid-list {
+	line-height: 0;
+}
+
+ul.result-list.grid-list li {
+	display: inline-block;
+	line-height: initial;
+}

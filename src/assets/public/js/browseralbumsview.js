@@ -150,7 +150,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 
 	albumListTemplate: _.template(
 		'<h2>Albums</h2>'+
-		'<ul class="result-list"></ul>'
+		'<ul class="result-list grid-list"></ul>'
 	),
 	albumPreviewTemplate:_.template(
 		'<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">'+

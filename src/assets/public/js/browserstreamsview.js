@@ -87,7 +87,7 @@ var BrowserStreamsView = Backbone.View.extend({
 				'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
 				'<span class="do-load-default">load defaults</span>'+
 			'</h2>'+
-			'<ul class="result-list"></ul>'+
+			'<ul class="result-list grid-list"></ul>'+
 		'</div>'
 	),
 	streamTemplate: _.template(
