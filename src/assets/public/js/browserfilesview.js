@@ -168,7 +168,10 @@ var BrowserFilesView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<h2 class="do-queue-all"><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a><%- name %>/</h2>'+
+		'<h2>'+
+			'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
+			'<span class="do-queue-all"><%- name %>/</span>'+
+		'</h2>'+
 		'<ul class="result-list">'+
 			'<% dirs.forEach(function(file) { %>'+
 				'<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>'+

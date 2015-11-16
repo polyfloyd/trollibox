@@ -4,8 +4,8 @@
 	flex-direction: column;
 }
 
-.browser-albums > .tab-view .do-pop-tab {
-	margin-bottom: 0.2em;
+.views-container > .view.browser-albums > .tab-view .do-pop-tab {
+	margin-bottom: 0.4em;
 	font-size: 20px;
 }
 

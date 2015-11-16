@@ -88,7 +88,7 @@ var BrowserBrowseView = Backbone.View.extend({
 		'</ul>'
 	),
 	artistTabTemplate: _.template(
-		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a> Artists</h2>'+
+		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>Artists</h2>'+
 		'<ul class="result-list">'+
 			'<% artists.forEach(function(artist) { %>'+
 				'<li data-artist="<%- artist %>"><%- artist %></li>'+
@@ -96,7 +96,7 @@ var BrowserBrowseView = Backbone.View.extend({
 		'</ul>'
 	),
 	trackTabTemplate: _.template(
-		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a> Tracks</h2>'+
+		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>Tracks</h2>'+
 		'<ul class="result-list">'+
 			'<% tracks.forEach(function(track, index) { %>'+
 				'<li data-index="<%= index %>">'+
