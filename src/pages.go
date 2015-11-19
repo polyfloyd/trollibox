@@ -25,6 +25,7 @@ func htBrowserPage(playerName string) func(res http.ResponseWriter, req *http.Re
 		params := GetBaseParamMap()
 		params["player"] = playerName
 
+		res.Header().Set("Content-Type", "text/html")
 		if err := getTemplate().Execute(res, params); err != nil {
 			panic(err)
 		}

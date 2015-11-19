@@ -21,6 +21,7 @@ import (
 	"./player/mpd"
 	"./player/slimserver"
 	"./stream"
+	"./util"
 	"github.com/gorilla/mux"
 )
 
@@ -193,7 +194,7 @@ func main() {
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
-		Handler:        r,
+		Handler:        util.Gzip(r),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
