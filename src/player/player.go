@@ -150,7 +150,7 @@ func TrackAttr(trackId TrackIdentity, attr string) interface{} {
 		case "genre":
 			return track.Genre()
 		case "album":
-			return track.AlbumArtist()
+			return track.Album()
 		case "albumartist":
 			return track.AlbumArtist()
 		case "albumtrack":
