@@ -32,8 +32,16 @@ func writeError(res http.ResponseWriter, err error) {
 func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
+		streams := streamdb.Streams()
+		mapped := make([]interface{}, len(streams))
+		for i, stream := range streams {
+			mapped[i] = map[string]interface{}{
+				"id":    stream.Url,
+				"album": stream.StreamTitle,
+			}
+		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
-			"streams": streamdb.Streams(),
+			"streams": mapped,
 		})
 	}
 }
