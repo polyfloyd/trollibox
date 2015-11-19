@@ -36,8 +36,7 @@ var BrowserSearchView = Backbone.View.extend({
 			return;
 		}
 		this.searchInProgress = true;
-
-		searchTracks(query, this.model.get('tracks'), function(list) {
+		this.model.searchTracks(query, ['artist', 'title', 'album'], function(err, results) {
 			self.searchInProgress = false;
 			if (query != self.query()) {
 				self.doSearch();
@@ -45,29 +44,7 @@ var BrowserSearchView = Backbone.View.extend({
 			}
 
 			self.$('.result-list').empty();
-			self.results = list.sort(function(a, b) {
-				var matchesCmp = a.matches > b.matches ? -1
-					: a.matches < b.matches ? 1
-					: 0;
-				if (matchesCmp !== 0) {
-					return matchesCmp;
-				}
-
-				var artistCmp = stringCompareCaseInsensitive(a.track.artist, b.track.artist);
-				if (artistCmp !== 0) {
-					return artistCmp;
-				}
-
-				var titleCmp = stringCompareCaseInsensitive(a.track.title, b.track.title);
-				if (titleCmp !== 0) {
-					return titleCmp;
-				}
-
-				var albumCmp = stringCompareCaseInsensitive(a.track.album, b.track.album);
-				if (albumCmp !== 0) {
-					return albumCmp;
-				}
-			});
+			self.results = results;
 			self.appendResults(60);
 		});
 	},
@@ -89,23 +66,25 @@ var BrowserSearchView = Backbone.View.extend({
 			return;
 		}
 
-		var highlightExp = this.query().split(/\s+/).filter(function(kw) {
-			return !!kw;
-		}).map(function(kw) {
-			// Escape the keyword into a HTML and then Regex safe string so it
-			// won't cause any funny stuff.
-			var safe = $('<span>').text(kw).html()
-				.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
-			return new RegExp('(>[^<>]*?)('+safe+')([^<>]*?<)', 'gi');
-		});
+		function highlight(result, property) {
+			var m = result.matches[property];
+			if (!m) {
+				return _.escape(result.track[property]);
+			}
+			var value = m.sort(function(a, b) {
+				return a.start > b.start;
+			}).reduceRight(function(value, match) {
+				return value.substring(0, match.start)+'<em>'+value.substring(match.start, match.end)+'</em>'+value.substring(match.end);
+			}, result.track[property]);
+			return _.escape(value).replace(/&lt;(\/)?em&gt;/g, '<$1em>');
+		}
 
 		$list.append(results.map(function(result) {
 			var self = this;
-
-			var $el = $(highlightExp.reduce(function(html, re) {
-				return html.replace(re, '$1<em>$2</em>$3');
-			}, this.resultTemplate(result.track)));
-
+			var $el = $(this.resultTemplate({
+				result:    result,
+				highlight: highlight,
+			}));
 			$el.on('click', function() {
 				self.model.appendToPlaylist(result.track);
 			});
@@ -129,10 +108,10 @@ var BrowserSearchView = Backbone.View.extend({
 	),
 	resultTemplate: _.template(
 		'<li>'+
-			'<span class="track-artist"><%- artist %></span>'+
-			'<span class="track-title"><%- title %></span>'+
-			'<span class="track-duration"><%- durationToString(duration) %></span>'+
-			'<span class="track-album"><%- album %></span>'+
+			'<span class="track-artist"><%= highlight(result, \'artist\') %></span>'+
+			'<span class="track-title"><%= highlight(result, \'title\') %></span>'+
+			'<span class="track-duration"><%- durationToString(result.track.duration) %></span>'+
+			'<span class="track-album"><%= highlight(result, \'album\') %></span>'+
 		'</li>'
 	),
 });

@@ -287,6 +287,24 @@ var Player = Backbone.Model.extend({
 		}));
 	},
 
+	searchTracks: function(query, untagged, cb) {
+		$.ajax({
+			url:      URLROOT+'data/player/'+this.name+'/tracks/search?query='+encodeURIComponent(query)+'&untagged='+encodeURIComponent(untagged.join(',')),
+			method:   'GET',
+			dataType: 'json',
+			context:  this,
+			success:  function(response) {
+				response.tracks.forEach(function(res) {
+					res.track = this.fillMissingTrackFields(res.track);
+				}, this);
+				cb(null, response.tracks);
+			},
+			error: function(req, str, err) {
+				cb(err, []);
+			},
+		});
+	},
+
 	addStream: function(stream) {
 		$.ajax({
 			url:      URLROOT+'data/streams',

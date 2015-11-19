@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"strings"
 	"sync"
 	"time"
 
@@ -110,6 +111,7 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB) {
 	r.Path("/progress").Methods("GET").HandlerFunc(htPlayerGetProgress(pl))
 	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerSetProgress(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
+	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
 	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl)))
@@ -362,5 +364,54 @@ func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWri
 		}
 
 		http.NotFound(res, req)
+	}
+}
+
+func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+	var cachedTracks []player.Track
+	var cacheMutex sync.RWMutex
+	var err error
+
+	go func() {
+		listener := pl.Events().Listen()
+		defer pl.Events().Unlisten(listener)
+		listener <- "tracks" // Bootstrap the cycle.
+
+		for {
+			if event := <-listener; event != "tracks" {
+				continue
+			}
+			cacheMutex.Lock()
+			cachedTracks, err = pl.TrackInfo()
+			cacheMutex.Unlock()
+		}
+	}()
+
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+
+		cacheMutex.RLock()
+		untagged := strings.Split(req.FormValue("untagged"), ",")
+		results, err := player.Search(cachedTracks, req.FormValue("query"), untagged)
+		cacheMutex.RUnlock()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+
+		mappedResults := make([]interface{}, len(results))
+		for i, res := range results {
+			mappedResults[i] = map[string]interface{}{
+				"matches": res.Matches,
+				"track":   trackJson(res.Track),
+			}
+		}
+		json.NewEncoder(res).Encode(map[string]interface{}{
+			"tracks": mappedResults,
+		})
 	}
 }
