@@ -306,10 +306,10 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 	go func() {
 		listener := pl.Events().Listen()
 		defer pl.Events().Unlisten(listener)
-		listener <- "update" // Bootstrap the cycle.
+		listener <- "tracks" // Bootstrap the cycle.
 
 		for {
-			if event := <-listener; event != "update" {
+			if event := <-listener; event != "tracks" {
 				continue
 			}
 			cacheMutex.Lock()
