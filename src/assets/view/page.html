@@ -183,6 +183,8 @@
 					$el.on('click', function(event) {
 						event.preventDefault();
 						app.navigate($el.attr('href'), { trigger: true });
+						// Close the hamburger menu.
+						$('.navbar-toggle:visible').click();
 					});
 				});
 

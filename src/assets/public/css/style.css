@@ -55,6 +55,23 @@ h2:first-child {
 	color: #333;
 }
 
+.navbar-default .navbar-toggle {
+	border-color: #f60;
+}
+
+.navbar-default .navbar-toggle:active,
+.navbar-default .navbar-toggle:focus {
+	background-color: transparent;
+}
+
+.navbar-default .navbar-toggle .icon-bar {
+	background-color: #f60;
+}
+
+.navbar-default .navbar-collapse {
+	border: none;
+}
+
 .player-selector {
 	background-color: transparent;
 	border: 1px solid #f60;
