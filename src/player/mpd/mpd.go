@@ -82,7 +82,8 @@ type playlistAttrs struct {
 type Player struct {
 	*util.Emitter
 
-	addr, passwd string
+	network, address string
+	passwd           string
 
 	playlist     []player.PlaylistTrack
 	playlistLock sync.Mutex
@@ -98,9 +99,7 @@ type Player struct {
 	playlistWasSet bool
 }
 
-func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error) {
-	addr := fmt.Sprintf("%v:%v", mpdHost, mpdPort)
-
+func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	var passwd string
 	if mpdPassword != nil {
 		passwd = *mpdPassword
@@ -110,7 +109,8 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 
 	player := &Player{
 		Emitter: util.NewEmitter(),
-		addr:    addr,
+		network: network,
+		address: address,
 		passwd:  passwd,
 	}
 
@@ -125,7 +125,7 @@ func NewPlayer(mpdHost string, mpdPort int, mpdPassword *string) (*Player, error
 }
 
 func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
-	client, err := mpd.DialAuthenticated("tcp", pl.addr, pl.passwd)
+	client, err := mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
 
 func (pl *Player) eventLoop() {
 	for {
-		watcher, err := mpd.NewWatcher("tcp", pl.addr, pl.passwd)
+		watcher, err := mpd.NewWatcher(pl.network, pl.address, pl.passwd)
 		if err != nil {
 			// Limit the number of reconnection attempts to one per second.
 			time.Sleep(time.Second)

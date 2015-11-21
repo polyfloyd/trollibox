@@ -17,9 +17,9 @@ type Server struct {
 	webUrl   string
 }
 
-func Connect(host string, port int, username, password *string, webUrl string) (*Server, error) {
+func Connect(network, address string, username, password *string, webUrl string) (*Server, error) {
 	connect := func() (net.Conn, error) {
-		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
+		conn, err := net.Dial(network, address)
 		if err != nil {
 			return nil, err
 		}

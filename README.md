@@ -67,10 +67,10 @@ to change:
   // MPD instances.
   "mpd": [
     {
-      "name":        "space",
-      "host":        "127.0.0.1",
-      "port":        6600,
-      "password":    null
+      "name":     "space",
+      "network":  "tcp",
+      "address":  "127.0.0.1:6600",
+      "password": null
     }
   ],
 
@@ -78,8 +78,8 @@ to change:
   // a SlimServer. The players along with their names are automatically
   // detected.
   "slimserver": {
-    "host":     "127.0.0.1",
-    "port":     9090,
+    "network":  "tcp",
+    "address":  "127.0.0.1:9090",
     "username": null,
     "password": null,
 

@@ -49,14 +49,14 @@ type Config struct {
 
 	Mpd []struct {
 		Name     string  `json:"name"`
-		Host     string  `json:"host"`
-		Port     int     `json:"port"`
+		Network  string  `json:"network"`
+		Address  string  `json:"address"`
 		Password *string `json:"password"`
 	} `json:"mpd"`
 
 	SlimServer *struct {
-		Host     string  `json:"host"`
-		Port     int     `json:"port"`
+		Network  string  `json:"network"`
+		Address  string  `json:"address"`
 		Username *string `json:"username"`
 		Password *string `json:"password"`
 		WebUrl   string  `json:"weburl"`
@@ -121,7 +121,7 @@ func main() {
 	}
 
 	for _, mpdConf := range config.Mpd {
-		mpdPlayer, err := mpd.NewPlayer(mpdConf.Host, mpdConf.Port, mpdConf.Password)
+		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
 		if err != nil {
 			log.Fatalf("Unable to create MPD player: %v", err)
 		}
@@ -131,8 +131,8 @@ func main() {
 	}
 	if config.SlimServer != nil {
 		slimServ, err := slimserver.Connect(
-			config.SlimServer.Host,
-			config.SlimServer.Port,
+			config.SlimServer.Network,
+			config.SlimServer.Address,
 			config.SlimServer.Username,
 			config.SlimServer.Password,
 			config.SlimServer.WebUrl,
