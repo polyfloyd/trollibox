@@ -32,6 +32,7 @@ func trackJson(tr player.Track) interface{} {
 		AlbumTrack  string `json:"albumtrack,omitempty"`
 		AlbumDisc   string `json:"albumdisc,omitempty"`
 		Duration    int    `json:"duration"`
+		HasArt      bool   `json:"hasart"`
 	}{
 		Uri:         tr.Uri(),
 		Artist:      tr.Artist(),
@@ -42,6 +43,7 @@ func trackJson(tr player.Track) interface{} {
 		AlbumTrack:  tr.AlbumTrack(),
 		AlbumDisc:   tr.AlbumDisc(),
 		Duration:    int(tr.Duration() / time.Second),
+		HasArt:      tr.HasArt(),
 	}
 }
 
@@ -56,6 +58,7 @@ func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
 		AlbumTrack  string `json:"albumtrack,omitempty"`
 		AlbumDisc   string `json:"albumdisc,omitempty"`
 		Duration    int    `json:"duration"`
+		HasArt      bool   `json:"hasart"`
 
 		QueuedBy string `json:"queuedby"`
 		Progress int    `json:"progress"`
@@ -69,6 +72,7 @@ func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
 		AlbumTrack:  tr.AlbumTrack(),
 		AlbumDisc:   tr.AlbumDisc(),
 		Duration:    int(tr.Duration() / time.Second),
+		HasArt:      tr.HasArt(),
 
 		QueuedBy: plTr.QueuedBy,
 		Progress: int(plTr.Progress / time.Second),
@@ -354,15 +358,19 @@ func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWri
 			}
 		}
 
-		if artStream, mime := track.Art(); artStream != nil {
-			defer artStream.Close()
-			res.Header().Set("Content-Type", mime)
-			var buf bytes.Buffer
-			io.Copy(&buf, artStream)
-			http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
-			return
+		if track.HasArt() {
+			if req.Method == "HEAD" {
+				return
+			}
+			if artStream, mime := track.Art(); artStream != nil {
+				defer artStream.Close()
+				res.Header().Set("Content-Type", mime)
+				var buf bytes.Buffer
+				io.Copy(&buf, artStream)
+				http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
+				return
+			}
 		}
-
 		http.NotFound(res, req)
 	}
 }

@@ -528,3 +528,7 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 	}
 	return res.Body, res.Header.Get("Content-Type")
 }
+
+func (track Track) HasArt() bool {
+	return track.serv.webUrl != "" && track.coverid != ""
+}

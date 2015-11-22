@@ -78,17 +78,10 @@ function showTrackArt($elem, player, track, cb) {
 	}
 
 	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.id).replace(/'/g, '%27');
-	$.ajax({
-		method:   'GET',
-		url:      url,
-		complete: function(xhr, state) {
-			// TODO: Use the response as image.
-			if (state !== 'error') {
-				$elem.css('background-image', 'url(\''+url+'\')');
-			}
-			if (cb) cb(state !== 'error');
-		},
-	});
+	if (track.hasart) {
+		$elem.css('background-image', 'url(\''+url+'\')');
+	}
+	if (cb) cb(track.hasart)
 }
 
 /**

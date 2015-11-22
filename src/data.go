@@ -36,8 +36,9 @@ func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.
 		mapped := make([]interface{}, len(streams))
 		for i, stream := range streams {
 			mapped[i] = map[string]interface{}{
-				"id":    stream.Url,
-				"album": stream.StreamTitle,
+				"id":     stream.Url,
+				"album":  stream.StreamTitle,
+				"hasart": stream.HasArt(),
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{

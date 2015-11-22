@@ -119,6 +119,8 @@ type Track interface {
 	// Returns the artwork for this track as a reader of image data along with
 	// its MIME type. The caller is responsible for closing the reader.
 	Art() (image io.ReadCloser, mime string)
+
+	HasArt() bool
 }
 
 // Get an attribute of a track by its name. Accepted names are:

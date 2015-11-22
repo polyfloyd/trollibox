@@ -74,6 +74,16 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 	return
 }
 
+func (track Track) HasArt() (hasArt bool) {
+	track.player.withMpd(func(mpdc *mpd.Client) error {
+		strNum, _ := mpdc.StickerGet(track.uri, "image-nchunks")
+		_, err := strconv.ParseInt(strNum, 10, 32)
+		hasArt = err == nil
+		return nil
+	})
+	return
+}
+
 type playlistAttrs struct {
 	progress int
 	queuedBy string
