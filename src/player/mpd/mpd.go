@@ -84,6 +84,46 @@ func (track Track) HasArt() (hasArt bool) {
 	return
 }
 
+// This type allows MPD connections to be reused. It's run method will keep the
+// connection alive by periodicaly sending a ping. The client expires after
+// nothing gets sent over the reset channel for some time or an error occurs
+// when sending a ping. When this happens, the client is set to nil and the
+// reset channel is closed.
+type reusableClient struct {
+	sync.Mutex
+	client *mpd.Client
+	reset  chan struct{}
+}
+
+func (rc *reusableClient) run(expireAfter time.Duration) {
+	pinger := time.NewTicker(time.Second * 4)
+	defer pinger.Stop()
+	defer close(rc.reset)
+
+	expire := time.After(expireAfter)
+	for {
+		select {
+		case <-pinger.C:
+			rc.Lock()
+			if err := rc.client.Ping(); err != nil {
+				rc.client.Close()
+				rc.client = nil
+				rc.Unlock()
+				return
+			}
+			rc.Unlock()
+		case <-expire:
+			rc.Lock()
+			rc.client.Close()
+			rc.client = nil
+			rc.Unlock()
+			return
+		case <-rc.reset:
+			expire = time.After(expireAfter)
+		}
+	}
+}
+
 type playlistAttrs struct {
 	progress int
 	queuedBy string
@@ -91,6 +131,8 @@ type playlistAttrs struct {
 
 type Player struct {
 	*util.Emitter
+
+	clientPool chan *reusableClient
 
 	network, address string
 	passwd           string
@@ -122,11 +164,19 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 		network: network,
 		address: address,
 		passwd:  passwd,
+
+		// NOTE: MPD supports up to 10 concurrent connections by default. When
+		// this number is reached and ANYTHING tries to connect, the connection
+		// rudely closed.
+		clientPool: make(chan *reusableClient, 6),
 	}
 
-	// Test the connecting to MPD.
-	if err := player.withMpd(func(_ *mpd.Client) error { return nil }); err != nil {
-		return nil, err
+	for i := 0; i < cap(player.clientPool); i++ {
+		reClient, err := player.newClient()
+		if err != nil {
+			return nil, err
+		}
+		player.clientPool <- reClient
 	}
 
 	go player.eventLoop()
@@ -134,13 +184,34 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	return player, nil
 }
 
-func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
+func (pl *Player) newClient() (*reusableClient, error) {
 	client, err := mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("Error connecting to MPD: %v", err)
 	}
-	defer client.Close()
-	return fn(client)
+
+	rc := &reusableClient{
+		client: client,
+		reset:  make(chan struct{}),
+	}
+	go rc.run(time.Second * 30)
+	return rc, nil
+}
+
+func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
+	reClient := <-pl.clientPool
+	reClient.Lock()
+	defer reClient.Unlock()
+	if reClient.client == nil {
+		var err error
+		if reClient, err = pl.newClient(); err != nil {
+			return err
+		}
+	}
+	defer func() { pl.clientPool <- reClient }()
+
+	reClient.reset <- struct{}{}
+	return fn(reClient.client)
 }
 
 func (pl *Player) eventLoop() {
@@ -545,7 +616,7 @@ func (player *Player) SetVolume(vol float32) error {
 }
 
 func (pl *Player) Available() bool {
-	return pl.withMpd(func(mpdc *mpd.Client) error { return nil }) == nil
+	return pl.withMpd(func(mpdc *mpd.Client) error { return mpdc.Ping() }) == nil
 }
 
 func (player *Player) Events() *util.Emitter {
