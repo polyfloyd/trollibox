@@ -2,6 +2,8 @@ package player
 
 import (
 	"io"
+	"regexp"
+	"strings"
 	"time"
 
 	"../util"
@@ -230,4 +232,40 @@ outer:
 	}
 
 	return newPlist
+}
+
+// Players may use this function to extract the artist and title from other
+// track information if they are unavailable.
+func InterpolateMissingFields(track Track) (artist string, title string) {
+	artist, title = track.Artist(), track.Title()
+	uri := track.Uri()
+
+	if strings.HasPrefix(uri, "http") {
+		return
+	}
+
+	// First, attempt to find an "<artist> - <title>" string in the track title.
+	if artist == "" && title != "" {
+		re := regexp.MustCompile("(.+)\\s+-\\s+(.+)")
+		if match := re.FindStringSubmatch(title); match != nil {
+			artist, title = match[0], match[1]
+		}
+	}
+
+	// Also look for the <artist> - <title> patterin in the filename.
+	if artist == "" || title == "" {
+		re := regexp.MustCompile("^(?:.*\\/)?(.+)\\s+-\\s+(.+)\\.\\w+$")
+		if match := re.FindStringSubmatch(uri); match != nil {
+			artist, title = match[1], match[2]
+		}
+	}
+
+	// Still nothing? Just use the filename or url.
+	if title == "" {
+		re := regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
+		if match := re.FindStringSubmatch(uri); match != nil {
+			title = match[1]
+		}
+	}
+	return
 }

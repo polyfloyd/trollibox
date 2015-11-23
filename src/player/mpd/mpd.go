@@ -306,6 +306,8 @@ func (pl *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
 			track.duration = time.Duration(duration) * time.Second
 		}
 	}
+
+	track.artist, track.title = player.InterpolateMissingFields(track)
 }
 
 func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {

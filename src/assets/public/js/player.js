@@ -229,33 +229,6 @@ var Player = Backbone.Model.extend({
 		].forEach(function(k) {
 			track[k] || (track[k] = '');
 		});
-
-		if (!track.title || !track.artist) {
-			// First, attempt to find an "<artist> - <title>" string.
-			var artistAndTitle = [
-				'title',
-				'artist',
-			].reduce(function(ant, attr) {
-				if (ant || !track[attr]) {
-					return ant;
-				}
-				return track[attr].match(/(.+)\s+-\s+(.+)/);
-			}, null);
-			// Also try the filename. We use a different regex to cut off the
-			// path and extension.
-			artistAndTitle = artistAndTitle || track.id.match(/^(?:.*\/)?(.+)\s+-\s+(.+)\.\w+$/);
-			if (artistAndTitle) {
-				track.artist = artistAndTitle[1];
-				track.title  = artistAndTitle[2];
-			} else {
-				// If that doesn't work, use the filename or stream URL.
-				track.title = track.id.match(/^https?:\/\//)
-					? track.id // Use the stream URL.
-					: function(t) { //  Cut the filename from the path.
-						return t ? t[1] : '';
-					}(track.id.match(/^(?:.*\/)?(.+)\.\w+$/));
-			}
-		}
 		return track;
 	},
 

@@ -284,6 +284,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			if err == nil && len(titleRes) >= 3 {
 				tr.title = titleRes[2]
 			}
+			tr.artist, tr.title = player.InterpolateMissingFields(tr)
 			tracks[i] = tr
 
 		} else {
@@ -296,6 +297,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			for k, v := range attrs {
 				tr.setSlimAttr(k, v)
 			}
+			tr.artist, tr.title = player.InterpolateMissingFields(tr)
 			tracks[i] = tr
 		}
 
