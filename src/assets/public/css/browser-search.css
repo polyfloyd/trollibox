@@ -10,3 +10,7 @@
 .browser-search > .result-list {
 	height: 100%;
 }
+
+.browser-search.search-busy > .result-list:empty:before {
+	content: "Searching...";
+}

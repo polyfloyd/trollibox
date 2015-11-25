@@ -10,6 +10,12 @@ var BrowserSearchView = Backbone.View.extend({
 
 	initialize: function(options) {
 		this.listenTo(this.model, 'change:tracks', this.doSearch);
+		this.on('search-begin', function() {
+			this.$el.addClass('search-busy');
+		});
+		this.on('search-complete', function() {
+			this.$el.removeClass('search-busy');
+		});
 		this.render();
 	},
 
@@ -27,14 +33,15 @@ var BrowserSearchView = Backbone.View.extend({
 		var self = this;
 
 		var query = this.query();
+		this.$('.result-list').empty();
 		if (query.length <= 1) {
-			this.$('.result-list').empty();
 			return;
 		}
 
 		if (this.searchInProgress) {
 			return;
 		}
+		this.trigger('search-begin');
 		this.searchInProgress = true;
 		this.model.searchTracks(query, ['artist', 'title', 'album'], function(err, results) {
 			self.searchInProgress = false;
@@ -43,6 +50,7 @@ var BrowserSearchView = Backbone.View.extend({
 				return;
 			}
 
+			self.trigger('search-complete');
 			self.$('.result-list').empty();
 			self.results = results;
 			self.appendResults(60);
