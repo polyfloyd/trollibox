@@ -321,6 +321,7 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 			cacheMutex.Lock()
 			var tracks []player.Track
 			tracks, err = pl.TrackInfo()
+			cache.Reset()
 			json.NewEncoder(&cache).Encode(map[string]interface{}{
 				"tracks": trackJsonList(tracks),
 			})
