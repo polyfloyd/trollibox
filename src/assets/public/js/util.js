@@ -1,7 +1,7 @@
 'use strict';
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex
-Array.prototype.findIndex =  Array.prototype.findIndex || function(predicate) {
+Array.prototype.findIndex = Array.prototype.findIndex || function(predicate) {
 	if (this == null) {
 		throw new TypeError('Array.prototype.findIndex called on null or undefined');
 	}
@@ -52,22 +52,20 @@ $.fn.lazyLoad = function(callback, thisArg) {
 };
 
 function durationToString(seconds) {
-	var s = '';
-	var hasHours = seconds > 3600;
-	if (hasHours) {
-		s += Math.round(seconds / 3600)+':';
-		seconds %= 3600;
+	var parts = [];
+	for (var i = 1; i <= 3; i++) {
+		var l = seconds % Math.pow(60, i - 1);
+		parts.push((seconds % Math.pow(60, i) - l) / Math.pow(60, i - 1));
 	}
-	var min = Math.round(seconds / 60 - 0.5);
-	if (min < 10 && hasHours) {
-		s += '0';
+
+	// Don't show hours if there are none.
+	if (parts[2] === 0) {
+		parts.pop();
 	}
-	s += min+':';
-	var sec = seconds % 60;
-	if (sec < 10) {
-		s += '0';
-	}
-	return s + sec;
+
+	return parts.reverse().map(function(p) {
+		return (p<10 ? '0' : '')+p;
+	}).join(':');
 }
 
 function showTrackArt($elem, player, track, cb) {
