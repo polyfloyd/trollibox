@@ -96,6 +96,23 @@
 		</div>
 	</nav>
 
+	<template id="tmpl-error-modal">
+		<div class="modal fade" tabindex="-1" role="dialog">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Error</h4>
+					</div>
+					<div class="modal-body"><p></p></div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</template>
+
 	<div class="browser">
 		<div class="views-container"></div>
 		<div class="browser-player"></div>
@@ -116,8 +133,14 @@
 			{{ end }}
 
 			var player = new Player({ name: '{{ .player }}' });
+
 			player.on('error', function(err) {
 				console.error(err);
+				$('body > .modal').modal('hide');
+				var $el = $($('#tmpl-error-modal').html());
+				$el.find('.modal-body p').text(err.message);
+				$el.on('hidden.bs.modal', function() { $el.remove(); });
+				$el.modal('show');
 			});
 
 			var views = {

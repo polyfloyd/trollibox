@@ -111,7 +111,10 @@ var Player = Backbone.Model.extend({
 				success:  function(data) {
 					handle.call(this, data);
 				},
-				error:    function(req, str, err) {
+				error:    function(res, status, message) {
+					var err = res.responseJSON && res.responseJSON.error
+						? new Error(res.responseJSON.error)
+						: new Error(message);
 					this.trigger('error', err);
 				},
 			});
@@ -121,8 +124,6 @@ var Player = Backbone.Model.extend({
 	},
 
 	attachServerUpdater: function(name, path, getUpdateData) {
-		var self = this;
-
 		var waiting   = false;
 		var nextValue = undefined;
 
@@ -133,20 +134,22 @@ var Player = Backbone.Model.extend({
 				method:   'POST',
 				dataType: 'json',
 				data:     JSON.stringify(getUpdateData.call(self, value)),
+				context:  this,
 				success:  function() {
 					setTimeout(function() {
 						waiting = false;
 						if (typeof nextValue !== 'undefined') {
-							update(nextValue);
+							update.call(this, nextValue);
 							nextValue = undefined;
 						}
 					}, 200);
 				},
 				error:    function(res, status, message) {
 					waiting = false;
-					var err = res.responseJSON.error || new Error(message);
-					self.trigger('error', err);
-					self.trigger('error:'+name, err);
+					var err = res.responseJSON && res.responseJSON.error
+						? new Error(res.responseJSON.error)
+						: new Error(message);
+					this.trigger('error', err);
 				},
 			});
 		}
@@ -158,7 +161,7 @@ var Player = Backbone.Model.extend({
 			if (waiting) {
 				nextValue = value;
 			} else {
-				update(value);
+				update.call(this, value);
 			}
 		});
 	},
@@ -210,7 +213,10 @@ var Player = Backbone.Model.extend({
 			method:   'POST',
 			dataType: 'json',
 			context:  this,
-			error:    function(req, str, err) {
+			error:    function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
 				this.trigger('error', err);
 			},
 		});
@@ -272,7 +278,11 @@ var Player = Backbone.Model.extend({
 				}, this);
 				cb(null, response.tracks);
 			},
-			error: function(req, str, err) {
+			error: function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
+				this.trigger('error', err);
 				cb(err, []);
 			},
 		});
@@ -288,7 +298,10 @@ var Player = Backbone.Model.extend({
 			success:  function() {
 				this.reload('server-event:streams-update');
 			},
-			error:    function(req, str, err) {
+			error:    function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
 				this.trigger('error', err);
 			},
 		});
@@ -304,7 +317,10 @@ var Player = Backbone.Model.extend({
 			success:  function() {
 				this.reload('server-event:streams-update');
 			},
-			error:    function(req, str, err) {
+			error:    function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
 				this.trigger('error', err);
 			},
 		});
@@ -319,7 +335,10 @@ var Player = Backbone.Model.extend({
 			success:  function() {
 				this.reload('server-event:streams-update');
 			},
-			error:    function(req, str, err) {
+			error:    function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
 				this.trigger('error', err);
 			},
 		});

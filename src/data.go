@@ -21,9 +21,7 @@ func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB) {
 
 // Writes an error to the client or an empty object if err is nil.
 func writeError(res http.ResponseWriter, err error) {
-	if err == nil {
-		res.Write([]byte("{}"))
-	}
+	res.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(res).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
