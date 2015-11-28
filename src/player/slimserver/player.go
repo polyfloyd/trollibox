@@ -369,25 +369,6 @@ func (pl *Player) Seek(offset time.Duration) error {
 	return err
 }
 
-func (pl *Player) Next() error {
-	res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
-	if err != nil {
-		return err
-	}
-
-	if numTracks, _ := strconv.Atoi(res[3]); numTracks > 1 {
-		if _, err := pl.Serv.request(pl.ID, "playlist", "index", "+1"); err != nil {
-			return err
-		}
-
-	} else {
-		if _, err := pl.Serv.request(pl.ID, "playlist", "delete", "0"); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (pl *Player) State() (player.PlayState, error) {
 	res, err := pl.Serv.request(pl.ID, "mode", "?")
 	if err != nil {

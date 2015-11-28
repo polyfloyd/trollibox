@@ -70,11 +70,6 @@ type Player interface {
 	// is a no-op if player has been stopped.
 	Seek(offset time.Duration) error
 
-	// Abort playback of the currently playing track and start playing the next
-	// one. If the current track is the last track of the queue, the playstate
-	// is set to stopped.
-	Next() error
-
 	State() (PlayState, error)
 
 	SetState(state PlayState) error
@@ -190,6 +185,25 @@ func PlaylistAppend(pl Player, tracks ...PlaylistTrack) error {
 		return err
 	}
 	return pl.SetPlaylist(append(plist, tracks...))
+}
+
+// Abort playback of the currently playing track and start playing the next
+// one.
+func PlaylistNext(pl Player) error {
+	plist, err := pl.Playlist()
+	if err != nil {
+		return err
+	}
+	if len(plist) > 0 {
+		if err := pl.SetPlaylist(plist[1:]); err != nil {
+			return err
+		}
+	} else {
+		if err := pl.SetPlaylist([]PlaylistTrack{}); err != nil {
+			return err
+		}
+	}
+	return pl.SetState(PlayStatePlaying)
 }
 
 // Convenience method for setting the playlist using just the ids. The metadata

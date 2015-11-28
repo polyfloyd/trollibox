@@ -510,25 +510,6 @@ func (player *Player) Seek(progress time.Duration) error {
 	})
 }
 
-func (pl *Player) Next() error {
-	return pl.withMpd(func(mpdc *mpd.Client) error {
-		if err := mpdc.Next(); err != nil {
-			return err
-		}
-
-		status, err := mpdc.Status()
-		if err != nil {
-			return err
-		}
-		if status["playlistlength"] != "0" {
-			return mpdc.Delete(0, 1)
-		} else {
-			pl.Emit("playlist-end")
-		}
-		return nil
-	})
-}
-
 func (pl *Player) State() (player.PlayState, error) {
 	var state player.PlayState
 	err := pl.withMpd(func(mpdc *mpd.Client) error {

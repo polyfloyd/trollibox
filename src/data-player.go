@@ -139,7 +139,7 @@ func htPlayerListen(pl player.Player) func(*websocket.Conn) {
 func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		if err := pl.Next(); err != nil {
+		if err := player.PlaylistNext(pl); err != nil {
 			writeError(res, err)
 			return
 		}
