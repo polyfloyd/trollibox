@@ -41,7 +41,7 @@ case ${1:-} in
 		fi
 
 		if [ ! -e "$MIN_JS" ]; then
-			npm install --prefix "$LIB" "uglifyjs" "minify" "bower"
+			npm install --prefix "$LIB" "uglifyjs" "minify@v1.4.23" "bower"
 		fi
 
 		echo "*** Installing go-bindata ***"
