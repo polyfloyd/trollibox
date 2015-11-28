@@ -6,6 +6,7 @@ var PlayerView = Backbone.View.extend({
 
 	events: {
 		'click .do-next':          'doNext',
+		'click .do-clear':         'doClear',
 		'click .do-toggle-state':  'doToggleState',
 		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
@@ -113,6 +114,13 @@ var PlayerView = Backbone.View.extend({
 		this.model.next();
 	},
 
+	doClear: function() {
+		var pl = this.model.get('playlist');
+		if (pl.length > 1) {
+			this.model.set('playlist', [pl[0]]);
+		}
+	},
+
 	doToggleVolume: function() {
 		var vol = this.model.get('volume');
 		if (vol !== 0) {
@@ -162,6 +170,9 @@ var PlayerView = Backbone.View.extend({
 				'</span>'+
 				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-forward do-next" title="Skip to the next track"></button>'+
+				'</span>'+
+				'<span class="input-group-btn">'+
+					'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-volume-off do-toggle-volume" title="Toggle mute"></button>'+
