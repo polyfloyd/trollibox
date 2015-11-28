@@ -77,8 +77,13 @@ var Player = Backbone.Model.extend({
 	connectEventSocket: function() {
 		var self = this;
 
-		var wsRoot = URLROOT.replace(/^http/, 'ws');
-		var sock = new WebSocket(wsRoot+'data/player/'+this.name+'/listen');
+		var proto = window.location.protocol.replace(/^http/, 'ws');
+		var path = URLROOT.replace(/^https?:(\/\/)?/, '');
+		if (path === '/') {
+			path = window.location.host+path;
+		}
+		var sock = new WebSocket(proto+'//'+path+'data/player/'+this.name+'/listen');
+
 		sock.onopen = function() {
 			self.sock = sock;
 			self.sock.onerror = function() {
