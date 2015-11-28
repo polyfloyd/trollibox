@@ -4,6 +4,8 @@
 
 	"storage-dir": "~/.config/trollibox",
 
+	"default-player": "",
+
 	"mpd": [
 		{
 			"name":     "space",

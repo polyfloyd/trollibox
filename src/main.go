@@ -47,6 +47,8 @@ type Config struct {
 
 	StorageDir string `json:"storage-dir"`
 
+	DefaultPlayer string `json:"default-player"`
+
 	Mpd []struct {
 		Name     string  `json:"name"`
 		Network  string  `json:"network"`
@@ -155,10 +157,15 @@ func main() {
 	if len(players) == 0 {
 		log.Fatal("No players configured")
 	}
-	var defaultPlayer string
-	for name := range players {
-		defaultPlayer = name
-		break
+	defaultPlayer := config.DefaultPlayer
+	if defaultPlayer == "" {
+		for name := range players {
+			defaultPlayer = name
+			break
+		}
+	}
+	if _, ok := players[defaultPlayer]; !ok {
+		log.Fatalf("The configured default player is unknown: %q", defaultPlayer)
 	}
 
 	for name, pl := range players {

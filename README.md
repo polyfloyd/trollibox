@@ -60,6 +60,10 @@ to change:
   // saved to configured players.
   "storage-dir": "~/.config/trollibox",
 
+  // Sets the default player by name. Leave empty to let Trollibox select a
+  // random player.
+  "default-player": "",
+
   // The sections below list options to configure the players that Trollibox
   // will control. Each player is identified by a unique "name" property.
 
