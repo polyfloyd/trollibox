@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"../util"
@@ -92,6 +93,13 @@ func (db *DB) AddStreams(tracks ...Track) error {
 	defer close(errs)
 	defer close(done)
 
+	client := http.Client{
+		Timeout: time.Second * 30,
+	}
+
+	var abortedLock sync.Mutex
+	var aborted bool
+
 	initial := db.Streams()
 
 	for i, tr := range tracks {
@@ -104,32 +112,56 @@ func (db *DB) AddStreams(tracks ...Track) error {
 
 		go func(track *Track) {
 			if track.ArtUrl != "" && !regexp.MustCompile("^data:").MatchString(track.ArtUrl) {
-				res, err := http.Get(track.ArtUrl)
+				res, err := client.Get(track.ArtUrl)
 				if err != nil {
-					errs <- err
+					abortedLock.Lock()
+					ab := aborted
+					abortedLock.Unlock()
+					if !ab {
+						errs <- err
+					}
 					return
 				}
 				defer res.Body.Close()
 
 				contentType := res.Header.Get("Content-Type")
 				if !regexp.MustCompile("^image/").MatchString(contentType) {
-					errs <- fmt.Errorf("Invalid content type for stream image %s", contentType)
+					abortedLock.Lock()
+					ab := aborted
+					abortedLock.Unlock()
+					if !ab {
+						errs <- fmt.Errorf("Invalid content type for stream image %s", contentType)
+					}
 					return
 				}
 				var buf bytes.Buffer
+				fmt.Fprintf(&buf, "data:%s;base64,", contentType)
 				if _, err := io.Copy(base64.NewEncoder(base64.StdEncoding, &buf), res.Body); err != nil {
-					errs <- err
+					abortedLock.Lock()
+					ab := aborted
+					abortedLock.Unlock()
+					if !ab {
+						errs <- err
+					}
 					return
 				}
-				track.ArtUrl = fmt.Sprintf("data:%s;base64,%s", contentType, buf.String())
+				track.ArtUrl = buf.String()
 			}
-			done <- struct{}{}
+			abortedLock.Lock()
+			ab := aborted
+			abortedLock.Unlock()
+			if !ab {
+				done <- struct{}{}
+			}
 		}(&tracks[i])
 	}
 
 	for remaining := len(tracks); remaining > 0; {
 		select {
 		case err := <-errs:
+			abortedLock.Lock()
+			aborted = true
+			abortedLock.Unlock()
 			return err
 		case <-done:
 			remaining--
