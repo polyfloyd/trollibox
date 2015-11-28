@@ -332,6 +332,12 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 		return err
 	}
 
+	// Turn off the randommix plugin if it is active. Otherwise, it will refill
+	// the playlist when we are removing tracks during the mutation.
+	if _, err := pl.Serv.request(pl.ID, "randomplay", "disable"); err != nil {
+		return err
+	}
+
 	// Calculate the index at which to start deleting.
 	delStart := 0
 	for len(trackUrls) > delStart && len(pl.playlist) > delStart {
