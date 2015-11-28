@@ -35,7 +35,7 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 			var err error
 			tracks, err = pl.TrackInfo()
 			if err != nil {
-				return fmt.Errorf("Could not get tracks", err)
+				return fmt.Errorf("Could not get tracks: %v", err)
 			}
 
 		case "playlist-end":
