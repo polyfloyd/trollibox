@@ -1,6 +1,6 @@
 {
 	"listen-address": "127.0.0.1:3000",
-	"url-root":       "http://localhost:3000/",
+	"url-root":       "/",
 
 	"storage-dir": "~/.config/trollibox",
 
