@@ -36,7 +36,7 @@ func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.
 			mapped[i] = map[string]interface{}{
 				"id":     stream.Url,
 				"album":  stream.StreamTitle,
-				"hasart": stream.HasArt(),
+				"hasart": stream.ArtUrl != "",
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{

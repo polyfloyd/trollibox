@@ -19,71 +19,6 @@ import (
 
 const URI_SCHEMA = "mpd://"
 
-type Track struct {
-	player *Player
-
-	uri         string
-	artist      string
-	title       string
-	genre       string
-	album       string
-	albumArtist string
-	albumTrack  string
-	albumDisc   string
-	duration    time.Duration
-}
-
-func (track Track) Uri() string             { return mpdToUri(track.uri) }
-func (track Track) Artist() string          { return track.artist }
-func (track Track) Title() string           { return track.title }
-func (track Track) Genre() string           { return track.genre }
-func (track Track) Album() string           { return track.album }
-func (track Track) AlbumArtist() string     { return track.albumArtist }
-func (track Track) AlbumTrack() string      { return track.albumTrack }
-func (track Track) AlbumDisc() string       { return track.albumDisc }
-func (track Track) Duration() time.Duration { return track.duration }
-
-func (track Track) Art() (image io.ReadCloser, mime string) {
-	track.player.withMpd(func(mpdc *mpd.Client) error {
-		numChunks := 0
-		if strNum, err := mpdc.StickerGet(track.uri, "image-nchunks"); err == nil {
-			if num, err := strconv.ParseInt(strNum, 10, 32); err == nil {
-				numChunks = int(num)
-			}
-		}
-		if numChunks == 0 {
-			return nil
-		}
-
-		chunks := make([]io.Reader, numChunks+1)
-		totalLength := 0
-		for i := 0; i < numChunks; i++ {
-			if b64Data, err := mpdc.StickerGet(track.uri, fmt.Sprintf("image-%v", i)); err != nil {
-				return nil
-			} else {
-				chunks[i] = strings.NewReader(b64Data)
-				totalLength += len(b64Data)
-			}
-		}
-		// The padding seems to be getting lost somewhere along the way from MPD to here.
-		chunks[len(chunks)-1] = strings.NewReader([]string{"", "=", "==", "==="}[totalLength%4])
-		image = ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...)))
-		mime = "image/jpeg"
-		return nil
-	})
-	return
-}
-
-func (track Track) HasArt() (hasArt bool) {
-	track.player.withMpd(func(mpdc *mpd.Client) error {
-		strNum, _ := mpdc.StickerGet(track.uri, "image-nchunks")
-		_, err := strconv.ParseInt(strNum, 10, 32)
-		hasArt = err == nil
-		return nil
-	})
-	return
-}
-
 // This type allows MPD connections to be reused. It's run method will keep the
 // connection alive by periodicaly sending a ping. The client expires after
 // nothing gets sent over the reset channel for some time or an error occurs
@@ -273,7 +208,7 @@ func (pl *Player) mainLoop() {
 				}
 
 				cur := pl.playlist[0]
-				if pl.lastTrack != "" && pl.lastTrack != cur.Uri() {
+				if pl.lastTrack != "" && pl.lastTrack != cur.TrackUri() {
 					// TODO: If one track is followed by another track with the same
 					// ID, this block will not be executed, leaving the playcount
 					// unchanged.
@@ -285,11 +220,11 @@ func (pl *Player) mainLoop() {
 						}
 					}
 
-					if err := incrementPlayCount(cur.Uri(), mpdc); err != nil {
+					if err := incrementPlayCount(cur.TrackUri(), mpdc); err != nil {
 						return err
 					}
 				}
-				pl.lastTrack = cur.Uri()
+				pl.lastTrack = cur.TrackUri()
 
 				return nil
 			})
@@ -334,7 +269,7 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 	if len(pl.playlist) == len(uris) {
 		equal := true
 		for i, uri := range uris {
-			if uri != pl.playlist[i].Uri() {
+			if uri != pl.playlist[i].TrackUri() {
 				equal = false
 				break
 			}
@@ -354,31 +289,33 @@ func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
 // ListAllInfo() and ListInfo() look very much the same but they don't return
 // the same thing. Who the fuck thought it was a good idea to mix capitals and
 // lowercase?!
-func (pl *Player) trackFromMpdSong(song *mpd.Attrs, track *Track) {
-	track.player = pl
-
+func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) {
 	if _, ok := (*song)["directory"]; ok {
 		panic("Tried to read a directory as local file")
 	}
 
-	track.uri = (*song)["file"]
-	track.artist = (*song)["Artist"]
-	track.title = (*song)["Title"]
-	track.genre = (*song)["Genre"]
-	track.album = (*song)["Album"]
-	track.albumArtist = (*song)["AlbumArtist"]
-	track.albumDisc = (*song)["Disc"]
-	track.albumTrack = (*song)["Track"]
+	track.Uri = (*song)["file"]
+	track.Artist = (*song)["Artist"]
+	track.Title = (*song)["Title"]
+	track.Genre = (*song)["Genre"]
+	track.Album = (*song)["Album"]
+	track.AlbumArtist = (*song)["AlbumArtist"]
+	track.AlbumDisc = (*song)["Disc"]
+	track.AlbumTrack = (*song)["Track"]
+
+	strNum, _ := mpdc.StickerGet(track.Uri, "image-nchunks")
+	_, err := strconv.ParseInt(strNum, 10, 32)
+	track.HasArt = err == nil
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
 		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
 			panic(err)
 		} else {
-			track.duration = time.Duration(duration) * time.Second
+			track.Duration = time.Duration(duration) * time.Second
 		}
 	}
 
-	track.artist, track.title = player.InterpolateMissingFields(track)
+	player.InterpolateMissingFields(track)
 }
 
 func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {
@@ -395,7 +332,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 		} else {
 			songs = make([]mpd.Attrs, len(identities))
 			for i, id := range identities {
-				uri := id.Uri()
+				uri := id.TrackUri()
 				if strings.HasPrefix(uri, URI_SCHEMA) {
 					s, err := mpdc.ListAllInfo(uriToMpd(uri))
 					if err != nil {
@@ -405,7 +342,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 						songs[i] = s[0]
 						continue
 					}
-				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].Uri() == uri {
+				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
 					song, err := mpdc.CurrentSong()
 					if err != nil {
 						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
@@ -424,9 +361,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else {
-				track := &Track{}
-				pl.trackFromMpdSong(&song, track)
-				tracks[i-numDirs] = track
+				pl.trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -474,7 +409,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 
 		// Figure out how many tracks at the beginning of the playlist are unchanged.
 		delStart := 0
-		for len(songs) > delStart && len(pl.playlist) > delStart && uriToMpd(pl.playlist[delStart].Uri()) == songs[delStart]["file"] {
+		for len(songs) > delStart && len(pl.playlist) > delStart && uriToMpd(pl.playlist[delStart].TrackUri()) == songs[delStart]["file"] {
 			delStart++
 		}
 
@@ -488,7 +423,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 		// Queue the new tracks.
 		cmd := mpdc.BeginCommandList()
 		for _, track := range plist[delStart:] {
-			cmd.Add(uriToMpd(track.Uri()))
+			cmd.Add(uriToMpd(track.TrackUri()))
 		}
 		return cmd.End()
 	})
@@ -598,6 +533,38 @@ func (player *Player) SetVolume(vol float32) error {
 
 func (pl *Player) Available() bool {
 	return pl.withMpd(func(mpdc *mpd.Client) error { return mpdc.Ping() }) == nil
+}
+
+func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mime string) {
+	pl.withMpd(func(mpdc *mpd.Client) error {
+		id := uriToMpd(track.TrackUri())
+		numChunks := 0
+		if strNum, err := mpdc.StickerGet(id, "image-nchunks"); err == nil {
+			if num, err := strconv.ParseInt(strNum, 10, 32); err == nil {
+				numChunks = int(num)
+			}
+		}
+		if numChunks == 0 {
+			return nil
+		}
+
+		chunks := make([]io.Reader, numChunks+1)
+		totalLength := 0
+		for i := 0; i < numChunks; i++ {
+			if b64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%v", i)); err != nil {
+				return nil
+			} else {
+				chunks[i] = strings.NewReader(b64Data)
+				totalLength += len(b64Data)
+			}
+		}
+		// The padding seems to be getting lost somewhere along the way from MPD to here.
+		chunks[len(chunks)-1] = strings.NewReader([]string{"", "=", "==", "==="}[totalLength%4])
+		image = ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...)))
+		mime = "image/jpeg"
+		return nil
+	})
+	return
 }
 
 func (player *Player) Events() *util.Emitter {

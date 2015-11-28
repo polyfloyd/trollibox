@@ -18,7 +18,7 @@ import (
 
 var httpCacheSince = time.Now()
 
-func trackJson(tr player.Track) interface{} {
+func trackJson(tr *player.Track) interface{} {
 	if tr == nil {
 		return nil
 	}
@@ -34,20 +34,20 @@ func trackJson(tr player.Track) interface{} {
 		Duration    int    `json:"duration"`
 		HasArt      bool   `json:"hasart"`
 	}{
-		Uri:         tr.Uri(),
-		Artist:      tr.Artist(),
-		Title:       tr.Title(),
-		Genre:       tr.Genre(),
-		Album:       tr.Album(),
-		AlbumArtist: tr.AlbumArtist(),
-		AlbumTrack:  tr.AlbumTrack(),
-		AlbumDisc:   tr.AlbumDisc(),
-		Duration:    int(tr.Duration() / time.Second),
-		HasArt:      tr.HasArt(),
+		Uri:         tr.Uri,
+		Artist:      tr.Artist,
+		Title:       tr.Title,
+		Genre:       tr.Genre,
+		Album:       tr.Album,
+		AlbumArtist: tr.AlbumArtist,
+		AlbumTrack:  tr.AlbumTrack,
+		AlbumDisc:   tr.AlbumDisc,
+		Duration:    int(tr.Duration / time.Second),
+		HasArt:      tr.HasArt,
 	}
 }
 
-func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
+func plTrackJson(plTr player.PlaylistTrack, tr *player.Track) interface{} {
 	return &struct {
 		Uri         string `json:"id"`
 		Artist      string `json:"artist,omitempty"`
@@ -63,16 +63,16 @@ func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
 		QueuedBy string `json:"queuedby"`
 		Progress int    `json:"progress"`
 	}{
-		Uri:         plTr.Uri(),
-		Artist:      tr.Artist(),
-		Title:       tr.Title(),
-		Genre:       tr.Genre(),
-		Album:       tr.Album(),
-		AlbumArtist: tr.AlbumArtist(),
-		AlbumTrack:  tr.AlbumTrack(),
-		AlbumDisc:   tr.AlbumDisc(),
-		Duration:    int(tr.Duration() / time.Second),
-		HasArt:      tr.HasArt(),
+		Uri:         plTr.TrackUri(),
+		Artist:      tr.Artist,
+		Title:       tr.Title,
+		Genre:       tr.Genre,
+		Album:       tr.Album,
+		AlbumArtist: tr.AlbumArtist,
+		AlbumTrack:  tr.AlbumTrack,
+		AlbumDisc:   tr.AlbumDisc,
+		Duration:    int(tr.Duration / time.Second),
+		HasArt:      tr.HasArt,
 
 		QueuedBy: plTr.QueuedBy,
 		Progress: int(plTr.Progress / time.Second),
@@ -82,7 +82,7 @@ func plTrackJson(plTr player.PlaylistTrack, tr player.Track) interface{} {
 func trackJsonList(inList []player.Track) (outList []interface{}) {
 	outList = make([]interface{}, len(inList))
 	for i, tr := range inList {
-		outList[i] = trackJson(tr)
+		outList[i] = trackJson(&tr)
 	}
 	return
 }
@@ -100,7 +100,7 @@ func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interfa
 	}
 
 	for i, tr := range inList {
-		outList[i] = plTrackJson(tr, tracks[i])
+		outList[i] = plTrackJson(tr, &tracks[i])
 	}
 	return outList, nil
 }
@@ -345,34 +345,34 @@ func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWri
 	return func(res http.ResponseWriter, req *http.Request) {
 		uri := req.FormValue("track")
 
-		var track player.Track
-		if stream := streamdb.StreamByURL(uri); stream != nil {
-			track = stream
+		var image io.ReadCloser
+		var mime string
+		if stream := streamdb.StreamByURL(uri); stream != nil && stream.ArtUrl != "" {
+			image, mime = stream.Art()
 		} else {
 			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)...)
 			if err != nil {
 				writeError(res, err)
 				return
 			}
-			if len(tracks) > 0 {
-				track = tracks[0]
+			if len(tracks) > 0 && tracks[0].HasArt {
+				image, mime = pl.TrackArt(tracks[0])
 			}
+		}
+		if image == nil {
+			http.NotFound(res, req)
+			return
 		}
 
-		if track.HasArt() {
-			if req.Method == "HEAD" {
-				return
-			}
-			if artStream, mime := track.Art(); artStream != nil {
-				defer artStream.Close()
-				res.Header().Set("Content-Type", mime)
-				var buf bytes.Buffer
-				io.Copy(&buf, artStream)
-				http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
-				return
-			}
+		defer image.Close()
+
+		res.Header().Set("Content-Type", mime)
+		if req.Method == "HEAD" {
+			return
 		}
-		http.NotFound(res, req)
+		var buf bytes.Buffer
+		io.Copy(&buf, image)
+		http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
 	}
 }
 
@@ -416,7 +416,7 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 		for i, res := range results {
 			mappedResults[i] = map[string]interface{}{
 				"matches": res.Matches,
-				"track":   trackJson(res.Track),
+				"track":   trackJson(&res.Track),
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{

@@ -84,6 +84,10 @@ type Player interface {
 	// Reports wether the player is online and reachable.
 	Available() bool
 
+	// Returns the artwork for the track as a reader of image data along with
+	// its MIME type. The caller is responsible for closing the reader.
+	TrackArt(track TrackIdentity) (image io.ReadCloser, mime string)
+
 	// Gets the event emitter for this player. The following events are emitted:
 	//   "playlist"     After the playlist was changed. Includes changes to the
 	//                  currently playing track.
@@ -97,27 +101,25 @@ type Player interface {
 	Events() *util.Emitter
 }
 
-type TrackIdentity interface {
-	Uri() string
+type Track struct {
+	Uri         string        `json:"uri"`
+	Artist      string        `json:"artist,omitempty"`
+	Title       string        `json:"title,omitempty"`
+	Genre       string        `json:"genre,omitempty"`
+	Album       string        `json:"album,omitempty"`
+	AlbumArtist string        `json:"albumartist,omitempty"`
+	AlbumTrack  string        `json:"albumtrack,omitempty"`
+	AlbumDisc   string        `json:"albumdisc,omitempty"`
+	Duration    time.Duration `json:"duration"`
+	HasArt      bool          `json:"hasart"`
 }
 
-type Track interface {
-	TrackIdentity
+func (track Track) TrackUri() string {
+	return track.Uri
+}
 
-	Artist() string
-	Title() string
-	Genre() string
-	Album() string
-	AlbumArtist() string
-	AlbumTrack() string
-	AlbumDisc() string
-	Duration() time.Duration
-
-	// Returns the artwork for this track as a reader of image data along with
-	// its MIME type. The caller is responsible for closing the reader.
-	Art() (image io.ReadCloser, mime string)
-
-	HasArt() bool
+type TrackIdentity interface {
+	TrackUri() string
 }
 
 // Get an attribute of a track by its name. Accepted names are:
@@ -132,48 +134,38 @@ type Track interface {
 //   "albumtrack"
 //   "albumdisc"
 //   "duration"
-func TrackAttr(trackId TrackIdentity, attr string) interface{} {
+func (track *Track) Attr(attr string) interface{} {
 	switch attr {
 	case "id":
 		fallthrough
 	case "uri":
-		return trackId.Uri()
+		return track.Uri
+	case "artist":
+		return track.Artist
+	case "title":
+		return track.Title
+	case "genre":
+		return track.Genre
+	case "album":
+		return track.Album
+	case "albumartist":
+		return track.AlbumArtist
+	case "albumtrack":
+		return track.AlbumTrack
+	case "albumdisc":
+		return track.AlbumDisc
+	case "duration":
+		return track.Duration
+	case "hasart":
+		return track.HasArt
 	}
-
-	if track, ok := trackId.(Track); ok {
-		switch attr {
-		case "artist":
-			return track.Artist()
-		case "title":
-			return track.Title()
-		case "genre":
-			return track.Genre()
-		case "album":
-			return track.Album()
-		case "albumartist":
-			return track.AlbumArtist()
-		case "albumtrack":
-			return track.AlbumTrack()
-		case "albumdisc":
-			return track.AlbumDisc()
-		case "duration":
-			return track.Duration()
-		}
-	}
-
 	return nil
-}
-
-type trackID string
-
-func (tr trackID) Uri() string {
-	return string(tr)
 }
 
 func TrackIdentities(uris ...string) []TrackIdentity {
 	tracks := make([]TrackIdentity, len(uris))
 	for i, uri := range uris {
-		tracks[i] = trackID(uri)
+		tracks[i] = Track{Uri: uri}
 	}
 	return tracks
 }
@@ -225,14 +217,14 @@ func InterpolatePlaylistMeta(plist []PlaylistTrack, ids []TrackIdentity) []Playl
 	found := map[string]int{}
 outer:
 	for i, id := range ids {
-		needIndex := found[id.Uri()] + 1
+		needIndex := found[id.TrackUri()] + 1
 		duplicateIndex := 0
 
 		for _, tr := range plist {
-			if tr.Uri() == id.Uri() {
+			if tr.TrackUri() == id.TrackUri() {
 				if duplicateIndex++; duplicateIndex == needIndex {
 					newPlist[i] = tr
-					found[id.Uri()] = needIndex
+					found[id.TrackUri()] = needIndex
 					continue outer
 				}
 			}
@@ -250,36 +242,32 @@ outer:
 
 // Players may use this function to extract the artist and title from other
 // track information if they are unavailable.
-func InterpolateMissingFields(track Track) (artist string, title string) {
-	artist, title = track.Artist(), track.Title()
-	uri := track.Uri()
-
-	if strings.HasPrefix(uri, "http") {
+func InterpolateMissingFields(track *Track) {
+	if strings.HasPrefix(track.Uri, "http") {
 		return
 	}
 
 	// First, attempt to find an "<artist> - <title>" string in the track title.
-	if artist == "" && title != "" {
+	if track.Artist == "" && track.Title != "" {
 		re := regexp.MustCompile("(.+)\\s+-\\s+(.+)")
-		if match := re.FindStringSubmatch(title); match != nil {
-			artist, title = match[0], match[1]
+		if match := re.FindStringSubmatch(track.Title); match != nil {
+			track.Artist, track.Title = match[0], match[1]
 		}
 	}
 
 	// Also look for the <artist> - <title> patterin in the filename.
-	if artist == "" || title == "" {
+	if track.Artist == "" || track.Title == "" {
 		re := regexp.MustCompile("^(?:.*\\/)?(.+)\\s+-\\s+(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(uri); match != nil {
-			artist, title = match[1], match[2]
+		if match := re.FindStringSubmatch(track.Uri); match != nil {
+			track.Artist, track.Title = match[1], match[2]
 		}
 	}
 
 	// Still nothing? Just use the filename or url.
-	if title == "" {
+	if track.Title == "" {
 		re := regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(uri); match != nil {
-			title = match[1]
+		if match := re.FindStringSubmatch(track.Uri); match != nil {
+			track.Title = match[1]
 		}
 	}
-	return
 }

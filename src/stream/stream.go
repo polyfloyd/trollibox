@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"../player"
 	"../util"
 )
 
@@ -21,15 +22,13 @@ type Track struct {
 	ArtUrl      string `json:"art,omitempty"`
 }
 
-func (track Track) Uri() string       { return track.Url }
-func (Track) Artist() string          { return "" }
-func (track Track) Title() string     { return track.StreamTitle }
-func (Track) Genre() string           { return "" }
-func (Track) Album() string           { return "" }
-func (Track) AlbumArtist() string     { return "" }
-func (Track) AlbumTrack() string      { return "" }
-func (Track) AlbumDisc() string       { return "" }
-func (Track) Duration() time.Duration { return 0 }
+func (track Track) PlayerTrack() player.Track {
+	return player.Track{
+		Uri:    track.Url,
+		Album:  track.StreamTitle,
+		HasArt: track.ArtUrl != "",
+	}
+}
 
 func (track Track) Art() (image io.ReadCloser, mime string) {
 	if track.ArtUrl == "" {
@@ -47,10 +46,6 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 		return nil, ""
 	}
 	return res.Body, res.Header.Get("Content-Type")
-}
-
-func (track Track) HasArt() bool {
-	return track.ArtUrl != ""
 }
 
 type DB struct {

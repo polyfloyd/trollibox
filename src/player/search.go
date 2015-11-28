@@ -109,7 +109,7 @@ func (sq *SearchQuery) Matches(track Track) (SearchResult, bool) {
 			if property == "" {
 				foundMatch := false
 				for _, prop := range sq.untagged {
-					if val, ok := TrackAttr(track, prop).(string); ok {
+					if val, ok := track.Attr(prop).(string); ok {
 						if match := re.FindStringIndex(val); match != nil {
 							result.AddMatch(prop, match[0], match[1])
 							foundMatch = true
@@ -121,7 +121,7 @@ func (sq *SearchQuery) Matches(track Track) (SearchResult, bool) {
 				}
 
 			} else {
-				if val, ok := TrackAttr(track, property).(string); ok {
+				if val, ok := track.Attr(property).(string); ok {
 					if match := re.FindStringIndex(val); match != nil {
 						result.AddMatch(property, match[0], match[1])
 						continue

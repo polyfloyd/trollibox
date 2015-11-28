@@ -150,7 +150,7 @@ func (pl *Player) reloadPlaylist() error {
 	if len(pl.playlist) == len(trackIds) {
 		playlistChanged = false
 		for i, id := range trackIds {
-			if id != pl.playlist[i].Uri() {
+			if id != pl.playlist[i].TrackUri() {
 				playlistChanged = true
 				break
 			}
@@ -241,20 +241,20 @@ func (pl *Player) library() ([]player.Track, error) {
 	scanner.Scan() // "tags"
 
 	tracks := make([]player.Track, 0, numSongs)
-	var track *Track
+	var track *player.Track
 	for scanner.Scan() {
 		tag, _ := url.QueryUnescape(scanner.Text())
 		split := strings.SplitN(tag, ":", 2)
 
 		if split[0] == "id" {
 			if track != nil {
-				tracks = append(tracks, track)
+				tracks = append(tracks, *track)
 			}
-			track = &Track{serv: pl.Serv}
+			track = &player.Track{}
 		}
-		track.setSlimAttr(split[0], split[1])
+		setSlimAttr(pl.Serv, track, split[0], split[1])
 	}
-	tracks = append(tracks, track)
+	tracks = append(tracks, *track)
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
@@ -269,36 +269,31 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 
 	tracks := make([]player.Track, len(identities))
 	for i, id := range identities {
-		uri := id.Uri()
-		if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].Uri() == uri {
-			tr := &Track{
-				serv:  pl.Serv,
-				uri:   uri,
-				album: uri,
-			}
+		uri := id.TrackUri()
+		if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
+			tr := &tracks[i]
+			tr.Uri = uri
+			tr.Album = uri
 			artistRes, err := pl.Serv.request(pl.ID, "artist", "?")
 			if err == nil && len(artistRes) >= 3 {
-				tr.artist = artistRes[2]
+				tr.Artist = artistRes[2]
 			}
 			titleRes, err := pl.Serv.request(pl.ID, "title", "?")
 			if err == nil && len(titleRes) >= 3 {
-				tr.title = titleRes[2]
+				tr.Title = titleRes[2]
 			}
-			tr.artist, tr.title = player.InterpolateMissingFields(tr)
-			tracks[i] = tr
+			player.InterpolateMissingFields(tr)
 
 		} else {
-			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.Uri()))
+			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.TrackUri()))
 			if err != nil {
 				return nil, err
 			}
 
-			tr := &Track{serv: pl.Serv}
 			for k, v := range attrs {
-				tr.setSlimAttr(k, v)
+				setSlimAttr(pl.Serv, &tracks[i], k, v)
 			}
-			tr.artist, tr.title = player.InterpolateMissingFields(tr)
-			tracks[i] = tr
+			player.InterpolateMissingFields(&tracks[i])
 		}
 
 	}
@@ -341,7 +336,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 	// Calculate the index at which to start deleting.
 	delStart := 0
 	for len(trackUrls) > delStart && len(pl.playlist) > delStart {
-		if pl.playlist[delStart].Uri() == trackUrls[delStart] {
+		if pl.playlist[delStart].TrackUri() == trackUrls[delStart] {
 			delStart++
 		} else {
 			break
@@ -359,7 +354,7 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 
 	// Add the new tracks.
 	for _, track := range plist[delStart:] {
-		if _, err := pl.Serv.request(pl.ID, "playlist", "add", encodeUri(track.Uri())); err != nil {
+		if _, err := pl.Serv.request(pl.ID, "playlist", "add", encodeUri(track.TrackUri())); err != nil {
 			return err
 		}
 	}
@@ -445,6 +440,21 @@ func (pl *Player) Available() bool {
 	return powerRes[2] == "1" && connectedRes[2] == "1"
 }
 
+func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mime string) {
+	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeUri(track.TrackUri()))
+	if err != nil {
+		return nil, ""
+	}
+	if pl.Serv.webUrl == "" || attrs["coverid"] == "" {
+		return nil, ""
+	}
+	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", pl.Serv.webUrl, attrs["coverid"]))
+	if err != nil {
+		return nil, ""
+	}
+	return res.Body, res.Header.Get("Content-Type")
+}
+
 func (pl *Player) Events() *util.Emitter {
 	return pl.Emitter
 }
@@ -453,71 +463,31 @@ func (pl *Player) String() string {
 	return fmt.Sprintf("%s [%s] [%s]", pl.Name, pl.ID, pl.Model)
 }
 
-type Track struct {
-	serv *Server
-
-	uri         string
-	artist      string
-	title       string
-	genre       string
-	album       string
-	albumArtist string
-	albumTrack  string
-	albumDisc   string
-	duration    time.Duration
-	coverid     string
-}
-
-func (track *Track) setSlimAttr(key, value string) {
+func setSlimAttr(serv *Server, track *player.Track, key, value string) {
 	switch key {
 	case "url":
 		uri, _ := url.QueryUnescape(value)
-		track.uri = uri
+		track.Uri = uri
 	case "trackartist":
-		track.artist = value
+		track.Artist = value
 	case "title":
-		track.title = value
+		track.Title = value
 	case "genre":
-		track.genre = value
+		track.Genre = value
 	case "album":
 		if a := value; a != "No Album" {
-			track.album = a
+			track.Album = a
 		}
 	case "albumartist":
-		track.albumArtist = value
+		track.AlbumArtist = value
 	case "tracknum":
-		track.albumTrack = value
+		track.AlbumTrack = value
 	case "disc":
-		track.albumDisc = value
+		track.AlbumDisc = value
 	case "duration":
 		d, _ := strconv.ParseFloat(value, 64)
-		track.duration = time.Duration(d) * time.Second
+		track.Duration = time.Duration(d) * time.Second
 	case "coverid":
-		track.coverid = value
+		track.HasArt = serv.webUrl != "" && value != ""
 	}
-}
-
-func (track Track) Uri() string             { return track.uri }
-func (track Track) Artist() string          { return track.artist }
-func (track Track) Title() string           { return track.title }
-func (track Track) Genre() string           { return track.genre }
-func (track Track) Album() string           { return track.album }
-func (track Track) AlbumArtist() string     { return track.albumArtist }
-func (track Track) AlbumTrack() string      { return track.albumTrack }
-func (track Track) AlbumDisc() string       { return track.albumDisc }
-func (track Track) Duration() time.Duration { return track.duration }
-
-func (track Track) Art() (image io.ReadCloser, mime string) {
-	if track.serv.webUrl == "" || track.coverid == "" {
-		return nil, ""
-	}
-	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", track.serv.webUrl, track.coverid))
-	if err != nil {
-		return nil, ""
-	}
-	return res.Body, res.Header.Get("Content-Type")
-}
-
-func (track Track) HasArt() bool {
-	return track.serv.webUrl != "" && track.coverid != ""
 }

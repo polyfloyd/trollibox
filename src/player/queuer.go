@@ -2,7 +2,6 @@ package player
 
 import (
 	"fmt"
-	"io"
 	"math/rand"
 	"reflect"
 	"regexp"
@@ -106,7 +105,7 @@ func (rule SelectionRule) MatchFunc() (func(Track) bool, error) {
 
 	// Prevent type errors further down.
 	typeVal := reflect.ValueOf(rule.Value).Kind()
-	typeTrack := reflect.ValueOf(TrackAttr(dummyTrack{}, rule.Attribute)).Kind()
+	typeTrack := reflect.ValueOf((&Track{}).Attr(rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
 		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
@@ -117,15 +116,15 @@ func (rule SelectionRule) MatchFunc() (func(Track) bool, error) {
 		switch rule.Operation {
 		case OP_EQUALS:
 			return func(track Track) bool {
-				return inv(track.Duration() == durVal)
+				return inv(track.Duration == durVal)
 			}, nil
 		case OP_GREATER:
 			return func(track Track) bool {
-				return inv(track.Duration() > durVal)
+				return inv(track.Duration > durVal)
 			}, nil
 		case OP_LESS:
 			return func(track Track) bool {
-				return inv(track.Duration() < durVal)
+				return inv(track.Duration < durVal)
 			}, nil
 		}
 
@@ -133,26 +132,26 @@ func (rule SelectionRule) MatchFunc() (func(Track) bool, error) {
 		switch rule.Operation {
 		case OP_CONTAINS:
 			return func(track Track) bool {
-				return inv(strings.Contains(TrackAttr(track, rule.Attribute).(string), strVal))
+				return inv(strings.Contains(track.Attr(rule.Attribute).(string), strVal))
 			}, nil
 		case OP_EQUALS:
 			return func(track Track) bool {
-				return inv(TrackAttr(track, rule.Attribute).(string) == strVal)
+				return inv(track.Attr(rule.Attribute).(string) == strVal)
 			}, nil
 		case OP_GREATER:
 			return func(track Track) bool {
-				return inv(TrackAttr(track, rule.Attribute).(string) > strVal)
+				return inv(track.Attr(rule.Attribute).(string) > strVal)
 			}, nil
 		case OP_LESS:
 			return func(track Track) bool {
-				return inv(TrackAttr(track, rule.Attribute).(string) < strVal)
+				return inv(track.Attr(rule.Attribute).(string) < strVal)
 			}, nil
 		case OP_MATCHES:
 			if pat, err := regexp.Compile(strVal); err != nil {
 				return nil, err
 			} else {
 				return func(track Track) bool {
-					return inv(pat.MatchString(TrackAttr(track, rule.Attribute).(string)))
+					return inv(pat.MatchString(track.Attr(rule.Attribute).(string)))
 				}, nil
 			}
 		}
@@ -195,16 +194,16 @@ func NewQueuer(file string) (queuer *Queuer, err error) {
 
 // Picks a random track from the specified tracklist. Does not apply any of the
 // set selection rules.
-func (queuer *Queuer) RandomTrack(tracks []Track) Track {
+func (queuer *Queuer) RandomTrack(tracks []Track) *Track {
 	if len(tracks) == 0 {
 		return nil
 	}
-	return tracks[queuer.rand.Intn(len(tracks))]
+	return &tracks[queuer.rand.Intn(len(tracks))]
 }
 
 // Select a track based on the rules set. A track must match all rules in order
 // to be picked.
-func (queuer *Queuer) SelectRandomTrack(tracks []Track) Track {
+func (queuer *Queuer) SelectRandomTrack(tracks []Track) *Track {
 	if len(tracks) == 0 {
 		return nil
 	}
@@ -258,7 +257,7 @@ func (queuer *Queuer) SelectRandomTrack(tracks []Track) Track {
 	index := 0
 	for _, part := range output {
 		if index+len(part) > pickIndex {
-			return part[pickIndex-index]
+			return &part[pickIndex-index]
 		}
 		index += len(part)
 	}
@@ -298,16 +297,3 @@ func makeRuleFuncs(rules []SelectionRule) ([]func(Track) bool, error) {
 	}
 	return funcs, nil
 }
-
-type dummyTrack struct{}
-
-func (dummyTrack) Uri() string                             { return "" }
-func (dummyTrack) Artist() string                          { return "" }
-func (dummyTrack) Title() string                           { return "" }
-func (dummyTrack) Genre() string                           { return "" }
-func (dummyTrack) Album() string                           { return "" }
-func (dummyTrack) AlbumArtist() string                     { return "" }
-func (dummyTrack) AlbumTrack() string                      { return "" }
-func (dummyTrack) AlbumDisc() string                       { return "" }
-func (dummyTrack) Duration() time.Duration                 { return 0 }
-func (dummyTrack) Art() (image io.ReadCloser, mime string) { return nil, "" }
