@@ -23,21 +23,14 @@ const (
 func AutoQueue(queuer *Queuer, pl Player) error {
 	listener := pl.Events().Listen()
 	defer pl.Events().Unlisten(listener)
-	go func() {
-		listener <- "tracks"
-	}()
 
-	var tracks []Track
 	for {
 		switch <-listener {
-		case "tracks":
-			var err error
-			tracks, err = pl.TrackInfo()
-			if err != nil {
-				return fmt.Errorf("Could not get tracks: %v", err)
-			}
-
 		case "playlist-end":
+			tracks, err := pl.TrackInfo()
+			if err != nil {
+				return err
+			}
 			if len(tracks) == 0 {
 				continue // No tracks to queue, too bad.
 			}
@@ -49,7 +42,7 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 					continue
 				}
 			}
-			err := PlaylistAppend(pl, PlaylistTrack{
+			err = PlaylistAppend(pl, PlaylistTrack{
 				TrackIdentity: track,
 				QueuedBy:      "system",
 			})

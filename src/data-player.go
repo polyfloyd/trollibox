@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"./player"
@@ -305,39 +304,16 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 }
 
 func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
-	var cache bytes.Buffer
-	var cacheMutex sync.RWMutex
-	var err error
-
-	go func() {
-		listener := pl.Events().Listen()
-		defer pl.Events().Unlisten(listener)
-		listener <- "tracks" // Bootstrap the cycle.
-
-		for {
-			if event := <-listener; event != "tracks" {
-				continue
-			}
-			cacheMutex.Lock()
-			var tracks []player.Track
-			tracks, err = pl.TrackInfo()
-			cache.Reset()
-			json.NewEncoder(&cache).Encode(map[string]interface{}{
-				"tracks": trackJsonList(tracks),
-			})
-			cacheMutex.Unlock()
-		}
-	}()
-
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
+		tracks, err := pl.TrackInfo()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
-		cacheMutex.RLock()
-		res.Write(cache.Bytes())
-		cacheMutex.RUnlock()
+		json.NewEncoder(res).Encode(map[string]interface{}{
+			"tracks": trackJsonList(tracks),
+		})
 	}
 }
 
@@ -377,36 +353,17 @@ func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWri
 }
 
 func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
-	var cachedTracks []player.Track
-	var cacheMutex sync.RWMutex
-	var err error
-
-	go func() {
-		listener := pl.Events().Listen()
-		defer pl.Events().Unlisten(listener)
-		listener <- "tracks" // Bootstrap the cycle.
-
-		for {
-			if event := <-listener; event != "tracks" {
-				continue
-			}
-			cacheMutex.Lock()
-			cachedTracks, err = pl.TrackInfo()
-			cacheMutex.Unlock()
-		}
-	}()
-
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
+
+		tracks, err := pl.TrackInfo()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
 
-		cacheMutex.RLock()
 		untagged := strings.Split(req.FormValue("untagged"), ",")
-		results, err := player.Search(cachedTracks, req.FormValue("query"), untagged)
-		cacheMutex.RUnlock()
+		results, err := player.Search(tracks, req.FormValue("query"), untagged)
 		if err != nil {
 			writeError(res, err)
 			return

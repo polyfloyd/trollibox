@@ -169,11 +169,14 @@ func main() {
 	}
 
 	for name, pl := range players {
+		cache := &player.TrackCache{Player: pl}
+		players[name] = cache
+		go cache.Run()
 		go func(pl player.Player, name string) {
 			for {
 				log.Printf("Error while autoqueueing for %s: %v", name, player.AutoQueue(queuer, pl))
 			}
-		}(pl, name)
+		}(cache, name)
 	}
 
 	r := mux.NewRouter()
