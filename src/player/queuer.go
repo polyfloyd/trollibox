@@ -172,7 +172,7 @@ type Queuer struct {
 
 func NewQueuer(file string) (queuer *Queuer, err error) {
 	queuer = &Queuer{
-		Emitter: util.NewEmitter(),
+		Emitter: util.NewEmitter(0),
 		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	if queuer.storage, err = util.NewPersistentStorage(file, &[]SelectionRule{}); err != nil {

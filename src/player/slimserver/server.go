@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"../../util"
 )
@@ -164,7 +165,7 @@ func (serv *Server) Players() ([]*Player, error) {
 			Name:    attrs["name"],
 			Model:   attrs["model"],
 			Serv:    serv,
-			Emitter: util.NewEmitter(),
+			Emitter: util.NewEmitter(time.Millisecond * 100),
 		})
 	}
 

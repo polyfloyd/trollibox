@@ -55,7 +55,7 @@ type DB struct {
 
 func NewDB(file string) (db *DB, err error) {
 	db = &DB{
-		Emitter: util.NewEmitter(),
+		Emitter: util.NewEmitter(0),
 	}
 	if db.storage, err = util.NewPersistentStorage(file, &[]Track{}); err != nil {
 		return nil, err

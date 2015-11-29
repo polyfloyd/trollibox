@@ -95,7 +95,7 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	}
 
 	player := &Player{
-		Emitter: util.NewEmitter(),
+		Emitter: util.NewEmitter(time.Millisecond * 100),
 		network: network,
 		address: address,
 		passwd:  passwd,
