@@ -169,7 +169,7 @@ var PlayerView = Backbone.View.extend({
 					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-forward do-next" title="Skip to the next track"></button>'+
+					'<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
