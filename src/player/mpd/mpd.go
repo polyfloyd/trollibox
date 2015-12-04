@@ -236,7 +236,19 @@ func (pl *Player) mainLoop() {
 			pl.Emit("volume")
 
 		case "mpd-update":
-			pl.Emit("tracks")
+			err := pl.withMpd(func(mpdc *mpd.Client) error {
+				status, err := mpdc.Status()
+				if err != nil {
+					return err
+				}
+				if _, ok := status["updating_db"]; !ok {
+					pl.Emit("tracks")
+				}
+				return nil
+			})
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}
 }
