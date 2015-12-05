@@ -61,9 +61,13 @@ type Player interface {
 	Playlist() ([]PlaylistTrack, error)
 
 	// Updates the player's playlist. Changing the first track will cause the
-	// player to start playing the first track in the new playlist. Changing
-	// the progress of the first track has no effect on the currently playing
-	// track.
+	// player to start playing the first track in the new playlist.
+	//
+	// Changing the progress of the first track has no effect on the currently
+	// playing track, use Seek() instead.
+	//
+	// If the new playlist contains at least one track, the player starts
+	// playing the first track. Otherwise, a playlist-end event is emitted.
 	SetPlaylist(plist []PlaylistTrack) error
 
 	// Seeks to the absolute point in time of the currently playing track. This
@@ -72,6 +76,8 @@ type Player interface {
 
 	State() (PlayState, error)
 
+	// Signal the player to start/resume, stop or pause playback. If the
+	// playlist is empty, a playlist-end event is emitted.
 	SetState(state PlayState) error
 
 	// Gets the set volume as a uniform float value between 0 and 1.
@@ -195,7 +201,7 @@ func PlaylistNext(pl Player) error {
 			return err
 		}
 	}
-	return pl.SetState(PlayStatePlaying)
+	return nil
 }
 
 // Convenience method for setting the playlist using just the ids. The metadata

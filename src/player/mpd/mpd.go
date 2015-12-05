@@ -59,11 +59,6 @@ func (rc *reusableClient) run(expireAfter time.Duration) {
 	}
 }
 
-type playlistAttrs struct {
-	progress int
-	queuedBy string
-}
-
 type Player struct {
 	*util.Emitter
 
@@ -72,7 +67,9 @@ type Player struct {
 	network, address string
 	passwd           string
 
-	playlist     []player.PlaylistTrack
+	playlist []player.PlaylistTrack
+	// The playlist mutex should not be locked within a withMpd() callback as
+	// it may result in deadlocks.
 	playlistLock sync.Mutex
 
 	// Sometimes, the volume returned by MPD is invalid, so we have to take
@@ -82,8 +79,6 @@ type Player struct {
 	// We use this value to determine wether the currently playing track has
 	// changed so its play count can be updated.
 	lastTrack string
-
-	playlistWasSet bool
 }
 
 func Connect(network, address string, mpdPassword *string) (*Player, error) {
@@ -95,10 +90,11 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	}
 
 	player := &Player{
-		Emitter: util.NewEmitter(time.Millisecond * 100),
-		network: network,
-		address: address,
-		passwd:  passwd,
+		Emitter:  util.NewEmitter(time.Millisecond * 100),
+		playlist: []player.PlaylistTrack{},
+		network:  network,
+		address:  address,
+		passwd:   passwd,
 
 		// NOTE: MPD supports up to 10 concurrent connections by default. When
 		// this number is reached and ANYTHING tries to connect, the connection
@@ -136,15 +132,19 @@ func (pl *Player) newClient() (*reusableClient, error) {
 func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
 	reClient := <-pl.clientPool
 	reClient.Lock()
-	defer reClient.Unlock()
 	if reClient.client == nil {
+		reClient.Unlock()
 		var err error
 		if reClient, err = pl.newClient(); err != nil {
 			return err
 		}
+		reClient.Lock()
 	}
-	defer func() { pl.clientPool <- reClient }()
 
+	defer func() {
+		reClient.Unlock()
+		pl.clientPool <- reClient
+	}()
 	reClient.reset <- struct{}{}
 	return fn(reClient.client)
 }
@@ -176,58 +176,76 @@ func (pl *Player) eventLoop() {
 func (pl *Player) mainLoop() {
 	listener := pl.Listen()
 	defer pl.Unlisten(listener)
-	go func() { // Bootstrap the cycle
-		listener <- "mpd-playlist"
-	}()
+	listener <- "mpd-playlist" // Bootstrap the cycle
+
 	for {
-		switch <-listener {
+		switch event := <-listener; event {
 		case "mpd-player":
 			pl.Emit("playstate")
 			pl.Emit("progress")
 			fallthrough
 
 		case "mpd-playlist":
+			pl.playlistLock.Lock()
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
-				pl.playlistLock.Lock()
-				defer pl.playlistLock.Unlock()
-
+				// Check whether the playlist help by the player is in sync and
+				// updates it if it is not.
+				if inSync, err := pl.playlistMatchesServer(mpdc, pl.playlist); err != nil {
+					return err
+				} else if inSync {
+					return nil
+				}
 				if err := pl.removePlayedTracks(mpdc); err != nil {
 					return err
 				}
-				if changed, err := pl.reloadPlaylist(mpdc); err != nil {
+
+				newPlistIds, err := pl.loadPlaylist(mpdc)
+				if err != nil {
 					return err
-				} else if !changed && !pl.playlistWasSet {
-					return nil
 				}
-				pl.playlistWasSet = false
+				newPlist := player.InterpolatePlaylistMeta(pl.playlist, newPlistIds)
+				if err != nil {
+					return err
+				}
 
+				pl.playlist = newPlist
 				pl.Emit("playlist")
-				if len(pl.playlist) == 0 {
+				if len(newPlist) == 0 {
 					pl.Emit("playlist-end")
-					return nil
 				}
+				return nil
+			})
+			pl.playlistLock.Unlock()
+			if err != nil {
+				log.Println(err)
+			}
 
-				cur := pl.playlist[0]
-				if pl.lastTrack != "" && pl.lastTrack != cur.TrackUri() {
-					// TODO: If one track is followed by another track with the same
-					// ID, this block will not be executed, leaving the playcount
-					// unchanged.
+		case "playlist":
+			pl.playlistLock.Lock()
+			err := pl.withMpd(func(mpdc *mpd.Client) error {
+				if len(pl.playlist) > 0 {
+					cur := pl.playlist[0]
+					if pl.lastTrack != "" && pl.lastTrack != cur.TrackUri() {
+						// NOTE: If one track is followed by another track with the same
+						// ID, this block will not be executed, leaving the playcount
+						// unchanged.
 
-					// Seek using the progress attr when the track starts playing.
-					if cur.Progress != 0 {
-						if err := pl.Seek(cur.Progress); err != nil {
+						// Seek using the progress attr when the track starts playing.
+						if cur.Progress != 0 {
+							if err := pl.Seek(cur.Progress); err != nil {
+								return err
+							}
+						}
+
+						if err := incrementPlayCount(cur.TrackUri(), mpdc); err != nil {
 							return err
 						}
 					}
-
-					if err := incrementPlayCount(cur.TrackUri(), mpdc); err != nil {
-						return err
-					}
+					pl.lastTrack = cur.TrackUri()
 				}
-				pl.lastTrack = cur.TrackUri()
-
 				return nil
 			})
+			pl.playlistLock.Unlock()
 			if err != nil {
 				log.Println(err)
 			}
@@ -258,41 +276,43 @@ func (pl *Player) removePlayedTracks(mpdc *mpd.Client) error {
 	if err != nil {
 		return err
 	}
-
 	if songIndex, _ := statusAttrInt(status, "song"); songIndex > 0 {
 		return mpdc.Delete(0, songIndex)
 	}
 	return nil
 }
 
-// Synchronizes the MPD server's playlist with the playlist retained by trollibox.
-func (pl *Player) reloadPlaylist(mpdc *mpd.Client) (bool, error) {
+// Checks wether the argument playlist is equal to the playlist stored by the
+// MPD server.
+func (pl *Player) playlistMatchesServer(mpdc *mpd.Client, plist []player.PlaylistTrack) (bool, error) {
 	songs, err := mpdc.PlaylistInfo(-1, -1)
 	if err != nil {
 		return false, err
 	}
-	uris := make([]string, len(songs))
-	for i, song := range songs {
-		uris[i] = mpdToUri(song["file"])
-	}
 
-	// Check wether the argument playlist is equal to the stored playlist. If
-	// it is, don't do anything
-	if len(pl.playlist) == len(uris) {
-		equal := true
-		for i, uri := range uris {
-			if uri != pl.playlist[i].TrackUri() {
-				equal = false
-				break
+	if len(plist) == len(songs) {
+		for i, song := range songs {
+			if mpdToUri(song["file"]) != plist[i].TrackUri() {
+				return false, nil
 			}
 		}
-		if equal {
-			return false, nil
-		}
+		return true, nil
 	}
+	return false, nil
+}
 
-	pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(uris...))
-	return true, nil
+// Gets the MPD server's playlist and interpolates the Trollibox metadata from
+// the specified playlist.
+func (pl *Player) loadPlaylist(mpdc *mpd.Client) ([]player.TrackIdentity, error) {
+	songs, err := mpdc.PlaylistInfo(-1, -1)
+	if err != nil {
+		return nil, err
+	}
+	tracks := make([]player.TrackIdentity, len(songs))
+	for i, song := range songs {
+		tracks[i] = player.Track{Uri: mpdToUri(song["file"])}
+	}
+	return tracks, nil
 }
 
 // Initializes a track from an MPD hash. The hash should be gotten using
@@ -306,7 +326,7 @@ func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *pla
 		panic("Tried to read a directory as local file")
 	}
 
-	track.Uri = (*song)["file"]
+	track.Uri = mpdToUri((*song)["file"])
 	track.Artist = (*song)["Artist"]
 	track.Title = (*song)["Title"]
 	track.Genre = (*song)["Genre"]
@@ -315,7 +335,7 @@ func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *pla
 	track.AlbumDisc = (*song)["Disc"]
 	track.AlbumTrack = (*song)["Track"]
 
-	strNum, _ := mpdc.StickerGet(track.Uri, "image-nchunks")
+	strNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
 	_, err := strconv.ParseInt(strNum, 10, 32)
 	track.HasArt = err == nil
 
@@ -331,6 +351,13 @@ func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *pla
 }
 
 func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {
+	pl.playlistLock.Lock()
+	currentTrackUri := ""
+	if len(pl.playlist) > 0 {
+		currentTrackUri = pl.playlist[0].TrackUri()
+	}
+	pl.playlistLock.Unlock()
+
 	var tracks []player.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		var songs []mpd.Attrs
@@ -354,7 +381,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 						songs[i] = s[0]
 						continue
 					}
-				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
+				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackUri == uri {
 					song, err := mpdc.CurrentSong()
 					if err != nil {
 						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
@@ -385,46 +412,47 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 func (pl *Player) Playlist() ([]player.PlaylistTrack, error) {
 	pl.playlistLock.Lock()
 	defer pl.playlistLock.Unlock()
-
-	if len(pl.playlist) > 0 {
-		// Update the progress attribute of the currently playing track.
-		err := pl.withMpd(func(mpdc *mpd.Client) error {
-			status, err := mpdc.Status()
-			if err != nil {
-				return err
-			}
-
-			progressf, _ := strconv.ParseFloat(status["elapsed"], 32)
-			pl.playlist[0].Progress = time.Duration(progressf) * time.Second
-			return nil
-		})
-		if err != nil {
-			return nil, err
-		}
+	if len(pl.playlist) == 0 {
+		return pl.playlist, nil
 	}
-	return pl.playlist, nil
+
+	plist := make([]player.PlaylistTrack, len(pl.playlist))
+	copy(plist, pl.playlist)
+
+	// Update the progress attribute of the currently playing track.
+	err := pl.withMpd(func(mpdc *mpd.Client) error {
+		status, err := mpdc.Status()
+		if err != nil {
+			return err
+		}
+
+		progressf, _ := strconv.ParseFloat(status["elapsed"], 32)
+		plist[0].Progress = time.Duration(progressf) * time.Second
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return plist, nil
 }
 
 func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
+	// A lot of mpd-update events will be emitted during this process. But the
+	// mainLoop will not abserve a half playlist if we lock the playlist's
+	// mutex.
 	pl.playlistLock.Lock()
 	defer pl.playlistLock.Unlock()
-
-	pl.playlist = plist
-
 	return pl.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistInfo(-1, -1)
 		if err != nil {
 			return err
 		}
 
-		pl.playlistWasSet = true
-
 		// Figure out how many tracks at the beginning of the playlist are unchanged.
 		delStart := 0
-		for len(songs) > delStart && len(pl.playlist) > delStart && uriToMpd(pl.playlist[delStart].TrackUri()) == songs[delStart]["file"] {
+		for len(songs) > delStart && len(plist) > delStart && uriToMpd(plist[delStart].TrackUri()) == songs[delStart]["file"] {
 			delStart++
 		}
-
 		if delStart != len(songs) {
 			// Clear the part of the playlist that does not match the new playlist.
 			if err := mpdc.Delete(delStart, len(songs)); err != nil {
@@ -437,7 +465,24 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 		for _, track := range plist[delStart:] {
 			cmd.Add(uriToMpd(track.TrackUri()))
 		}
-		return cmd.End()
+		if err := cmd.End(); err != nil {
+			return err
+		}
+
+		pl.playlist = plist
+		pl.Emit("playlist")
+
+		if len(pl.playlist) == 0 {
+			pl.Emit("playlist-end")
+		} else {
+			// Start playing if we were not.
+			if state, err := pl.State(); err != nil {
+				return err
+			} else if len(plist) > 0 && state != player.PlayStatePlaying {
+				return pl.SetState(player.PlayStatePlaying)
+			}
+		}
+		return nil
 	})
 }
 

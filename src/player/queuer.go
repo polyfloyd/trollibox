@@ -49,9 +49,6 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 			if err != nil {
 				return fmt.Errorf("Could not append to playlist: %v", err)
 			}
-			if err := pl.SetState(PlayStatePlaying); err != nil {
-				return fmt.Errorf("Unable to begin playback: %v", err)
-			}
 		}
 	}
 }
