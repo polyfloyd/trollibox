@@ -468,6 +468,8 @@ func setSlimAttr(serv *Server, track *player.Track, key, value string) {
 	case "url":
 		uri, _ := url.QueryUnescape(value)
 		track.Uri = uri
+	case "artist":
+		fallthrough
 	case "trackartist":
 		track.Artist = value
 	case "title":
