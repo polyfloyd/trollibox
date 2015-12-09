@@ -104,7 +104,7 @@ func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interfa
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB) {
+func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuer *player.Queuer) {
 	r.Path("/playstate").Methods("GET").HandlerFunc(htPlayerGetPlaystate(pl))
 	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
 	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
@@ -117,18 +117,29 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB) {
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
-	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl)))
+	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, streamdb, queuer)))
 }
 
-func htPlayerListen(pl player.Player) func(*websocket.Conn) {
+func htPlayerListen(pl player.Player, streamdb *stream.DB, queuer *player.Queuer) func(*websocket.Conn) {
 	return func(conn *websocket.Conn) {
-		ch := pl.Events().Listen()
-		defer pl.Events().Unlisten(ch)
+		plCh := pl.Events().Listen()
+		defer pl.Events().Unlisten(plCh)
+		strCh := streamdb.Listen()
+		defer streamdb.Unlisten(strCh)
+		quCh := queuer.Listen()
+		defer queuer.Unlisten(quCh)
 
 		conn.SetDeadline(time.Time{})
 		for {
-			_, err := conn.Write([]uint8(<-ch))
-			if err != nil {
+			var event string
+			select {
+			case event = <-plCh:
+			case ev := <-strCh:
+				event = "streams-" + ev
+			case ev := <-quCh:
+				event = "queuer-" + ev
+			}
+			if _, err := conn.Write([]uint8(event)); err != nil {
 				break
 			}
 		}
