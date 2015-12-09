@@ -2,10 +2,13 @@ package player
 
 import (
 	"sync"
+
+	"../util"
 )
 
 type TrackCache struct {
 	Player
+	util.Emitter
 
 	lock   sync.RWMutex
 	tracks []Track
@@ -47,17 +50,23 @@ func (cache *TrackCache) TrackInfo(identites ...TrackIdentity) ([]Track, error) 
 	return results, nil
 }
 
+func (cache *TrackCache) Events() *util.Emitter {
+	return &cache.Emitter
+}
+
 func (cache *TrackCache) Run() {
-	listener := cache.Events().Listen()
-	defer cache.Events().Unlisten(listener)
+	listener := cache.Player.Events().Listen()
+	defer cache.Player.Events().Unlisten(listener)
 
 	for event := range listener {
 		if event != "tracks" {
+			cache.Emit(event)
 			continue
 		}
 		cache.lock.Lock()
 		cache.reloadTrackInfo()
 		cache.lock.Unlock()
+		cache.Emit(event)
 	}
 }
 
