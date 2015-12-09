@@ -10,13 +10,14 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB) {
+func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB, rawServer *player.RawTrackServer) {
 	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuer))
 	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuer))
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
 	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
 	r.Path("/streams/loaddefault").Methods("POST").HandlerFunc(htStreamsLoadDefaults(streamdb))
+	r.Path("/raw").Methods("GET").Handler(rawServer)
 }
 
 // Writes an error to the client or an empty object if err is nil.

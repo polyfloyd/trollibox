@@ -11,6 +11,9 @@ var PlayerView = Backbone.View.extend({
 		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
 		'input .do-set-progress':  'doSetProgress',
+		'dragover':                'doMakeDroppable',
+		'dragenter':               'doMakeDroppable',
+		'drop':                    'doAcceptRawFiles',
 	},
 
 	initialize: function() {
@@ -148,6 +151,17 @@ var PlayerView = Backbone.View.extend({
 		// different so Backbone won't fire a change event. We'll just have to
 		// do it manually.
 		this.model.trigger('change:playlist', this.model, pl, {});
+	},
+
+	doMakeDroppable: function(event) {
+		event.preventDefault();
+		return false;
+	},
+
+	doAcceptRawFiles: function(event) {
+		event.preventDefault();
+		this.model.playRawTracks(event.originalEvent.dataTransfer.files);
+		return false;
 	},
 
 	template: _.template(

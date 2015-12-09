@@ -357,4 +357,33 @@ var Player = Backbone.Model.extend({
 			value:     '',
 		}]));
 	},
+
+	playRawTracks: function(files) {
+		files = Array.prototype.filter.call(files, function(file) {
+			return file.type.match('^audio.+$');
+		});
+		if (!files.length) {
+			return;
+		}
+
+		var form = new FormData();
+		files.forEach(function(file) {
+			form.append('files', file, file.name);
+		});
+
+		$.ajax({
+			url:         URLROOT+'data/player/'+this.name+'/appendraw',
+			method:      'POST',
+			context:     this,
+			data:        form,
+			processData: false,
+			contentType: false,
+			error:       function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
+				this.trigger('error', err);
+			},
+		});
+	},
 });

@@ -104,7 +104,7 @@ func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interfa
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuer *player.Queuer) {
+func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuer *player.Queuer, rawServer *player.RawTrackServer) {
 	r.Path("/playstate").Methods("GET").HandlerFunc(htPlayerGetPlaystate(pl))
 	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
 	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
@@ -117,6 +117,7 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, qu
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
+	r.Path("/appendraw").Methods("POST").HandlerFunc(htRawTrackAdd(pl, rawServer))
 	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, streamdb, queuer)))
 }
 
@@ -390,5 +391,76 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"tracks": mappedResults,
 		})
+	}
+}
+
+func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+
+		mpReader, err := req.MultipartReader()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+		playlist, err := pl.Playlist()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+
+		for {
+			part, err := mpReader.NextPart()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				writeError(res, err)
+				return
+			}
+			// Make the file available through the server.
+			track, err := rawServer.Add(part)
+			if err != nil {
+				writeError(res, err)
+				return
+			}
+
+			// Launch a goroutine that will check whether the track is still in
+			// the player's playlist. If it is not, the track is removed from
+			// the server.
+			go func(track player.Track) {
+				events := pl.Events().Listen()
+				defer pl.Events().Unlisten(events)
+				for event := range events {
+					if event != "playlist" {
+						continue
+					}
+					plist, err := pl.Playlist()
+					if err != nil {
+						break
+					}
+					found := false
+					for _, plTrack := range plist {
+						if track.Uri == plTrack.TrackUri() {
+							found = true
+						}
+					}
+					if !found {
+						break
+					}
+				}
+				rawServer.Remove(track)
+			}(track)
+
+			playlist = append(playlist, player.PlaylistTrack{
+				TrackIdentity: track,
+				QueuedBy:      "user",
+			})
+		}
+
+		if err := pl.SetPlaylist(playlist); err != nil {
+			writeError(res, err)
+			return
+		}
+		res.Write([]byte("{}"))
 	}
 }

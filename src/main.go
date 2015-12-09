@@ -179,6 +179,19 @@ func main() {
 		}(cache, name)
 	}
 
+	rawRoot := config.URLRoot
+	if regexp.MustCompile("^\\/[^\\/]|$").MatchString(rawRoot) {
+		spl := strings.Split(config.Address, ":")
+		addr := spl[0]
+		if addr == "" {
+			addr = "127.0.0.1"
+		}
+		rawRoot = fmt.Sprintf("http://%s:%s/", addr, spl[1])
+	} else if !regexp.MustCompile("^\\/\\/:").MatchString(rawRoot) {
+		rawRoot = "http:" + rawRoot
+	}
+	rawServer := &player.RawTrackServer{UrlRoot: fmt.Sprintf("%sdata/raw", rawRoot)}
+
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
 	for name, pl := range players {
@@ -187,7 +200,7 @@ func main() {
 				return pl.Available()
 			}
 			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(name))
-			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuer)
+			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuer, rawServer)
 		}(name, pl)
 	}
 
@@ -199,7 +212,7 @@ func main() {
 		urlPath := strings.TrimPrefix(file, PUBLIC)
 		r.Path(urlPath).Handler(AssetServeHandler(file))
 	}
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb)
+	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb, rawServer)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
