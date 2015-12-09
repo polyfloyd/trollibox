@@ -165,7 +165,7 @@ func (serv *Server) Players() ([]*Player, error) {
 			Name:    attrs["name"],
 			Model:   attrs["model"],
 			Serv:    serv,
-			Emitter: util.NewEmitter(time.Millisecond * 100),
+			Emitter: util.Emitter{Release: time.Millisecond * 100},
 		})
 	}
 

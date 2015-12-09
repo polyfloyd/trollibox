@@ -160,7 +160,7 @@ func (rule *SelectionRule) String() string {
 
 // The Queuer controls which tracks are added to the playlist.
 type Queuer struct {
-	*util.Emitter
+	util.Emitter
 
 	rand *rand.Rand
 
@@ -169,8 +169,7 @@ type Queuer struct {
 
 func NewQueuer(file string) (queuer *Queuer, err error) {
 	queuer = &Queuer{
-		Emitter: util.NewEmitter(0),
-		rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 	if queuer.storage, err = util.NewPersistentStorage(file, &[]SelectionRule{}); err != nil {
 		return nil, err

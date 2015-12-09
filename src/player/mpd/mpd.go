@@ -60,7 +60,7 @@ func (rc *reusableClient) run(expireAfter time.Duration) {
 }
 
 type Player struct {
-	*util.Emitter
+	util.Emitter
 
 	clientPool chan *reusableClient
 
@@ -90,7 +90,7 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	}
 
 	player := &Player{
-		Emitter:  util.NewEmitter(time.Millisecond * 100),
+		Emitter:  util.Emitter{Release: time.Millisecond * 100},
 		playlist: []player.PlaylistTrack{},
 		network:  network,
 		address:  address,
@@ -625,7 +625,7 @@ func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mim
 }
 
 func (player *Player) Events() *util.Emitter {
-	return player.Emitter
+	return &player.Emitter
 }
 
 func incrementPlayCount(uri string, mpdc *mpd.Client) error {

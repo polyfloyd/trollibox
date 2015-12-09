@@ -29,7 +29,7 @@ type Player struct {
 	playlistLock   sync.Mutex
 	playlistWasSet bool
 	lastTrack      string
-	*util.Emitter
+	util.Emitter
 }
 
 func (pl *Player) eventLoop() {
@@ -456,7 +456,7 @@ func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mim
 }
 
 func (pl *Player) Events() *util.Emitter {
-	return pl.Emitter
+	return &pl.Emitter
 }
 
 func (pl *Player) String() string {

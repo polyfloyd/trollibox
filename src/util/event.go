@@ -6,28 +6,35 @@ import (
 )
 
 type Emitter struct {
+	// The release attribute determines how much time the event should be
+	// buffered to prevent the emission of duplicate events.
+	// A zero value will disable buffering.
+	Release time.Duration
+
 	listeners map[chan string]struct{}
 	lock      sync.Mutex
 
-	release      time.Duration
 	releaseReset map[string]chan struct{}
 }
 
-// Creates new emitter. The release attribute determines how much time the
-// event should be buffered to prevent the emission of duplicate events.
-func NewEmitter(release time.Duration) *Emitter {
-	return &Emitter{
-		listeners:    map[chan string]struct{}{},
-		releaseReset: map[string]chan struct{}{},
-		release:      release,
+func (emitter *Emitter) init() {
+	// Double checked locking.
+	if emitter.listeners == nil {
+		emitter.lock.Lock()
+		if emitter.listeners == nil {
+			emitter.listeners = map[chan string]struct{}{}
+			emitter.releaseReset = map[string]chan struct{}{}
+		}
+		emitter.lock.Unlock()
 	}
 }
 
 func (emitter *Emitter) Emit(event string) {
+	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 
-	if emitter.release == 0 {
+	if emitter.Release == 0 {
 		for l := range emitter.listeners {
 			l <- event
 		}
@@ -49,7 +56,7 @@ func (emitter *Emitter) Emit(event string) {
 	loop:
 		for {
 			select {
-			case <-time.After(emitter.release):
+			case <-time.After(emitter.Release):
 				emitter.lock.Lock()
 				for l := range emitter.listeners {
 					l <- event
@@ -68,6 +75,7 @@ func (emitter *Emitter) Emit(event string) {
 }
 
 func (emitter *Emitter) Listen() chan string {
+	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 
@@ -77,6 +85,7 @@ func (emitter *Emitter) Listen() chan string {
 }
 
 func (emitter *Emitter) Unlisten(ch chan string) {
+	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 

@@ -49,14 +49,12 @@ func (track Track) Art() (image io.ReadCloser, mime string) {
 }
 
 type DB struct {
-	*util.Emitter
+	util.Emitter
 	storage *util.PersistentStorage
 }
 
 func NewDB(file string) (db *DB, err error) {
-	db = &DB{
-		Emitter: util.NewEmitter(0),
-	}
+	db = &DB{}
 	if db.storage, err = util.NewPersistentStorage(file, &[]Track{}); err != nil {
 		return nil, err
 	}
