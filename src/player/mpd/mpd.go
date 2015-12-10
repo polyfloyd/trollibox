@@ -350,6 +350,29 @@ func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *pla
 	player.InterpolateMissingFields(track)
 }
 
+func (pl *Player) Tracks() ([]player.Track, error) {
+	var tracks []player.Track
+	err := pl.withMpd(func(mpdc *mpd.Client) error {
+		songs, err := mpdc.ListAllInfo("/")
+		if err != nil {
+			return err
+		}
+
+		numDirs := 0
+		tracks = make([]player.Track, len(songs))
+		for i, song := range songs {
+			if _, ok := song["directory"]; ok {
+				numDirs++
+			} else {
+				pl.trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
+			}
+		}
+		tracks = tracks[:len(tracks)-numDirs]
+		return nil
+	})
+	return tracks, err
+}
+
 func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {
 	pl.playlistLock.Lock()
 	currentTrackUri := ""
@@ -360,38 +383,28 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 
 	var tracks []player.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
-		var songs []mpd.Attrs
-		var err error
-		if len(identities) == 0 {
-			songs, err = mpdc.ListAllInfo("/")
-			if err != nil {
-				return err
-			}
-
-		} else {
-			songs = make([]mpd.Attrs, len(identities))
-			for i, id := range identities {
-				uri := id.TrackUri()
-				if strings.HasPrefix(uri, URI_SCHEMA) {
-					s, err := mpdc.ListAllInfo(uriToMpd(uri))
-					if err != nil {
-						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
-					}
-					if len(s) > 0 {
-						songs[i] = s[0]
-						continue
-					}
-				} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackUri == uri {
-					song, err := mpdc.CurrentSong()
-					if err != nil {
-						return fmt.Errorf("Unable to get info about %v: %v", uri, err)
-					}
-					songs[i] = song
-					songs[i]["Album"] = song["Name"]
+		songs := make([]mpd.Attrs, len(identities))
+		for i, id := range identities {
+			uri := id.TrackUri()
+			if strings.HasPrefix(uri, URI_SCHEMA) {
+				s, err := mpdc.ListAllInfo(uriToMpd(uri))
+				if err != nil {
+					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+				}
+				if len(s) > 0 {
+					songs[i] = s[0]
 					continue
 				}
-				songs[i] = mpd.Attrs{"file": uri}
+			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackUri == uri {
+				song, err := mpdc.CurrentSong()
+				if err != nil {
+					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+				}
+				songs[i] = song
+				songs[i]["Album"] = song["Name"]
+				continue
 			}
+			songs[i] = mpd.Attrs{"file": uri}
 		}
 
 		numDirs := 0

@@ -318,7 +318,7 @@ func htPlayerSetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		tracks, err := pl.TrackInfo()
+		tracks, err := pl.Tracks()
 		if err != nil {
 			writeError(res, err)
 			return
@@ -368,7 +368,7 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 
-		tracks, err := pl.TrackInfo()
+		tracks, err := pl.Tracks()
 		if err != nil {
 			writeError(res, err)
 			return

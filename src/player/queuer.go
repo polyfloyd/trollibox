@@ -27,7 +27,7 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 	for {
 		switch <-listener {
 		case "playlist-end":
-			tracks, err := pl.TrackInfo()
+			tracks, err := pl.Tracks()
 			if err != nil {
 				return err
 			}

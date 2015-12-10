@@ -206,7 +206,7 @@ func (pl *Player) maybeEmitPlaylistEnd() error {
 	return nil
 }
 
-func (pl *Player) library() ([]player.Track, error) {
+func (pl *Player) Tracks() ([]player.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err
@@ -263,10 +263,6 @@ func (pl *Player) library() ([]player.Track, error) {
 }
 
 func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {
-	if len(identities) == 0 {
-		return pl.library()
-	}
-
 	tracks := make([]player.Track, len(identities))
 	for i, id := range identities {
 		uri := id.TrackUri()
@@ -295,7 +291,6 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			}
 			player.InterpolateMissingFields(&tracks[i])
 		}
-
 	}
 	return tracks, nil
 }

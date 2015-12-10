@@ -50,11 +50,21 @@ type PlaylistTrack struct {
 	QueuedBy string
 }
 
-type Player interface {
-	// Gets information about the specified tracks. If no identities are given, all
-	// tracks in the player's libary are returned. Otherwise, information about
-	// the specified track is returned.
+type Library interface {
+	// Returns all available tracks in the libary.
+	Tracks() ([]Track, error)
+
+	// Gets information about the specified tracks. If a track is not found, a
+	// zero track is returned at that index.
 	TrackInfo(identites ...TrackIdentity) ([]Track, error)
+
+	// Returns the artwork for the track as a reader of image data along with
+	// its MIME type. The caller is responsible for closing the reader.
+	TrackArt(track TrackIdentity) (image io.ReadCloser, mime string)
+}
+
+type Player interface {
+	Library
 
 	// Returns the tracks in the playlist of this player. The track at index 0
 	// is the currently playing track.
@@ -89,10 +99,6 @@ type Player interface {
 
 	// Reports wether the player is online and reachable.
 	Available() bool
-
-	// Returns the artwork for the track as a reader of image data along with
-	// its MIME type. The caller is responsible for closing the reader.
-	TrackArt(track TrackIdentity) (image io.ReadCloser, mime string)
 
 	// Gets the event emitter for this player. The following events are emitted:
 	//   "playlist"     After the playlist was changed. Includes changes to the

@@ -16,6 +16,24 @@ type TrackCache struct {
 	err    error
 }
 
+func (cache *TrackCache) Tracks() ([]Track, error) {
+	cache.lock.RLock()
+	defer cache.lock.RUnlock()
+
+	if cache.tracks == nil {
+		cache.lock.RUnlock()
+		cache.lock.Lock()
+		cache.reloadTracks()
+		cache.lock.Unlock()
+		cache.lock.RLock()
+	}
+
+	if cache.err != nil {
+		return nil, cache.err
+	}
+	return cache.tracks, nil
+}
+
 func (cache *TrackCache) TrackInfo(identites ...TrackIdentity) ([]Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
@@ -26,13 +44,9 @@ func (cache *TrackCache) TrackInfo(identites ...TrackIdentity) ([]Track, error) 
 	if cache.tracks == nil {
 		cache.lock.RUnlock()
 		cache.lock.Lock()
-		cache.reloadTrackInfo()
+		cache.reloadTracks()
 		cache.lock.Unlock()
 		cache.lock.RLock()
-	}
-
-	if len(identites) == 0 {
-		return cache.tracks, nil
 	}
 
 	results := make([]Track, len(identites))
@@ -64,14 +78,14 @@ func (cache *TrackCache) Run() {
 			continue
 		}
 		cache.lock.Lock()
-		cache.reloadTrackInfo()
+		cache.reloadTracks()
 		cache.lock.Unlock()
 		cache.Emit(event)
 	}
 }
 
-func (cache *TrackCache) reloadTrackInfo() {
-	tracks, err := cache.Player.TrackInfo()
+func (cache *TrackCache) reloadTracks() {
+	tracks, err := cache.Player.Tracks()
 	if err != nil {
 		cache.err = err
 		cache.tracks, cache.index = nil, nil
