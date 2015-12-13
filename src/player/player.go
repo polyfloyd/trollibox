@@ -4,6 +4,7 @@ import (
 	"io"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"../util"
@@ -61,6 +62,57 @@ type Library interface {
 	// Returns the artwork for the track as a reader of image data along with
 	// its MIME type. The caller is responsible for closing the reader.
 	TrackArt(track TrackIdentity) (image io.ReadCloser, mime string)
+}
+
+// Looks for the track information in all the libraries supplied. If the track
+// is found in more than one library, precedence is given to the library at the
+// lowest index.
+func AllTrackInfo(libs []Library, identites ...TrackIdentity) ([]Track, error) {
+	done := make(chan struct{})
+	defer close(done)
+	errs := make(chan error)
+	defer close(errs)
+	var errorred bool
+	var chanLock sync.Mutex
+
+	accumTracks := make([][]Track, len(libs))
+	for i, lib := range libs {
+		go func(tracksPtr *[]Track, lib Library) {
+			tracks, err := lib.TrackInfo(identites...)
+			chanLock.Lock()
+			defer chanLock.Unlock()
+			if errorred {
+				return
+			}
+			if err != nil {
+				errs <- err
+				return
+			}
+			*tracksPtr = tracks
+			done <- struct{}{}
+		}(&accumTracks[i], lib)
+	}
+
+	for range libs {
+		select {
+		case err := <-errs:
+			chanLock.Lock()
+			errorred = true
+			chanLock.Unlock()
+			return nil, err
+		case <-done:
+		}
+	}
+
+	tracks := make([]Track, len(identites))
+	for i := range libs {
+		for j, tr := range accumTracks[i] {
+			if tr.Uri != "" && tracks[j].Uri == "" {
+				tracks[j] = tr
+			}
+		}
+	}
+	return tracks, nil
 }
 
 type Player interface {

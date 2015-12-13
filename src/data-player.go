@@ -86,14 +86,14 @@ func trackJsonList(inList []player.Track) (outList []interface{}) {
 	return
 }
 
-func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interface{}, error) {
+func pltrackJsonList(inList []player.PlaylistTrack, libs []player.Library) ([]interface{}, error) {
 	outList := make([]interface{}, len(inList))
 	ids := make([]player.TrackIdentity, len(inList))
 	for i, id := range inList {
 		ids[i] = id
 	}
 
-	tracks, err := pl.TrackInfo(ids...)
+	tracks, err := player.AllTrackInfo(libs, ids...)
 	if err != nil {
 		return nil, err
 	}
@@ -105,17 +105,18 @@ func pltrackJsonList(inList []player.PlaylistTrack, pl player.Player) ([]interfa
 }
 
 func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuer *player.Queuer, rawServer *player.RawTrackServer) {
+	libs := []player.Library{pl, streamdb, rawServer}
 	r.Path("/playstate").Methods("GET").HandlerFunc(htPlayerGetPlaystate(pl))
 	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
 	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
 	r.Path("/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
-	r.Path("/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl))
+	r.Path("/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl, libs))
 	r.Path("/playlist").Methods("POST").HandlerFunc(htPlayerSetPlaylist(pl))
 	r.Path("/progress").Methods("GET").HandlerFunc(htPlayerGetProgress(pl))
 	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerSetProgress(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
-	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(pl, streamdb))
+	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(libs))
 	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
 	r.Path("/appendraw").Methods("POST").HandlerFunc(htRawTrackAdd(pl, rawServer))
 	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, streamdb, queuer)))
@@ -270,7 +271,7 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 	}
 }
 
-func htPlayerGetPlaylist(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		tracks, err := pl.Playlist()
@@ -278,7 +279,7 @@ func htPlayerGetPlaylist(pl player.Player) func(res http.ResponseWriter, req *ht
 			writeError(res, err)
 			return
 		}
-		trJson, err := pltrackJsonList(tracks, pl)
+		trJson, err := pltrackJsonList(tracks, libs)
 		if err != nil {
 			writeError(res, err)
 			return
@@ -329,29 +330,20 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 	}
 }
 
-func htTrackArt(pl player.Player, streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArt(libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		uri := req.FormValue("track")
-
 		var image io.ReadCloser
 		var mime string
-		if stream := streamdb.StreamByURL(uri); stream != nil && stream.ArtUrl != "" {
-			image, mime = stream.Art()
-		} else {
-			tracks, err := pl.TrackInfo(player.TrackIdentities(uri)...)
-			if err != nil {
-				writeError(res, err)
-				return
-			}
-			if len(tracks) > 0 && tracks[0].HasArt {
-				image, mime = pl.TrackArt(tracks[0])
+		for _, lib := range libs {
+			if image, mime = lib.TrackArt(player.TrackIdentities(uri)[0]); image != nil {
+				break
 			}
 		}
 		if image == nil {
 			http.NotFound(res, req)
 			return
 		}
-
 		defer image.Close()
 
 		res.Header().Set("Content-Type", mime)
