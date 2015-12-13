@@ -393,7 +393,6 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 				}
 				if len(s) > 0 {
 					songs[i] = s[0]
-					continue
 				}
 			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackUri == uri {
 				song, err := mpdc.CurrentSong()
@@ -402,9 +401,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 				}
 				songs[i] = song
 				songs[i]["Album"] = song["Name"]
-				continue
 			}
-			songs[i] = mpd.Attrs{"file": uri}
 		}
 
 		numDirs := 0
@@ -412,7 +409,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 		for i, song := range songs {
 			if _, ok := song["directory"]; ok {
 				numDirs++
-			} else {
+			} else if song != nil {
 				pl.trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
 			}
 		}

@@ -285,6 +285,10 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			if err != nil {
 				return nil, err
 			}
+			// Skip tracks that are not known to the server.
+			if _, ok := attrs["duration"]; !ok {
+				continue
+			}
 
 			for k, v := range attrs {
 				setSlimAttr(pl.Serv, &tracks[i], k, v)
