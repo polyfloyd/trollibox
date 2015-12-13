@@ -418,7 +418,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 				return
 			}
 			// Make the file available through the server.
-			track, err := rawServer.Add(part)
+			track, err := rawServer.Add(part, part.FileName())
 			if err != nil {
 				writeError(res, err)
 				return
