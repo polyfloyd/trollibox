@@ -50,7 +50,7 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		var data struct {
-			Stream stream.Track `json:"stream"`
+			Stream stream.Stream `json:"stream"`
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
@@ -87,7 +87,7 @@ func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *htt
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		var data struct {
-			Stream stream.Track `json:"stream"`
+			Stream stream.Stream `json:"stream"`
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {

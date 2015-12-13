@@ -16,32 +16,32 @@ import (
 	"../util"
 )
 
-type Track struct {
+type Stream struct {
 	Url         string `json:"id"`
-	StreamTitle string `json:"album,omitempty"`
+	StreamTitle string `json:"title,omitempty"`
 	ArtUrl      string `json:"art,omitempty"`
 }
 
-func (track Track) PlayerTrack() player.Track {
+func (stream Stream) PlayerTrack() player.Track {
 	return player.Track{
-		Uri:    track.Url,
-		Album:  track.StreamTitle,
-		HasArt: track.ArtUrl != "",
+		Uri:    stream.Url,
+		Title:  stream.StreamTitle,
+		HasArt: stream.ArtUrl != "",
 	}
 }
 
-func (track Track) Art() (image io.ReadCloser, mime string) {
-	if track.ArtUrl == "" {
+func (stream Stream) Art() (image io.ReadCloser, mime string) {
+	if stream.ArtUrl == "" {
 		return nil, ""
 	}
 
 	re := regexp.MustCompile("data:([a-zA-Z/]+);base64,(.+)$")
-	if match := re.FindStringSubmatch(track.ArtUrl); len(match) > 0 {
+	if match := re.FindStringSubmatch(stream.ArtUrl); len(match) > 0 {
 		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1]
 	}
 
 	// Legacy
-	res, err := http.Get(track.ArtUrl)
+	res, err := http.Get(stream.ArtUrl)
 	if err != nil {
 		return nil, ""
 	}
@@ -55,17 +55,44 @@ type DB struct {
 
 func NewDB(file string) (db *DB, err error) {
 	db = &DB{}
-	if db.storage, err = util.NewPersistentStorage(file, &[]Track{}); err != nil {
+	if db.storage, err = util.NewPersistentStorage(file, &[]Stream{}); err != nil {
 		return nil, err
 	}
 	return db, nil
 }
 
-func (db *DB) Streams() []Track {
-	return *db.storage.Value().(*[]Track)
+func (db *DB) Streams() []Stream {
+	return *db.storage.Value().(*[]Stream)
 }
 
-func (db *DB) StreamByURL(url string) *Track {
+func (db *DB) Tracks() ([]player.Track, error) {
+	streams := db.Streams()
+	tracks := make([]player.Track, len(streams))
+	for i, stream := range streams {
+		tracks[i] = stream.PlayerTrack()
+	}
+	return tracks, nil
+}
+
+func (db *DB) TrackInfo(identites ...player.TrackIdentity) ([]player.Track, error) {
+	tracks := make([]player.Track, len(identites))
+	for i, id := range identites {
+		if stream := db.StreamByURL(id.TrackUri()); stream != nil {
+			tracks[i] = stream.PlayerTrack()
+		}
+	}
+	return tracks, nil
+}
+
+func (db *DB) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mime string) {
+	stream := db.StreamByURL(track.TrackUri())
+	if stream == nil {
+		return nil, ""
+	}
+	return stream.Art()
+}
+
+func (db *DB) StreamByURL(url string) *Stream {
 	for _, stream := range db.Streams() {
 		if stream.Url == url {
 			return &stream
@@ -74,13 +101,13 @@ func (db *DB) StreamByURL(url string) *Track {
 	return nil
 }
 
-func (db *DB) SetStreams(streams []Track) (err error) {
+func (db *DB) SetStreams(streams []Stream) (err error) {
 	err = db.storage.SetValue(&streams)
 	db.Emit("update")
 	return
 }
 
-func (db *DB) AddStreams(tracks ...Track) error {
+func (db *DB) AddStreams(streams ...Stream) error {
 	errs := make(chan error)
 	done := make(chan struct{})
 	defer close(errs)
@@ -95,7 +122,7 @@ func (db *DB) AddStreams(tracks ...Track) error {
 
 	initial := db.Streams()
 
-	for i, tr := range tracks {
+	for i, tr := range streams {
 		// Remove duplicates.
 		for i, s := range initial {
 			if s.Url == tr.Url {
@@ -103,9 +130,9 @@ func (db *DB) AddStreams(tracks ...Track) error {
 			}
 		}
 
-		go func(track *Track) {
-			if track.ArtUrl != "" && !regexp.MustCompile("^data:").MatchString(track.ArtUrl) {
-				res, err := client.Get(track.ArtUrl)
+		go func(stream *Stream) {
+			if stream.ArtUrl != "" && !regexp.MustCompile("^data:").MatchString(stream.ArtUrl) {
+				res, err := client.Get(stream.ArtUrl)
 				if err != nil {
 					abortedLock.Lock()
 					ab := aborted
@@ -138,7 +165,7 @@ func (db *DB) AddStreams(tracks ...Track) error {
 					}
 					return
 				}
-				track.ArtUrl = buf.String()
+				stream.ArtUrl = buf.String()
 			}
 			abortedLock.Lock()
 			ab := aborted
@@ -146,10 +173,10 @@ func (db *DB) AddStreams(tracks ...Track) error {
 			if !ab {
 				done <- struct{}{}
 			}
-		}(&tracks[i])
+		}(&streams[i])
 	}
 
-	for remaining := len(tracks); remaining > 0; {
+	for remaining := len(streams); remaining > 0; {
 		select {
 		case err := <-errs:
 			abortedLock.Lock()
@@ -161,7 +188,7 @@ func (db *DB) AddStreams(tracks ...Track) error {
 		}
 	}
 
-	return db.SetStreams(append(initial, tracks...))
+	return db.SetStreams(append(initial, streams...))
 }
 
 func (db *DB) RemoveStreamByUrl(url string) error {

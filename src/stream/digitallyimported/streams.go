@@ -11,7 +11,7 @@ import (
 	"../../stream"
 )
 
-func Streams() ([]stream.Track, error) {
+func Streams() ([]stream.Stream, error) {
 	res, err := http.Get("https://www.di.fm/channels")
 	if err != nil {
 		return nil, fmt.Errorf("Unable to open di.fm: %v", err)
@@ -40,10 +40,10 @@ func Streams() ([]stream.Track, error) {
 		return nil, fmt.Errorf("Unable to decode di.fm JSON: %v", err)
 	}
 
-	streams := make([]stream.Track, len(data.Channels))
+	streams := make([]stream.Stream, len(data.Channels))
 	artRegex := regexp.MustCompile("^(.+)\\{.+\\}$")
 	for i, channel := range data.Channels {
-		streams[i] = stream.Track{
+		streams[i] = stream.Stream{
 			Url:         fmt.Sprintf("http://pub7.di.fm/di_%s", channel.Key),
 			StreamTitle: "DI " + channel.Name,
 			ArtUrl: fmt.Sprintf(
