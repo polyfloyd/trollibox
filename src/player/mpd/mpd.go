@@ -190,16 +190,16 @@ func (pl *Player) mainLoop() {
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
 				// Check whether the playlist help by the player is in sync and
 				// updates it if it is not.
-				if inSync, err := pl.playlistMatchesServer(mpdc, pl.playlist); err != nil {
+				if inSync, err := playlistMatchesServer(mpdc, pl.playlist); err != nil {
 					return err
 				} else if inSync {
 					return nil
 				}
-				if err := pl.removePlayedTracks(mpdc); err != nil {
+				if err := removePlayedTracks(mpdc); err != nil {
 					return err
 				}
 
-				newPlistIds, err := pl.loadPlaylist(mpdc)
+				newPlistIds, err := loadPlaylist(mpdc)
 				if err != nil {
 					return err
 				}
@@ -232,7 +232,7 @@ func (pl *Player) mainLoop() {
 
 						// Seek using the progress attr when the track starts playing.
 						if cur.Progress != 0 {
-							if err := pl.Seek(cur.Progress); err != nil {
+							if err := pl.seekWith(mpdc, cur.Progress); err != nil {
 								return err
 							}
 						}
@@ -271,85 +271,6 @@ func (pl *Player) mainLoop() {
 	}
 }
 
-func (pl *Player) removePlayedTracks(mpdc *mpd.Client) error {
-	status, err := mpdc.Status()
-	if err != nil {
-		return err
-	}
-	if songIndex, _ := statusAttrInt(status, "song"); songIndex > 0 {
-		return mpdc.Delete(0, songIndex)
-	}
-	return nil
-}
-
-// Checks wether the argument playlist is equal to the playlist stored by the
-// MPD server.
-func (pl *Player) playlistMatchesServer(mpdc *mpd.Client, plist []player.PlaylistTrack) (bool, error) {
-	songs, err := mpdc.PlaylistInfo(-1, -1)
-	if err != nil {
-		return false, err
-	}
-
-	if len(plist) == len(songs) {
-		for i, song := range songs {
-			if mpdToUri(song["file"]) != plist[i].TrackUri() {
-				return false, nil
-			}
-		}
-		return true, nil
-	}
-	return false, nil
-}
-
-// Gets the MPD server's playlist and interpolates the Trollibox metadata from
-// the specified playlist.
-func (pl *Player) loadPlaylist(mpdc *mpd.Client) ([]player.TrackIdentity, error) {
-	songs, err := mpdc.PlaylistInfo(-1, -1)
-	if err != nil {
-		return nil, err
-	}
-	tracks := make([]player.TrackIdentity, len(songs))
-	for i, song := range songs {
-		tracks[i] = player.Track{Uri: mpdToUri(song["file"])}
-	}
-	return tracks, nil
-}
-
-// Initializes a track from an MPD hash. The hash should be gotten using
-// ListAllInfo().
-//
-// ListAllInfo() and ListInfo() look very much the same but they don't return
-// the same thing. Who the fuck thought it was a good idea to mix capitals and
-// lowercase?!
-func (pl *Player) trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) {
-	if _, ok := (*song)["directory"]; ok {
-		panic("Tried to read a directory as local file")
-	}
-
-	track.Uri = mpdToUri((*song)["file"])
-	track.Artist = (*song)["Artist"]
-	track.Title = (*song)["Title"]
-	track.Genre = (*song)["Genre"]
-	track.Album = (*song)["Album"]
-	track.AlbumArtist = (*song)["AlbumArtist"]
-	track.AlbumDisc = (*song)["Disc"]
-	track.AlbumTrack = (*song)["Track"]
-
-	strNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
-	_, err := strconv.ParseInt(strNum, 10, 32)
-	track.HasArt = err == nil
-
-	if timeStr := (*song)["Time"]; timeStr != "" {
-		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
-			panic(err)
-		} else {
-			track.Duration = time.Duration(duration) * time.Second
-		}
-	}
-
-	player.InterpolateMissingFields(track)
-}
-
 func (pl *Player) Tracks() ([]player.Track, error) {
 	var tracks []player.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
@@ -364,7 +285,7 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else {
-				pl.trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
+				trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -410,7 +331,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else if song != nil {
-				pl.trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
+				trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -486,78 +407,90 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 			pl.Emit("playlist-end")
 		} else {
 			// Start playing if we were not.
-			if state, err := pl.State(); err != nil {
+			if state, err := pl.stateWith(mpdc); err != nil {
 				return err
 			} else if len(plist) > 0 && state != player.PlayStatePlaying {
-				return pl.SetState(player.PlayStatePlaying)
+				return pl.setStateWith(mpdc, player.PlayStatePlaying)
 			}
 		}
 		return nil
 	})
 }
 
-func (player *Player) Seek(progress time.Duration) error {
-	return player.withMpd(func(mpdc *mpd.Client) error {
-		status, err := mpdc.Status()
-		if err != nil {
-			return err
-		}
+func (pl *Player) seekWith(mpdc *mpd.Client, progress time.Duration) error {
+	status, err := mpdc.Status()
+	if err != nil {
+		return err
+	}
 
-		id, ok := statusAttrInt(status, "songid")
-		if !ok {
-			// No track is currently being played.
-			return nil
-		}
-		return mpdc.SeekID(id, int(progress/time.Second))
+	id, ok := statusAttrInt(status, "songid")
+	if !ok {
+		// No track is currently being played.
+		return nil
+	}
+	return mpdc.SeekID(id, int(progress/time.Second))
+}
+
+func (pl *Player) Seek(progress time.Duration) error {
+	return pl.withMpd(func(mpdc *mpd.Client) error {
+		return pl.seekWith(mpdc, progress)
 	})
+}
+
+func (pl *Player) stateWith(mpdc *mpd.Client) (player.PlayState, error) {
+	status, err := mpdc.Status()
+	if err != nil {
+		return player.PlayStateInvalid, err
+	}
+
+	return map[string]player.PlayState{
+		"play":  player.PlayStatePlaying,
+		"pause": player.PlayStatePaused,
+		"stop":  player.PlayStateStopped,
+	}[status["state"]], nil
 }
 
 func (pl *Player) State() (player.PlayState, error) {
 	var state player.PlayState
-	err := pl.withMpd(func(mpdc *mpd.Client) error {
+	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
+		state, err = pl.stateWith(mpdc)
+		return
+	})
+	return state, err
+}
+
+func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
+	switch state {
+	case player.PlayStatePaused:
+		return mpdc.Pause(true)
+	case player.PlayStatePlaying:
 		status, err := mpdc.Status()
 		if err != nil {
 			return err
 		}
 
-		state = map[string]player.PlayState{
-			"play":  player.PlayStatePlaying,
-			"pause": player.PlayStatePaused,
-			"stop":  player.PlayStateStopped,
-		}[status["state"]]
-		return nil
-	})
-	return state, err
+		// Don't attempt to start playback, just immediately end the
+		// playlist.
+		if status["playlistlength"] == "0" {
+			pl.Emit("playlist-end")
+			return nil
+		}
+
+		if status["state"] == "stop" {
+			return mpdc.Play(0)
+		} else {
+			return mpdc.Pause(false)
+		}
+	case player.PlayStateStopped:
+		return mpdc.Stop()
+	default:
+		return fmt.Errorf("Unknown play state %v", state)
+	}
 }
 
 func (pl *Player) SetState(state player.PlayState) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
-		switch state {
-		case player.PlayStatePaused:
-			return mpdc.Pause(true)
-		case player.PlayStatePlaying:
-			status, err := mpdc.Status()
-			if err != nil {
-				return err
-			}
-
-			// Don't attempt to start playback, just immediately end the
-			// playlist.
-			if status["playlistlength"] == "0" {
-				pl.Emit("playlist-end")
-				return nil
-			}
-
-			if status["state"] == "stop" {
-				return mpdc.Play(0)
-			} else {
-				return mpdc.Pause(false)
-			}
-		case player.PlayStateStopped:
-			return mpdc.Stop()
-		default:
-			return fmt.Errorf("Unknown play state %v", state)
-		}
+		return pl.setStateWith(mpdc, state)
 	})
 }
 
@@ -585,15 +518,15 @@ func (pl *Player) Volume() (float32, error) {
 	return vol, err
 }
 
-func (player *Player) SetVolume(vol float32) error {
-	return player.withMpd(func(mpdc *mpd.Client) error {
+func (pl *Player) SetVolume(vol float32) error {
+	return pl.withMpd(func(mpdc *mpd.Client) error {
 		if vol > 1 {
 			vol = 1
 		} else if vol < 0 {
 			vol = 0
 		}
 
-		player.lastVolume = vol
+		pl.lastVolume = vol
 		return mpdc.SetVolume(int(vol * 100))
 	})
 }
@@ -636,6 +569,85 @@ func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mim
 
 func (player *Player) Events() *util.Emitter {
 	return &player.Emitter
+}
+
+func removePlayedTracks(mpdc *mpd.Client) error {
+	status, err := mpdc.Status()
+	if err != nil {
+		return err
+	}
+	if songIndex, _ := statusAttrInt(status, "song"); songIndex > 0 {
+		return mpdc.Delete(0, songIndex)
+	}
+	return nil
+}
+
+// Checks wether the argument playlist is equal to the playlist stored by the
+// MPD server.
+func playlistMatchesServer(mpdc *mpd.Client, plist []player.PlaylistTrack) (bool, error) {
+	songs, err := mpdc.PlaylistInfo(-1, -1)
+	if err != nil {
+		return false, err
+	}
+
+	if len(plist) == len(songs) {
+		for i, song := range songs {
+			if mpdToUri(song["file"]) != plist[i].TrackUri() {
+				return false, nil
+			}
+		}
+		return true, nil
+	}
+	return false, nil
+}
+
+// Gets the MPD server's playlist and interpolates the Trollibox metadata from
+// the specified playlist.
+func loadPlaylist(mpdc *mpd.Client) ([]player.TrackIdentity, error) {
+	songs, err := mpdc.PlaylistInfo(-1, -1)
+	if err != nil {
+		return nil, err
+	}
+	tracks := make([]player.TrackIdentity, len(songs))
+	for i, song := range songs {
+		tracks[i] = player.Track{Uri: mpdToUri(song["file"])}
+	}
+	return tracks, nil
+}
+
+// Initializes a track from an MPD hash. The hash should be gotten using
+// ListAllInfo().
+//
+// ListAllInfo() and ListInfo() look very much the same but they don't return
+// the same thing. Who the fuck thought it was a good idea to mix capitals and
+// lowercase?!
+func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) {
+	if _, ok := (*song)["directory"]; ok {
+		panic("Tried to read a directory as local file")
+	}
+
+	track.Uri = mpdToUri((*song)["file"])
+	track.Artist = (*song)["Artist"]
+	track.Title = (*song)["Title"]
+	track.Genre = (*song)["Genre"]
+	track.Album = (*song)["Album"]
+	track.AlbumArtist = (*song)["AlbumArtist"]
+	track.AlbumDisc = (*song)["Disc"]
+	track.AlbumTrack = (*song)["Track"]
+
+	strNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
+	_, err := strconv.ParseInt(strNum, 10, 32)
+	track.HasArt = err == nil
+
+	if timeStr := (*song)["Time"]; timeStr != "" {
+		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
+			panic(err)
+		} else {
+			track.Duration = time.Duration(duration) * time.Second
+		}
+	}
+
+	player.InterpolateMissingFields(track)
 }
 
 func incrementPlayCount(uri string, mpdc *mpd.Client) error {
