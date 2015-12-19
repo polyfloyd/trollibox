@@ -266,7 +266,9 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 	tracks := make([]player.Track, len(identities))
 	for i, id := range identities {
 		uri := id.TrackUri()
-		if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
+
+		isHttp, _ := regexp.MatchString("https?:\\/\\/", uri)
+		if isHttp && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
 			tr := &tracks[i]
 			tr.Uri = uri
 			tr.Album = uri
@@ -280,7 +282,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			}
 			player.InterpolateMissingFields(tr)
 
-		} else {
+		} else if !isHttp {
 			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.TrackUri()))
 			if err != nil {
 				return nil, err
