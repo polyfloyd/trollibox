@@ -179,18 +179,9 @@ func main() {
 		}(cache, name)
 	}
 
-	rawRoot := config.URLRoot
-	if regexp.MustCompile("^\\/[^\\/]|$").MatchString(rawRoot) {
-		spl := strings.Split(config.Address, ":")
-		addr := spl[0]
-		if addr == "" {
-			addr = "127.0.0.1"
-		}
-		rawRoot = fmt.Sprintf("http://%s:%s/", addr, spl[1])
-	} else if !regexp.MustCompile("^\\/\\/:").MatchString(rawRoot) {
-		rawRoot = "http:" + rawRoot
+	rawServer := &player.RawTrackServer{
+		UrlRoot: fmt.Sprintf("%sdata/raw", DetermineFullURLRoot(config.URLRoot, config.Address)),
 	}
-	rawServer := &player.RawTrackServer{UrlRoot: fmt.Sprintf("%sdata/raw", rawRoot)}
 
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
@@ -265,4 +256,30 @@ func GetBaseParamMap() map[string]interface{} {
 		"time":    time.Now(),
 		"players": playerNames,
 	}
+}
+
+func DetermineFullURLRoot(root, address string) string {
+	// Handle "http://host:port/"
+	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
+		return root
+	}
+
+	// Handle "//host:port/"
+	if regexp.MustCompile("^\\/\\/.").MatchString(root) {
+		return "http:" + root
+	}
+
+	// Handle "/"
+	if root == "/" {
+		i := strings.LastIndex(address, ":")
+		host, port := address[:i], address[i+1:]
+		if host == "" || host == "0.0.0.0" {
+			host = "127.0.0.1"
+		} else if host == "[::]" {
+			host = "[::1]"
+		}
+		return fmt.Sprintf("http://%s:%s/", host, port)
+	}
+
+	panic(fmt.Sprintf("Unsupported URL Root format %v", root))
 }
