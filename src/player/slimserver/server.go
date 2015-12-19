@@ -181,9 +181,26 @@ func (serv *Server) Players() ([]*Player, error) {
 
 func queryEscape(str string) string {
 	str = url.QueryEscape(str)
-	str = strings.Replace(str, "+", "%20", -1)
-	str = strings.Replace(str, "%26", "&", -1)
-	str = strings.Replace(str, "%2C", ",", -1)
+	replace := map[string]string{
+		"+":   "%20",
+		"%21": "!",
+		"%24": "$",
+		"%26": "&",
+		"%28": "(",
+		"%29": ")",
+		"%2A": "*",
+		"%2B": "+",
+		"%2C": ",",
+		"%3A": ":",
+		"%3D": "=",
+		"%40": "@",
+		"%5B": "[",
+		"%5C": "]",
+		"%3F": "?",
+	}
+	for r, n := range replace {
+		str = strings.Replace(str, r, n, -1)
+	}
 	return str
 }
 
