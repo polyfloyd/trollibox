@@ -44,7 +44,7 @@ func Streams() ([]stream.Stream, error) {
 	artRegex := regexp.MustCompile("^(.+)\\{.+\\}$")
 	for i, channel := range data.Channels {
 		streams[i] = stream.Stream{
-			Url:         fmt.Sprintf("http://pub7.di.fm/di_%s", channel.Key),
+			Url:         fmt.Sprintf("http://pub1.di.fm/di_%s", channel.Key),
 			StreamTitle: "DI " + channel.Name,
 			ArtUrl: fmt.Sprintf(
 				"https:%s?size=240x240",
