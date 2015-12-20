@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"os"
 	"path"
@@ -48,6 +49,7 @@ func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 		http.NotFound(res, req)
 		return
 	}
+	res.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(track.name)))
 	http.ServeContent(res, req, trackId, time.Now(), track.file)
 }
 
