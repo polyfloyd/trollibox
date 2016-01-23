@@ -34,6 +34,10 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 			if len(tracks) == 0 {
 				continue // No tracks to queue, too bad.
 			}
+			plist, _, err := pl.Playlist()
+			if err != nil {
+				return err
+			}
 
 			track := queuer.SelectRandomTrack(tracks)
 			if track == nil {
@@ -46,6 +50,9 @@ func AutoQueue(queuer *Queuer, pl Player) error {
 				TrackIdentity: track,
 				QueuedBy:      "system",
 			})
+			if err := pl.Seek(len(plist), -1); err != nil {
+				return err
+			}
 			if err != nil {
 				return fmt.Errorf("Could not append to playlist: %v", err)
 			}

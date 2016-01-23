@@ -2,7 +2,7 @@
 
 var Player = Backbone.Model.extend({
 	defaults: {
-		'current':    null,
+		'current':    -1,
 		'playlist':   [],
 		'progress':   0,
 		'queuerules': [],
@@ -26,14 +26,12 @@ var Player = Backbone.Model.extend({
 			this.setInternal('progress', data.progress);
 		});
 		this.attachServerReloader('server-event:playlist', 'data/player/'+this.name+'/playlist', function(data) {
-			var pl = data.tracks.map(this.fillMissingTrackFields, this);
-			this.setInternal('playlist', pl);
-			if (pl.length > 0 && (!this.get('current') || pl[0].id != this.get('current').id)) {
-				this.setInternal('current', pl[0]);
-				this.setInternal('progress', data.tracks[0].progress);
-			}
-			if (pl.length == 0) {
-				this.setInternal('current', null);
+			var plist = data.tracks.map(this.fillMissingTrackFields, this);
+			this.setInternal('playlist', plist);
+			this.setInternal('current', data.current);
+			if (plist.length > 0) {
+				this.setInternal('progress', data.tracks[data.current].progress);
+			} else {
 				this.setInternal('progress', 0);
 			}
 		});
@@ -171,6 +169,14 @@ var Player = Backbone.Model.extend({
 		});
 	},
 
+	getCurrentTrack: function() {
+		var c = this.get('current');
+		if (c == -1) {
+			return null;
+		}
+		return this.get('playlist')[c];
+	},
+
 	/**
 	 * Like the regular Backbone.Model#set(), but propagates a flag to change
 	 * listeners so they can differentiate between events fired from external
@@ -200,14 +206,15 @@ var Player = Backbone.Model.extend({
 		clearInterval(this.progressUpdater);
 		clearTimeout(this.progressTimeout);
 
-		if (this.get('current') && this.get('state') === 'playing') {
+		var cur = this.getCurrentTrack();
+		if (cur && this.get('state') === 'playing') {
 			this.progressUpdater = setInterval(function() {
 				self.setInternal('progress', self.get('progress') + 1);
 			}, 1000);
-			if (this.get('current').duration) {
+			if (cur.duration) {
 				this.progressTimeout = setTimeout(function() {
 					self.reload('server-event:player');
-				}, 1000 * (this.get('current').duration - this.get('progress')));
+				}, 1000 * (cur.duration - this.get('progress')));
 			}
 		}
 	},

@@ -118,23 +118,25 @@ func AllTrackInfo(libs []Library, identites ...TrackIdentity) ([]Track, error) {
 type Player interface {
 	Library
 
-	// Returns the tracks in the playlist of this player. The track at index 0
-	// is the currently playing track.
-	Playlist() ([]PlaylistTrack, error)
+	// Returns the tracks in the playlist of this player as well as the index
+	// of the currently playing track or -1 if no track is being played.
+	Playlist() (plist []PlaylistTrack, currentTrackIndex int, err error)
 
 	// Updates the player's playlist. Changing the first track will cause the
 	// player to start playing the first track in the new playlist.
 	//
-	// Changing the progress of the first track has no effect on the currently
-	// playing track, use Seek() instead.
+	// Changing the progress of the currently playing track no effect, use
+	// Seek() instead.
 	//
-	// If the new playlist contains at least one track, the player starts
-	// playing the first track. Otherwise, a playlist-end event is emitted.
+	// If the new playlist does not contain any tracks, a playlist-end event is
+	// emitted. Otherwise, the player will attempt to resume playback of the
+	// current track.
 	SetPlaylist(plist []PlaylistTrack) error
 
-	// Seeks to the absolute point in time of the currently playing track. This
-	// is a no-op if player has been stopped.
-	Seek(offset time.Duration) error
+	// Seeks to the absolute point in time of the specified track. This
+	// is a no-op if player has been stopped. Use -1 as trackIndex to seek in
+	// the current track.
+	Seek(trackIndex int, offset time.Duration) error
 
 	State() (PlayState, error)
 
@@ -236,7 +238,7 @@ func TrackIdentities(uris ...string) []TrackIdentity {
 
 // Convenience method for appending to a track to the playlist of a player.
 func PlaylistAppend(pl Player, tracks ...PlaylistTrack) error {
-	plist, err := pl.Playlist()
+	plist, _, err := pl.Playlist()
 	if err != nil {
 		return err
 	}
@@ -246,27 +248,18 @@ func PlaylistAppend(pl Player, tracks ...PlaylistTrack) error {
 // Abort playback of the currently playing track and start playing the next
 // one.
 func PlaylistNext(pl Player) error {
-	plist, err := pl.Playlist()
+	_, currentTrackIndex, err := pl.Playlist()
 	if err != nil {
 		return err
 	}
-	if len(plist) > 0 {
-		if err := pl.SetPlaylist(plist[1:]); err != nil {
-			return err
-		}
-	} else {
-		if err := pl.SetPlaylist([]PlaylistTrack{}); err != nil {
-			return err
-		}
-	}
-	return nil
+	return pl.Seek(currentTrackIndex+1, -1)
 }
 
 // Convenience method for setting the playlist using just the ids. The metadata
 // is reconstructed using InterpolatePlaylistMeta(). It's probably best to not
 // use this function. Instead, keep track of the metadata.
 func SetPlaylistIds(pl Player, ids []TrackIdentity) error {
-	plist, err := pl.Playlist()
+	plist, _, err := pl.Playlist()
 	if err != nil {
 		return err
 	}

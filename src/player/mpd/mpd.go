@@ -27,7 +27,8 @@ type Player struct {
 	network, address string
 	passwd           string
 
-	playlist []player.PlaylistTrack
+	playlist          []player.PlaylistTrack
+	currentTrackIndex int
 	// The playlist mutex should not be locked within a withMpd() callback as
 	// it may result in deadlocks.
 	playlistLock sync.Mutex
@@ -123,6 +124,21 @@ func (pl *Player) mainLoop() {
 	for {
 		switch event := <-listener; event {
 		case "mpd-player":
+			err := pl.withMpd(func(mpdc *mpd.Client) error {
+				currentTrackIndex, err := currentTrackIndex(mpdc)
+				if err != nil {
+					return err
+				}
+				if currentTrackIndex == -1 {
+					pl.Emit("playlist-end")
+				}
+				return nil
+			})
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
 			pl.Emit("playstate")
 			pl.Emit("progress")
 			fallthrough
@@ -132,28 +148,32 @@ func (pl *Player) mainLoop() {
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
 				// Check whether the playlist help by the player is in sync and
 				// updates it if it is not.
-				if inSync, err := playlistMatchesServer(mpdc, pl.playlist); err != nil {
-					return err
-				} else if inSync {
-					return nil
-				}
-				if err := removePlayedTracks(mpdc); err != nil {
-					return err
-				}
-
-				newPlistIds, err := loadPlaylist(mpdc)
+				inSync, err := playlistMatchesServer(mpdc, pl.playlist)
 				if err != nil {
 					return err
 				}
-				newPlist := player.InterpolatePlaylistMeta(pl.playlist, newPlistIds)
+				if !inSync {
+					newPlistIds, err := loadPlaylist(mpdc)
+					if err != nil {
+						return err
+					}
+					newPlist := player.InterpolatePlaylistMeta(pl.playlist, newPlistIds)
+					if err != nil {
+						return err
+					}
+					pl.playlist = newPlist
+				}
+				lastIndex := pl.currentTrackIndex
+				pl.currentTrackIndex, err = currentTrackIndex(mpdc)
 				if err != nil {
 					return err
 				}
 
-				pl.playlist = newPlist
-				pl.Emit("playlist")
-				if len(newPlist) == 0 {
-					pl.Emit("playlist-end")
+				if !inSync || lastIndex != pl.currentTrackIndex {
+					pl.Emit("playlist")
+					if len(pl.playlist) == 0 {
+						pl.Emit("playlist-end")
+					}
 				}
 				return nil
 			})
@@ -166,7 +186,14 @@ func (pl *Player) mainLoop() {
 			pl.playlistLock.Lock()
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
 				if len(pl.playlist) > 0 {
-					cur := pl.playlist[0]
+					currentTrackIndex, err := currentTrackIndex(mpdc)
+					if err != nil {
+						return err
+					}
+					if currentTrackIndex == -1 {
+						return nil
+					}
+					cur := pl.playlist[currentTrackIndex]
 					if pl.lastTrack != "" && pl.lastTrack != cur.TrackUri() {
 						// NOTE: If one track is followed by another track with the same
 						// ID, this block will not be executed, leaving the playcount
@@ -240,7 +267,17 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 	pl.playlistLock.Lock()
 	currentTrackUri := ""
 	if len(pl.playlist) > 0 {
-		currentTrackUri = pl.playlist[0].TrackUri()
+		err := pl.withMpd(func(mpdc *mpd.Client) error {
+			currentIndex, err := currentTrackIndex(mpdc)
+			if err != nil {
+				return err
+			}
+			currentTrackUri = pl.playlist[currentIndex].TrackUri()
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 	pl.playlistLock.Unlock()
 
@@ -282,21 +319,27 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 	return tracks, err
 }
 
-func (pl *Player) Playlist() ([]player.PlaylistTrack, error) {
+func (pl *Player) Playlist() ([]player.PlaylistTrack, int, error) {
 	pl.playlistLock.Lock()
 	defer pl.playlistLock.Unlock()
 	if len(pl.playlist) == 0 {
-		return pl.playlist, nil
+		return pl.playlist, -1, nil
 	}
 
 	plist := make([]player.PlaylistTrack, len(pl.playlist))
 	copy(plist, pl.playlist)
 
+	var currentTrackIndex int
 	// Update the progress attribute of the currently playing track.
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		status, err := mpdc.Status()
 		if err != nil {
 			return err
+		}
+		var ok bool
+		currentTrackIndex, ok = statusAttrInt(status, "song")
+		if !ok {
+			currentTrackIndex = -1
 		}
 
 		progressf, _ := strconv.ParseFloat(status["elapsed"], 32)
@@ -304,9 +347,9 @@ func (pl *Player) Playlist() ([]player.PlaylistTrack, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, -1, err
 	}
-	return plist, nil
+	return plist, currentTrackIndex, nil
 }
 
 func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
@@ -360,22 +403,39 @@ func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
 }
 
 func (pl *Player) seekWith(mpdc *mpd.Client, progress time.Duration) error {
-	status, err := mpdc.Status()
+	index, err := currentTrackIndex(mpdc)
 	if err != nil {
 		return err
 	}
-
-	id, ok := statusAttrInt(status, "songid")
-	if !ok {
-		// No track is currently being played.
-		return nil
-	}
-	return mpdc.SeekID(id, int(progress/time.Second))
+	return mpdc.Seek(index, int(progress/time.Second))
 }
 
-func (pl *Player) Seek(progress time.Duration) error {
+func (pl *Player) Seek(trackIndex int, progress time.Duration) error {
+	pl.playlistLock.Lock()
+	indexTooHigh := trackIndex >= len(pl.playlist)
+	pl.playlistLock.Unlock()
+	if indexTooHigh {
+		pl.Emit("playlist-end")
+		return nil
+	}
+
 	return pl.withMpd(func(mpdc *mpd.Client) error {
-		return pl.seekWith(mpdc, progress)
+		if trackIndex >= 0 {
+			currentTrackIndex, err := currentTrackIndex(mpdc)
+			if err != nil {
+				return err
+			}
+			if err := mpdc.Play(trackIndex); err != nil {
+				return err
+			}
+			if currentTrackIndex != trackIndex {
+				pl.Emit("playlist")
+			}
+		}
+		if progress >= 0 {
+			return pl.seekWith(mpdc, progress)
+		}
+		return nil
 	})
 }
 
@@ -513,15 +573,16 @@ func (player *Player) Events() *util.Emitter {
 	return &player.Emitter
 }
 
-func removePlayedTracks(mpdc *mpd.Client) error {
+func currentTrackIndex(mpdc *mpd.Client) (int, error) {
 	status, err := mpdc.Status()
 	if err != nil {
-		return err
+		return -1, err
 	}
-	if songIndex, _ := statusAttrInt(status, "song"); songIndex > 0 {
-		return mpdc.Delete(0, songIndex)
+	cur, ok := statusAttrInt(status, "song")
+	if !ok {
+		return -1, nil
 	}
-	return nil
+	return cur, nil
 }
 
 // Checks wether the argument playlist is equal to the playlist stored by the

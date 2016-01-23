@@ -18,6 +18,7 @@ var PlayerView = Backbone.View.extend({
 
 	initialize: function() {
 		this.listenTo(this.model, 'change:current',  this.renderCurrent);
+		this.listenTo(this.model, 'change:current',  this.renderPlaylist);
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
 		this.listenTo(this.model, 'change:progress', this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);
@@ -45,7 +46,7 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	renderCurrent: function() {
-		var cur = this.model.get('current') || {};
+		var cur = this.model.getCurrentTrack() || {};
 
 		showTrackArt(this.$('.track-art'), this.model, cur);
 		this.$('.player-current .track-album').text(cur.album || '');
@@ -54,17 +55,17 @@ var PlayerView = Backbone.View.extend({
 		this.$('.player-current')
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby);
-		this.$('.track-duration-total').text(cur.duration ? durationToString(cur.duration) : '');
+		this.$('.track-duration-total').text((typeof cur.duration === 'number') ? durationToString(cur.duration) : '');
 		this.$('.do-set-progress')
 			.attr('max', cur.duration || 0)
 			.toggleAttr('disabled', !cur.duration);
 	},
 
 	renderProgress: function() {
-		var pr = this.model.get('progress');
-		var text = this.model.get('current') ? durationToString(pr) : '';
+		var pr = this.model.get('progress') || 0;
+		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
 		this.$('.track-duration-current').text(text);
-		this.$('.do-set-progress').val(pr || 0);
+		this.$('.do-set-progress').val(pr);
 	},
 
 	renderState: function() {
@@ -91,8 +92,8 @@ var PlayerView = Backbone.View.extend({
 	renderPlaylist: function() {
 		var playlist = this.model.get('playlist');
 		if (playlist.length > 0) {
-			// Slice off the currently playing track
-			playlist = playlist.slice(1);
+			// Slice off the history and currently playing track.
+			playlist = playlist.slice(this.model.get('current') + 1);
 		}
 
 		var $pl = this.$('.player-playlist');
@@ -120,7 +121,7 @@ var PlayerView = Backbone.View.extend({
 	doClear: function() {
 		var pl = this.model.get('playlist');
 		if (pl.length > 1) {
-			this.model.set('playlist', [pl[0]]);
+			this.model.set('playlist', pl.slice(0, this.model.get('current') + 1));
 		}
 	},
 

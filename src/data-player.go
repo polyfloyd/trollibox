@@ -171,7 +171,7 @@ func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *ht
 			return
 		}
 
-		if err := pl.Seek(time.Duration(data.Progress) * time.Second); err != nil {
+		if err := pl.Seek(-1, time.Duration(data.Progress)*time.Second); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -182,15 +182,15 @@ func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *ht
 func htPlayerGetProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		plist, err := pl.Playlist()
+		plist, currentTrackIndex, err := pl.Playlist()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
 
 		var progress time.Duration
-		if len(plist) > 0 {
-			progress = plist[0].Progress
+		if len(plist) > 0 && currentTrackIndex >= 0 {
+			progress = plist[currentTrackIndex].Progress
 		} else {
 			progress = 0
 		}
@@ -274,7 +274,7 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		tracks, err := pl.Playlist()
+		tracks, currentTrackIndex, err := pl.Playlist()
 		if err != nil {
 			writeError(res, err)
 			return
@@ -286,7 +286,8 @@ func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.
 		}
 
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
-			"tracks": trJson,
+			"current": currentTrackIndex,
+			"tracks":  trJson,
 		})
 		if err != nil {
 			writeError(res, err)
@@ -395,7 +396,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 			writeError(res, err)
 			return
 		}
-		playlist, err := pl.Playlist()
+		playlist, _, err := pl.Playlist()
 		if err != nil {
 			writeError(res, err)
 			return
@@ -426,7 +427,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 					if event != "playlist" {
 						continue
 					}
-					plist, err := pl.Playlist()
+					plist, _, err := pl.Playlist()
 					if err != nil {
 						break
 					}
