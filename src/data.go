@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"./player"
@@ -22,6 +23,7 @@ func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB, raw
 
 // Writes an error to the client or an empty object if err is nil.
 func writeError(res http.ResponseWriter, err error) {
+	log.Printf("Error serving: %v, %v", reerr)
 	res.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(res).Encode(map[string]interface{}{
 		"error": err.Error(),
