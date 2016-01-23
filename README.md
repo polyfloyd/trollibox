@@ -16,29 +16,30 @@ Features:
 * Free Open Source Software (GPLv3)
 
 ## Installing
-
 We're not using semantic versioning yet, but it is safe to install from the
 master branch. Altough this also means that some things (like the stored stream
 database) may break if you update it.
 
 ### Building
-Clone the repository into your [$GOPATH](https://www.youtube.com/watch?v=XCsL89YtqCs).
+Clone the repository.
 
 The following tools are required to build Trollibox:
-* Golang
-* NPM
+* [Golang](https://golang.org/)
+* [NPM](https://www.npmjs.com/)
 
-Once you got that sorted out, its time to build trollibox. Build it by simply running:
+Once you got that sorted out, its time to build Trollibox. Build it by simply running:
 ```sh
+# Install dependencies
+./just install
+
+# Build a release version of Trollibox containing all of its assets.
 RELEASE=1 ./just build
 ```
-That will produce the trollibox containing all of its assets.
 
 ### Configuring
-
 Copy the [example configuration](config.example.json) to config.json, its
 default location. If you want to use a custom location for the config file, you
-should inform trollibox by using the `-conf` option. Like this:
+should inform Trollibox by using the `-conf` option. Like this:
 ```sh
 trollibox -conf /etc/trollibox.json
 ```
@@ -94,7 +95,6 @@ to change:
 ```
 
 ### Track Art and MPD
-
 Since MPD does not natively support art embedded in tracks, track art is
 presented to Trollibox through stickers. These stickers need to be added by
 running the [enclosed python script](support/mpd-artwork.py). It will look for
@@ -109,7 +109,6 @@ reference to MPD's config file, `MPD_CONF`. By default it will look for
 ## For Users
 
 ### Queueing Tracks
-
 Tracks may be queued from the browser page using one of the views. Click on a
 track to append it to the queue.
 
@@ -118,7 +117,6 @@ This feature originated at the [Bitlair Hackerspace](https://bitlair.nl/) where
 tracks should not be skipped when they are queued by users.
 
 ### The Queuer
-
 If the queue runs out of tracks, Trollibox will pick a random track from the
 library and play it. The selection bias for tracks can be configured by setting
 one or more rules on the Queuer page.
@@ -130,10 +128,39 @@ The `matches` operation takes a regular expression in
 [Go's regexp format](https://golang.org/pkg/regexp/syntax/).
 
 ### Streams
-
 Trollibox has support for HTTP streams. You can create a custom collection
 using the Streams interface.
 
+### Searching
+The search view allows you to search the whole library of the current player
+for tracks whose artist, title or album attributes contain some keywords.
+
+Searching is case insensitive.
+
+A track must match all keywords in order to end up in the results.
+
+The search string is split on each space, unless you escape it with a
+backslash: `foo\ bar`.
+
+You can use wildcards too: `foo*bar`.
+
+You can annotate the keywords in your query to search other fields,
+You can limit a keyword to a single attribute by annotating them like this:
+```
+photographer genre:trance
+```
+The string `photographer` will be applied to the default attributes while the
+genre must match "trance".
+
+Available attributes are:
+* uri
+* artist (default)
+* title (default)
+* genre
+* album (default)
+* albumartist
+* albumtrack
+* albumdisc
 
 ## Q & A
 
@@ -155,7 +182,6 @@ accessible on a separate view for such devices.
 
 
 ## Screenshots
-
 ![Search for tracks](screenshots/1-search.png)
 
 ![Browse by album](screenshots/2-albums.png)
