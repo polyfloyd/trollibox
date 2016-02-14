@@ -29,7 +29,7 @@ var Player = Backbone.Model.extend({
 			var plist = data.tracks.map(this.fillMissingTrackFields, this);
 			this.setInternal('playlist', plist);
 			this.setInternal('current', data.current);
-			if (plist.length > 0) {
+			if (plist.length > 0 && data.current >= 0) {
 				this.setInternal('progress', data.tracks[data.current].progress);
 			} else {
 				this.setInternal('progress', 0);
@@ -54,13 +54,6 @@ var Player = Backbone.Model.extend({
 		});
 		this.attachServerUpdater('volume', 'data/player/'+this.name+'/volume', function(value) {
 			return { volume: value };
-		});
-		this.attachServerUpdater('playlist', 'data/player/'+this.name+'/playlist', function(value) {
-			return {
-				'track-ids': value.map(function(track) {
-					return track.id;
-				}),
-			};
 		});
 		this.attachServerUpdater('queuerules', 'data/queuer', function(value) {
 			return { queuerules: value };
@@ -254,28 +247,64 @@ var Player = Backbone.Model.extend({
 		if (!Array.isArray(tracks)) {
 			tracks = [tracks];
 		}
-
-		this.set('playlist', this.get('playlist').concat(tracks.map(function(track) {
-			var mutTrack = Object.create(track);
-			mutTrack.queuedby = 'user';
-			return mutTrack;
-		})));
+		$.ajax({
+			url:      URLROOT+'data/player/'+this.name+'/playlist',
+			method:   'PUT',
+			dataType: 'json',
+			context:  this,
+			data:     JSON.stringify({
+				position: -1,
+				tracks:   tracks.map(function(track) {
+					return track.id;
+				}),
+			}),
+			error: function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
+				this.trigger('error', err);
+			},
+		});
 	},
 
-	removeFromPlaylist: function(trackIndex) {
-		// Remove a track by id.
-		if (typeof trackIndex !== 'number') {
-			trackIndex = this.get('playlist').findIndex(function(elem) {
-				return elem.id === trackIndex.id;
-			});
+	removeFromPlaylist: function(trackIndices) {
+		if (!Array.isArray(trackIndices)) {
+			trackIndices = [trackIndices];
 		}
-		if (trackIndex === -1) {
-			return;
-		}
+		$.ajax({
+			url:      URLROOT+'data/player/'+this.name+'/playlist',
+			method:   'DELETE',
+			dataType: 'json',
+			context:  this,
+			data:     JSON.stringify({
+				positions: trackIndices,
+			}),
+			error: function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
+				this.trigger('error', err);
+			},
+		});
+	},
 
-		this.set('playlist', this.get('playlist').filter(function(t, i) {
-			return i !== trackIndex;
-		}));
+	moveInPlaylist: function(from, to) {
+		$.ajax({
+			url:      URLROOT+'data/player/'+this.name+'/playlist',
+			method:   'PATCH',
+			dataType: 'json',
+			context:  this,
+			data:     JSON.stringify({
+				from: from,
+				to:   to,
+			}),
+			error: function(res, status, message) {
+				var err = res.responseJSON && res.responseJSON.error
+					? new Error(res.responseJSON.error)
+					: new Error(message);
+				this.trigger('error', err);
+			},
+		});
 	},
 
 	searchTracks: function(query, untagged, cb) {

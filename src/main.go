@@ -174,7 +174,8 @@ func main() {
 		go cache.Run()
 		go func(pl player.Player, name string) {
 			for {
-				log.Printf("Error while autoqueueing for %s: %v", name, player.AutoQueue(queuer, pl))
+				ch := player.AutoAppend(pl, queuer.Iterator(pl))
+				log.Printf("Error while autoqueueing for %s: %v", name, <-ch)
 			}
 		}(cache, name)
 	}

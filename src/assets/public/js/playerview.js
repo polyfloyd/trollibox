@@ -102,8 +102,7 @@ var PlayerView = Backbone.View.extend({
 			var self = this;
 			var $li = $(this.playlistTemplate(track));
 			$li.find('.do-remove').on('click', function() {
-				// Index +1 to exclude the current track.
-				self.model.removeFromPlaylist(i + 1);
+				self.model.removeFromPlaylist(self.model.get('current') + i + 1);
 			});
 			return $li;
 		}, this));
@@ -120,8 +119,12 @@ var PlayerView = Backbone.View.extend({
 
 	doClear: function() {
 		var pl = this.model.get('playlist');
-		if (pl.length > 1) {
-			this.model.set('playlist', pl.slice(0, this.model.get('current') + 1));
+		if (pl.length > this.model.get('current')+1) {
+			var rem = [];
+			for (var i = this.model.get('current')+1; i < pl.length; i++) {
+				rem.push(i);
+			}
+			this.model.removeFromPlaylist(rem);
 		}
 	},
 
@@ -145,13 +148,8 @@ var PlayerView = Backbone.View.extend({
 
 	doReorderPlaylist: function(event, update) {
 		var pl = this.model.get('playlist');
-		var moved = pl.splice(update.oldindex + 1, 1);
-		pl.splice(update.item.index() + 1, 0, moved[0]);
-		this.model.set('playlist', pl);
-		// Stupid JS can't figure out that our playlist array is truly
-		// different so Backbone won't fire a change event. We'll just have to
-		// do it manually.
-		this.model.trigger('change:playlist', this.model, pl, {});
+		var ci = this.model.get('current');
+		this.model.moveInPlaylist(update.oldindex + ci + 1, update.item.index() + ci + 1);
 	},
 
 	doMakeDroppable: function(event) {

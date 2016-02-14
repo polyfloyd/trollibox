@@ -74,18 +74,18 @@ func (db *DB) Tracks() ([]player.Track, error) {
 	return tracks, nil
 }
 
-func (db *DB) TrackInfo(identites ...player.TrackIdentity) ([]player.Track, error) {
-	tracks := make([]player.Track, len(identites))
-	for i, id := range identites {
-		if stream := db.StreamByURL(id.TrackUri()); stream != nil {
+func (db *DB) TrackInfo(uris ...string) ([]player.Track, error) {
+	tracks := make([]player.Track, len(uris))
+	for i, uri := range uris {
+		if stream := db.StreamByURL(uri); stream != nil {
 			tracks[i] = stream.PlayerTrack()
 		}
 	}
 	return tracks, nil
 }
 
-func (db *DB) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mime string) {
-	stream := db.StreamByURL(track.TrackUri())
+func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
+	stream := db.StreamByURL(track)
 	if stream == nil {
 		return nil, ""
 	}

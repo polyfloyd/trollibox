@@ -88,17 +88,17 @@ func (rp *RawTrackServer) Tracks() ([]Track, error) {
 	return tracks, nil
 }
 
-func (rp *RawTrackServer) TrackInfo(identites ...TrackIdentity) ([]Track, error) {
+func (rp *RawTrackServer) TrackInfo(uris ...string) ([]Track, error) {
 	rp.init()
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
 
-	tracks := make([]Track, len(identites))
-	for i, id := range identites {
-		trackId := rawIdFromUrl(id.TrackUri())
+	tracks := make([]Track, len(uris))
+	for i, uri := range uris {
+		trackId := rawIdFromUrl(uri)
 		if tr, ok := rp.tracks[trackId]; ok {
 			tracks[i] = Track{
-				Uri:   id.TrackUri(),
+				Uri:   uri,
 				Title: tr.name,
 			}
 		}
@@ -106,7 +106,7 @@ func (rp *RawTrackServer) TrackInfo(identites ...TrackIdentity) ([]Track, error)
 	return tracks, nil
 }
 
-func (rp *RawTrackServer) TrackArt(track TrackIdentity) (io.ReadCloser, string) {
+func (rp *RawTrackServer) TrackArt(track string) (io.ReadCloser, string) {
 	return nil, ""
 }
 

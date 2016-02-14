@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	player "../"
@@ -25,10 +25,9 @@ type Player struct {
 
 	Serv *Server
 
-	playlist       []player.PlaylistTrack
-	playlistLock   sync.Mutex
-	playlistWasSet bool
-	lastTrack      string
+	playlist  player.PlaylistKeeper
+	lastTrack string
+
 	util.Emitter
 }
 
@@ -61,20 +60,21 @@ func (pl *Player) eventLoop() {
 			// Events local to the player.
 			switch {
 			case line[1] == "playlist":
-				if err := pl.reloadPlaylist(); err != nil {
-					log.Println(err)
-					continue
-				}
 				if len(line) >= 4 && line[2] == "newsong" && pl.lastTrack != line[3] {
 					pl.lastTrack = line[3]
 
-					currentTrackIndex, err := pl.currentTrackIndex()
+					plist, currentTrackIndex, err := pl.Playlist()
 					if err != nil {
 						log.Println(err)
 						continue
 					}
-					if len(pl.playlist) > 0 && currentTrackIndex >= 0 && pl.playlist[currentTrackIndex].Progress != 0 {
-						if err := pl.Seek(-1, pl.playlist[currentTrackIndex].Progress); err != nil {
+					tracks, err := plist.Tracks()
+					if err != nil {
+						log.Println(err)
+						continue
+					}
+					if len(tracks) > 0 && currentTrackIndex >= 0 && tracks[currentTrackIndex].Progress != 0 {
+						if err := pl.Seek(-1, tracks[currentTrackIndex].Progress); err != nil {
 							log.Println(err)
 							continue
 						}
@@ -83,6 +83,9 @@ func (pl *Player) eventLoop() {
 					// It takes a while to get the metainformation from HTTP
 					// streams. Emit another change event to inform that the
 					// loading has been completed.
+					pl.Emit("playlist")
+				}
+				if len(line) >= 3 && (line[2] == "load_done" || line[2] == "delete") {
 					pl.Emit("playlist")
 				}
 				if len(line) >= 2 && line[2] == "stop" {
@@ -109,40 +112,6 @@ func (pl *Player) eventLoop() {
 	}
 }
 
-func (pl *Player) reloadPlaylist() error {
-	pl.playlistLock.Lock()
-	defer pl.playlistLock.Unlock()
-
-	trackIds, err := pl.serverPlaylist()
-	if err != nil {
-		return err
-	}
-	// Check wether the argument playlist is equal to the stored playlist. If
-	// it is, don't do anything
-	playlistChanged := true
-	if len(pl.playlist) == len(trackIds) {
-		playlistChanged = false
-		for i, id := range trackIds {
-			if id != pl.playlist[i].TrackUri() {
-				playlistChanged = true
-				break
-			}
-		}
-	}
-
-	if playlistChanged || pl.playlistWasSet {
-		pl.playlistWasSet = false
-		trackIds, err := pl.serverPlaylist()
-		if err != nil {
-			return err
-		}
-		pl.playlist = player.InterpolatePlaylistMeta(pl.playlist, player.TrackIdentities(trackIds...))
-		pl.Emit("playlist")
-	}
-
-	return nil
-}
-
 // Gets the ID's of the tracks in the SlimServer's playlist.
 func (pl *Player) serverPlaylist() ([]string, error) {
 	// Get the length of the playlist.
@@ -163,6 +132,30 @@ func (pl *Player) serverPlaylist() ([]string, error) {
 		trackIds[i] = dec
 	}
 	return trackIds, nil
+}
+
+func (pl *Player) playlistLength() (int, error) {
+	res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
+	if err != nil {
+		return -1, err
+	}
+	return strconv.Atoi(res[3])
+}
+
+func (pl *Player) currentTrackIndex() (int, error) {
+	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
+	if err != nil || numTrackRes[3] == "0" {
+		return -1, err
+	}
+	state, err := pl.State()
+	if err != nil || state == player.PlayStateStopped {
+		return -1, err
+	}
+	res, err := pl.Serv.request(pl.ID, "playlist", "index", "?")
+	if err != nil {
+		return -1, err
+	}
+	return strconv.Atoi(res[3])
 }
 
 // Checks wether the playlist-end event should be emitted and fires it if no
@@ -234,13 +227,20 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	return tracks, nil
 }
 
-func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track, error) {
-	tracks := make([]player.Track, len(identities))
-	for i, id := range identities {
-		uri := id.TrackUri()
+func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
+	res, err := pl.Serv.request(pl.ID, "path", "?")
+	if err != nil {
+		return nil, err
+	}
+	var currentTrackUri string
+	if len(res) >= 3 {
+		currentTrackUri, _ = url.QueryUnescape(res[2])
+	}
 
+	tracks := make([]player.Track, len(uris))
+	for i, uri := range uris {
 		isHttp, _ := regexp.MatchString("https?:\\/\\/", uri)
-		if isHttp && len(pl.playlist) > 0 && pl.playlist[0].TrackUri() == uri {
+		if isHttp && currentTrackUri == uri {
 			tr := &tracks[i]
 			tr.Uri = uri
 			tr.Album = uri
@@ -255,7 +255,7 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 			player.InterpolateMissingFields(tr)
 
 		} else if !isHttp {
-			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(id.TrackUri()))
+			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(uri))
 			if err != nil {
 				return nil, err
 			}
@@ -273,77 +273,12 @@ func (pl *Player) TrackInfo(identities ...player.TrackIdentity) ([]player.Track,
 	return tracks, nil
 }
 
-func (pl *Player) Playlist() ([]player.PlaylistTrack, int, error) {
-	pl.playlistLock.Lock()
-	defer pl.playlistLock.Unlock()
-
+func (pl *Player) Playlist() (player.Playlist, int, error) {
 	currentTrackIndex, err := pl.currentTrackIndex()
 	if err != nil {
 		return nil, -1, err
 	}
-
-	plist := make([]player.PlaylistTrack, len(pl.playlist))
-	copy(plist, pl.playlist)
-	if len(plist) > 0 && currentTrackIndex >= 0 && currentTrackIndex < len(plist) {
-		res, err := pl.Serv.request(pl.ID, "time", "?")
-		if err != nil {
-			return nil, -1, err
-		}
-		d, err := strconv.ParseFloat(res[2], 64)
-		if err != nil {
-			return nil, -1, err
-		}
-		plist[currentTrackIndex].Progress = time.Duration(d) * time.Second
-	}
-	return plist, currentTrackIndex, err
-}
-
-func (pl *Player) SetPlaylist(plist []player.PlaylistTrack) error {
-	pl.playlistLock.Lock()
-	defer pl.playlistLock.Unlock()
-	pl.playlist = plist
-
-	trackUrls, err := pl.serverPlaylist()
-	if err != nil {
-		return err
-	}
-
-	// Turn off the randommix plugin if it is active. Otherwise, it will refill
-	// the playlist when we are removing tracks during the mutation.
-	if _, err := pl.Serv.request(pl.ID, "randomplay", "disable"); err != nil {
-		return err
-	}
-
-	// Calculate the index at which to start deleting.
-	delStart := 0
-	for len(trackUrls) > delStart && len(pl.playlist) > delStart {
-		if pl.playlist[delStart].TrackUri() == trackUrls[delStart] {
-			delStart++
-		} else {
-			break
-		}
-	}
-
-	pl.playlistWasSet = true
-
-	// Clear the part of the playlist that does not match the new playlist.
-	if delStart != len(trackUrls) {
-		for i := len(trackUrls); i >= delStart; i-- {
-			pl.Serv.request(pl.ID, "playlist", "delete", strconv.Itoa(i))
-		}
-	}
-
-	// Add the new tracks.
-	for _, track := range plist[delStart:] {
-		if _, err := pl.Serv.request(pl.ID, "playlist", "add", encodeUri(track.TrackUri())); err != nil {
-			return err
-		}
-	}
-
-	if delStart == 0 && len(plist) > 0 {
-		return pl.SetState(player.PlayStatePlaying)
-	}
-	return nil
+	return &pl.playlist, currentTrackIndex, nil
 }
 
 func (pl *Player) Seek(trackIndex int, offset time.Duration) error {
@@ -352,11 +287,11 @@ func (pl *Player) Seek(trackIndex int, offset time.Duration) error {
 		if err != nil {
 			return err
 		}
-		serverPlaylist, err := pl.serverPlaylist()
+		plistLen, err := pl.playlistLength()
 		if err != nil {
 			return err
 		}
-		if currentTrackIndex == len(serverPlaylist)-1 {
+		if currentTrackIndex == plistLen-1 {
 			pl.Emit("playlist-end")
 		} else {
 			if _, err := pl.Serv.request(pl.ID, "playlist", "index", strconv.Itoa(trackIndex)); err != nil {
@@ -449,8 +384,8 @@ func (pl *Player) Available() bool {
 	return powerRes[2] == "1" && connectedRes[2] == "1"
 }
 
-func (pl *Player) TrackArt(track player.TrackIdentity) (image io.ReadCloser, mime string) {
-	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeUri(track.TrackUri()))
+func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
+	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeUri(track))
 	if err != nil {
 		return nil, ""
 	}
@@ -468,24 +403,73 @@ func (pl *Player) Events() *util.Emitter {
 	return &pl.Emitter
 }
 
-func (pl *Player) currentTrackIndex() (int, error) {
-	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
-	if err != nil || numTrackRes[3] == "0" {
-		return -1, err
-	}
-	state, err := pl.State()
-	if err != nil || state == player.PlayStateStopped {
-		return -1, err
-	}
-	res, err := pl.Serv.request(pl.ID, "playlist", "index", "?")
-	if err != nil {
-		return -1, err
-	}
-	return strconv.Atoi(res[3])
-}
-
 func (pl *Player) String() string {
 	return fmt.Sprintf("%s [%s] [%s]", pl.Name, pl.ID, pl.Model)
+}
+
+type slimPlaylist struct {
+	player *Player
+}
+
+func (plist slimPlaylist) Insert(pos int, tracks ...player.PlaylistTrack) error {
+	if pos == -1 {
+		for _, track := range tracks {
+			if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeUri(track.Uri)); err != nil {
+				return err
+			}
+		}
+	} else {
+		// TODO
+		return fmt.Errorf("UNIMPLEMENTED")
+	}
+	return nil
+}
+
+func (plist slimPlaylist) Move(fromPos, toPos int) error {
+	_, err := plist.player.Serv.request(plist.player.ID, "playlist", "move", strconv.Itoa(fromPos), strconv.Itoa(toPos))
+	return err
+}
+
+func (plist slimPlaylist) Remove(positions ...int) error {
+	sort.Ints(positions)
+	for i := len(positions) - 1; i >= 0; i-- {
+		if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "delete", strconv.Itoa(positions[i])); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (plist slimPlaylist) Tracks() ([]player.PlaylistTrack, error) {
+	trackUris, err := plist.player.serverPlaylist()
+	if err != nil {
+		return nil, err
+	}
+	tracks, err := plist.player.TrackInfo(trackUris...)
+	if err != nil {
+		return nil, err
+	}
+	plTracks := make([]player.PlaylistTrack, len(tracks))
+	for i, tr := range tracks {
+		plTracks[i].Track = tr
+	}
+
+	currentTrackIndex, err := plist.player.currentTrackIndex()
+	if err != nil {
+		return nil, err
+	}
+	if len(plTracks) > 0 && currentTrackIndex >= 0 && currentTrackIndex < len(plTracks) {
+		res, err := plist.player.Serv.request(plist.player.ID, "time", "?")
+		if err != nil {
+			return nil, err
+		}
+		d, err := strconv.ParseFloat(res[2], 64)
+		if err != nil {
+			return nil, err
+		}
+		plTracks[currentTrackIndex].Progress = time.Duration(d) * time.Second
+	}
+	return plTracks, err
 }
 
 func setSlimAttr(serv *Server, track *player.Track, key, value string) {

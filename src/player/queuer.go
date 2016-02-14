@@ -20,46 +20,6 @@ const (
 	OP_MATCHES  = "matches"
 )
 
-func AutoQueue(queuer *Queuer, pl Player) error {
-	listener := pl.Events().Listen()
-	defer pl.Events().Unlisten(listener)
-
-	for {
-		switch <-listener {
-		case "playlist-end":
-			tracks, err := pl.Tracks()
-			if err != nil {
-				return err
-			}
-			if len(tracks) == 0 {
-				continue // No tracks to queue, too bad.
-			}
-			plist, _, err := pl.Playlist()
-			if err != nil {
-				return err
-			}
-
-			track := queuer.SelectRandomTrack(tracks)
-			if track == nil {
-				track = queuer.RandomTrack(tracks)
-				if track == nil {
-					continue
-				}
-			}
-			err = PlaylistAppend(pl, PlaylistTrack{
-				TrackIdentity: track,
-				QueuedBy:      "system",
-			})
-			if err := pl.Seek(len(plist), -1); err != nil {
-				return err
-			}
-			if err != nil {
-				return fmt.Errorf("Could not append to playlist: %v", err)
-			}
-		}
-	}
-}
-
 type SelectionRule struct {
 	// Name of the track attribute to match.
 	Attribute string `json:"attribute"`
@@ -188,6 +148,13 @@ func NewQueuer(file string) (queuer *Queuer, err error) {
 	return queuer, nil
 }
 
+func (queuer *Queuer) Iterator(pl Player) TrackIterator {
+	return queuerIterator{
+		player: pl,
+		queuer: queuer,
+	}
+}
+
 // Picks a random track from the specified tracklist. Does not apply any of the
 // set selection rules.
 func (queuer *Queuer) RandomTrack(tracks []Track) *Track {
@@ -292,4 +259,27 @@ func makeRuleFuncs(rules []SelectionRule) ([]func(Track) bool, error) {
 		}
 	}
 	return funcs, nil
+}
+
+type queuerIterator struct {
+	player Player
+	queuer *Queuer
+}
+
+func (qi queuerIterator) NextTrack() (PlaylistTrack, bool) {
+	tracks, err := qi.player.Tracks()
+	if err != nil {
+		return PlaylistTrack{}, false
+	}
+	track := qi.queuer.SelectRandomTrack(tracks)
+	if track == nil {
+		track = qi.queuer.RandomTrack(tracks)
+		if track == nil {
+			return PlaylistTrack{}, false
+		}
+	}
+	return PlaylistTrack{
+		Track:    *track,
+		QueuedBy: "system",
+	}, true
 }

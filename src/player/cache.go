@@ -34,7 +34,7 @@ func (cache *TrackCache) Tracks() ([]Track, error) {
 	return cache.tracks, nil
 }
 
-func (cache *TrackCache) TrackInfo(identites ...TrackIdentity) ([]Track, error) {
+func (cache *TrackCache) TrackInfo(uris ...string) ([]Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -49,12 +49,12 @@ func (cache *TrackCache) TrackInfo(identites ...TrackIdentity) ([]Track, error) 
 		cache.lock.RLock()
 	}
 
-	results := make([]Track, len(identites))
-	for i, id := range identites {
-		if track, ok := cache.index[id.TrackUri()]; ok {
+	results := make([]Track, len(uris))
+	for i, uri := range uris {
+		if track, ok := cache.index[uri]; ok {
 			results[i] = *track
 		} else {
-			tracks, err := cache.Player.TrackInfo(id)
+			tracks, err := cache.Player.TrackInfo(uri)
 			if err != nil {
 				return nil, err
 			}

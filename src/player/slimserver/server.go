@@ -170,9 +170,7 @@ func (serv *Server) Players() ([]*Player, error) {
 	}
 
 	for _, pl := range players {
-		if err := pl.reloadPlaylist(); err != nil {
-			return nil, err
-		}
+		pl.playlist.Playlist = slimPlaylist{player: pl}
 		// Add a way to halt the eventLoop?
 		go pl.eventLoop()
 	}
@@ -205,6 +203,9 @@ func queryEscape(str string) string {
 }
 
 func encodeUri(uri string) string {
+	if uri == "" {
+		return ""
+	}
 	i := strings.Index(uri, "://")
 	schema, path := uri[:i], uri[i+3:]
 	if path[0] == '/' {
