@@ -5,8 +5,7 @@ var BrowserStreamsView = Backbone.View.extend({
 	className: 'view browser-streams',
 
 	events: {
-		'click .do-add-stream':   'doShowAddDialog',
-		'click .do-load-default': 'doLoadDefaults',
+		'click .do-add-stream': 'doShowAddDialog',
 	},
 
 	initialize: function() {
@@ -19,11 +18,11 @@ var BrowserStreamsView = Backbone.View.extend({
 
 		var $list = this.$('.result-list');
 		$list.append(this.model.get('streams').sort(function(a, b) {
-			return stringCompareCaseInsensitive(a.album, b.album);
+			return stringCompareCaseInsensitive(a.title, b.title);
 		}).map(function(stream) {
 			var self = this;
 			var $el = $(this.streamTemplate({
-				title: stream.album || stream.id,
+				title: stream.title || stream.url,
 			}));
 			showTrackArt($el.find('.track-art'), this.model, stream);
 			$el.on('click', function() {
@@ -51,8 +50,8 @@ var BrowserStreamsView = Backbone.View.extend({
 			event.preventDefault();
 
 			var stream = {
-				id:    $dialog.find('input[name="url"]').val(),
-				album: $dialog.find('input[name="title"]').val(),
+				url:   $dialog.find('input[name="url"]').val(),
+				title: $dialog.find('input[name="title"]').val(),
 				art:   $dialog.find('input[name="art"]').val(),
 			};
 
@@ -60,8 +59,8 @@ var BrowserStreamsView = Backbone.View.extend({
 				return url.match(/^https?:\/\/.+$/);
 			}
 
-			if (!isValidUrl(stream.id)) {
-				alert('Stream URL "'+stream.id+'" is invalid');
+			if (!isValidUrl(stream.url)) {
+				alert('Stream URL "'+stream.url+'" is invalid');
 				return;
 			}
 			if (stream.art && !isValidUrl(stream.art)) {
@@ -74,18 +73,11 @@ var BrowserStreamsView = Backbone.View.extend({
 		});
 	},
 
-	doLoadDefaults: function() {
-		if (confirm('Load default stream presets?')) {
-			this.model.loadDefaultStreams();
-		}
-	},
-
 	template: _.template(
 		'<div>'+
 			'<h2>'+
 				'Streams '+
 				'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
-				'<span class="do-load-default">load defaults</span>'+
 			'</h2>'+
 			'<ul class="result-list grid-list"></ul>'+
 		'</div>'

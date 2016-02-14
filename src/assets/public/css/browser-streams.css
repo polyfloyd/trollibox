@@ -4,17 +4,12 @@
 	flex-flow: column;
 }
 
-.browser-streams .do-load-default,
 .browser-streams .do-add-stream {
 	display: inline-block;
 	font-size: 0.6em;
 	vertical-align: middle;
 	color: #f60;
 	cursor: pointer;
-}
-
-.browser-streams .do-load-default {
-	float: right;
 }
 
 .browser-streams ul {

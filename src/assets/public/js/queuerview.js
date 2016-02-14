@@ -83,7 +83,7 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	copyRules: function() {
-		// Map using Object.create to prevent modifying the array contained in the model.
+		// Map to prevent modifying the array contained in the model.
 		this.rules = this.model.get('queuerules').map(function(rule) {
 			var mutRule = {};
 			for (var k in rule) mutRule[k] = rule[k];

@@ -7,7 +7,6 @@ import (
 
 	"./player"
 	"./stream"
-	"./stream/digitallyimported"
 	"github.com/gorilla/mux"
 )
 
@@ -17,7 +16,6 @@ func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB, raw
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
 	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
-	r.Path("/streams/loaddefault").Methods("POST").HandlerFunc(htStreamsLoadDefaults(streamdb))
 	r.Path("/raw").Methods("GET").Handler(rawServer)
 }
 
@@ -37,8 +35,8 @@ func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.
 		mapped := make([]interface{}, len(streams))
 		for i, stream := range streams {
 			mapped[i] = map[string]interface{}{
-				"id":     stream.Url,
-				"album":  stream.StreamTitle,
+				"uri":    stream.Url,
+				"title":  stream.StreamTitle,
 				"hasart": stream.ArtUrl != "",
 			}
 		}
@@ -60,24 +58,7 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 			return
 		}
 
-		if err := streamdb.AddStreams(data.Stream); err != nil {
-			writeError(res, err)
-			return
-		}
-		res.Write([]byte("{}"))
-	}
-}
-
-func htStreamsLoadDefaults(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Set("Content-Type", "application/json")
-		streams, err := digitallyimported.Streams()
-		if err != nil {
-			writeError(res, err)
-			return
-		}
-
-		if err := streamdb.AddStreams(streams...); err != nil {
+		if err := streamdb.AddStream(data.Stream); err != nil {
 			writeError(res, err)
 			return
 		}

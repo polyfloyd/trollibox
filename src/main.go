@@ -175,7 +175,7 @@ func main() {
 		go func(pl player.Player, name string) {
 			for {
 				ch := player.AutoAppend(pl, queuer.Iterator(pl))
-				log.Printf("Error while autoqueueing for %s: %v", name, <-ch)
+				log.Printf("Error while autoqueueing for %q: %v", name, <-ch)
 			}
 		}(cache, name)
 	}

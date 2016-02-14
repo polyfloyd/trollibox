@@ -21,7 +21,6 @@ type Track struct {
 
 // Get an attribute of a track by its name. Accepted names are:
 //   "uri"
-//   "id" (alias for "uri", deprecated)
 //   "artist"
 //   "title"
 //   "genre"
@@ -32,8 +31,6 @@ type Track struct {
 //   "duration"
 func (track *Track) Attr(attr string) interface{} {
 	switch attr {
-	case "id":
-		fallthrough
 	case "uri":
 		return track.Uri
 	case "artist":

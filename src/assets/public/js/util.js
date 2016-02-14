@@ -70,12 +70,12 @@ function durationToString(seconds) {
 
 function showTrackArt($elem, player, track, cb) {
 	$elem.css('background-image', ''); // Reset to default.
-	if (!track || !track.id) {
+	if (!track || !track.uri) {
 		if (cb) cb(false);
 		return;
 	}
 
-	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.id).replace(/'/g, '%27');
+	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.uri).replace(/'/g, '%27');
 	if (track.hasart) {
 		$elem.css('background-image', 'url(\''+url+'\')');
 	}

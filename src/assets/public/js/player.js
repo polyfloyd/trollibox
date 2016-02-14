@@ -16,16 +16,16 @@ var Player = Backbone.Model.extend({
 		this.reloaders = {};
 		this.name      = args.name;
 
-		this.attachServerReloader('server-event:playstate', 'data/player/'+this.name+'/playstate', function(data) {
+		this.attachServerReloader('server-event:playstate', '/player/'+this.name+'/playstate', function(data) {
 			this.setInternal('state', data.playstate);
 		});
-		this.attachServerReloader('server-event:volume', 'data/player/'+this.name+'/volume', function(data) {
+		this.attachServerReloader('server-event:volume', '/player/'+this.name+'/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
-		this.attachServerReloader('server-event:progress', 'data/player/'+this.name+'/progress', function(data) {
+		this.attachServerReloader('server-event:progress', '/player/'+this.name+'/progress', function(data) {
 			this.setInternal('progress', data.progress);
 		});
-		this.attachServerReloader('server-event:playlist', 'data/player/'+this.name+'/playlist', function(data) {
+		this.attachServerReloader('server-event:playlist', '/player/'+this.name+'/playlist', function(data) {
 			var plist = data.tracks.map(this.fillMissingTrackFields, this);
 			this.setInternal('playlist', plist);
 			this.setInternal('current', data.current);
@@ -35,27 +35,27 @@ var Player = Backbone.Model.extend({
 				this.setInternal('progress', 0);
 			}
 		});
-		this.attachServerReloader('server-event:tracks', 'data/player/'+this.name+'/tracks', function(data) {
+		this.attachServerReloader('server-event:tracks', '/player/'+this.name+'/tracks', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 
-		this.attachServerReloader('server-event:streams-update', 'data/streams', function(data) {
+		this.attachServerReloader('server-event:streams-update', '/streams', function(data) {
 			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
 		});
-		this.attachServerReloader('server-event:queuer-update', 'data/queuer', function(data) {
+		this.attachServerReloader('server-event:queuer-update', '/queuer', function(data) {
 			this.setInternal('queuerules', data.queuerules);
 		});
 
-		this.attachServerUpdater('progress', 'data/player/'+this.name+'/progress', function(value) {
+		this.attachServerUpdater('progress', '/player/'+this.name+'/progress', function(value) {
 			return { progress: value };
 		});
-		this.attachServerUpdater('state', 'data/player/'+this.name+'/playstate', function(value) {
+		this.attachServerUpdater('state', '/player/'+this.name+'/playstate', function(value) {
 			return { playstate: value };
 		});
-		this.attachServerUpdater('volume', 'data/player/'+this.name+'/volume', function(value) {
+		this.attachServerUpdater('volume', '/player/'+this.name+'/volume', function(value) {
 			return { volume: value };
 		});
-		this.attachServerUpdater('queuerules', 'data/queuer', function(value) {
+		this.attachServerUpdater('queuerules', '/queuer', function(value) {
 			return { queuerules: value };
 		});
 
@@ -97,22 +97,28 @@ var Player = Backbone.Model.extend({
 		};
 	},
 
-	attachServerReloader: function(event, path, handle) {
+	callServer: function(path, method, body, cb) {
+		$.ajax({
+			url:      URLROOT+'data'+path,
+			method:   method,
+			dataType: 'json',
+			data:     body ? JSON.stringify(body) : null,
+			context:  this,
+		}).done(function(responseJson, status, res) {
+			if (cb) cb.call(this, null, responseJson);
+		}).fail(function(res, status, statusText) {
+			var err = res.responseJSON && res.responseJSON.error
+				? new Error(res.responseJSON.error)
+				: new Error(res.responseText);
+			this.trigger('error', err);
+			if (cb) cb(err, null);
+		});
+	},
+
+	attachServerReloader: function(event, path, handler) {
 		var reload = function() {
-			$.ajax({
-				url:      URLROOT+path,
-				method:   'GET',
-				dataType: 'json',
-				context:  this,
-				success:  function(data) {
-					handle.call(this, data);
-				},
-				error:    function(res, status, message) {
-					var err = res.responseJSON && res.responseJSON.error
-						? new Error(res.responseJSON.error)
-						: new Error(message);
-					this.trigger('error', err);
-				},
+			this.callServer(path, 'GET', null, function(err, data) {
+				if (!err) handler.call(this, data);
 			});
 		};
 		this.on(event, reload, this);
@@ -125,28 +131,18 @@ var Player = Backbone.Model.extend({
 
 		function update(value) {
 			waiting = true;
-			$.ajax({
-				url:      URLROOT+path,
-				method:   'POST',
-				dataType: 'json',
-				data:     JSON.stringify(getUpdateData.call(self, value)),
-				context:  this,
-				success:  function() {
-					setTimeout(function() {
-						waiting = false;
-						if (typeof nextValue !== 'undefined') {
-							update.call(this, nextValue);
-							nextValue = undefined;
-						}
-					}, 200);
-				},
-				error:    function(res, status, message) {
+			this.callServer(path, 'POST', getUpdateData.call(this, value), function(err, data) {
+				if (err) {
 					waiting = false;
-					var err = res.responseJSON && res.responseJSON.error
-						? new Error(res.responseJSON.error)
-						: new Error(message);
-					this.trigger('error', err);
-				},
+					return;
+				}
+				setTimeout(function() {
+					waiting = false;
+					if (typeof nextValue !== 'undefined') {
+						update.call(this, nextValue);
+						nextValue = undefined;
+					}
+				}.bind(this), 200);
 			});
 		}
 
@@ -213,18 +209,7 @@ var Player = Backbone.Model.extend({
 	},
 
 	next: function() {
-		$.ajax({
-			url:      URLROOT+'data/player/'+this.name+'/next',
-			method:   'POST',
-			dataType: 'json',
-			context:  this,
-			error:    function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
-		});
+		this.callServer('/player/'+this.name+'/next', 'POST');
 	},
 
 	fillMissingTrackFields: function(track) {
@@ -247,23 +232,11 @@ var Player = Backbone.Model.extend({
 		if (!Array.isArray(tracks)) {
 			tracks = [tracks];
 		}
-		$.ajax({
-			url:      URLROOT+'data/player/'+this.name+'/playlist',
-			method:   'PUT',
-			dataType: 'json',
-			context:  this,
-			data:     JSON.stringify({
-				position: -1,
-				tracks:   tracks.map(function(track) {
-					return track.id;
-				}),
+		this.callServer('/player/'+this.name+'/playlist', 'PUT', {
+			position: -1,
+			tracks:   tracks.map(function(track) {
+				return track.uri;
 			}),
-			error: function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
 		});
 	},
 
@@ -271,118 +244,38 @@ var Player = Backbone.Model.extend({
 		if (!Array.isArray(trackIndices)) {
 			trackIndices = [trackIndices];
 		}
-		$.ajax({
-			url:      URLROOT+'data/player/'+this.name+'/playlist',
-			method:   'DELETE',
-			dataType: 'json',
-			context:  this,
-			data:     JSON.stringify({
-				positions: trackIndices,
-			}),
-			error: function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
+		this.callServer('/player/'+this.name+'/playlist', 'DELETE', {
+			positions: trackIndices,
 		});
 	},
 
 	moveInPlaylist: function(from, to) {
-		$.ajax({
-			url:      URLROOT+'data/player/'+this.name+'/playlist',
-			method:   'PATCH',
-			dataType: 'json',
-			context:  this,
-			data:     JSON.stringify({
-				from: from,
-				to:   to,
-			}),
-			error: function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
+		this.callServer('/player/'+this.name+'/playlist', 'PATCH', {
+			from: from,
+			to:   to,
 		});
 	},
 
 	searchTracks: function(query, untagged, cb) {
-		$.ajax({
-			url:      URLROOT+'data/player/'+this.name+'/tracks/search?query='+encodeURIComponent(query)+'&untagged='+encodeURIComponent(untagged.join(',')),
-			method:   'GET',
-			dataType: 'json',
-			context:  this,
-			success:  function(response) {
-				response.tracks.forEach(function(res) {
-					res.track = this.fillMissingTrackFields(res.track);
-				}, this);
-				cb(null, response.tracks);
-			},
-			error: function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
+		var path = '/player/'+this.name+'/tracks/search?query='+encodeURIComponent(query)+'&untagged='+encodeURIComponent(untagged.join(','));
+		this.callServer(path, 'GET', null, function(err, data) {
+			if (err) {
 				cb(err, []);
-			},
+				return;
+			}
+			data.tracks.forEach(function(res) {
+				res.track = this.fillMissingTrackFields(res.track);
+			}, this);
+			cb(null, data.tracks);
 		});
 	},
 
 	addStream: function(stream) {
-		$.ajax({
-			url:      URLROOT+'data/streams',
-			method:   'POST',
-			dataType: 'json',
-			data:     JSON.stringify({ stream: stream }),
-			context:  this,
-			success:  function() {
-				this.reload('server-event:streams-update');
-			},
-			error:    function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
-		});
+		this.callServer('/streams', 'POST', { stream: stream });
 	},
 
 	removeStream: function(stream) {
-		$.ajax({
-			url:      URLROOT+'data/streams',
-			method:   'DELETE',
-			dataType: 'json',
-			context:  this,
-			data:     JSON.stringify({ stream: stream }),
-			success:  function() {
-				this.reload('server-event:streams-update');
-			},
-			error:    function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
-		});
-	},
-
-	loadDefaultStreams: function() {
-		$.ajax({
-			url:      URLROOT+'data/streams/loaddefault',
-			method:   'POST',
-			dataType: 'json',
-			context:  this,
-			success:  function() {
-				this.reload('server-event:streams-update');
-			},
-			error:    function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
-		});
+		this.callServer('/streams', 'DELETE', { stream: stream })
 	},
 
 	addDefaultQueueRule: function() {
@@ -420,6 +313,11 @@ var Player = Backbone.Model.extend({
 					: new Error(message);
 				this.trigger('error', err);
 			},
+		}).fail(function(res, status, statusText) {
+			var err = res.responseJSON && res.responseJSON.error
+				? new Error(res.responseJSON.error)
+				: new Error(res.responseText);
+			this.trigger('error', err);
 		});
 	},
 });

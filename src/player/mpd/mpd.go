@@ -185,8 +185,8 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 		for i, song := range songs {
 			if _, ok := song["directory"]; ok {
 				numDirs++
-			} else {
-				trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
+			} else if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
+				return err
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -240,7 +240,9 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else if song != nil {
-				trackFromMpdSong(mpdc, &song, &tracks[i-numDirs])
+				if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
+					return err
+				}
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -487,7 +489,9 @@ func (plist mpdPlaylist) Tracks() ([]player.PlaylistTrack, error) {
 		}
 		tracks = make([]player.PlaylistTrack, len(songs))
 		for i, song := range songs {
-			trackFromMpdSong(mpdc, &song, &tracks[i].Track)
+			if err := trackFromMpdSong(mpdc, &song, &tracks[i].Track); err != nil {
+				return err
+			}
 		}
 
 		// Update the progress attribute of the currently playing track.
@@ -537,9 +541,9 @@ func playlistLength(mpdc *mpd.Client) (int, bool) {
 // ListAllInfo() and ListInfo() look very much the same but they don't return
 // the same thing. Who the fuck thought it was a good idea to mix capitals and
 // lowercase?!
-func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) {
+func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) error {
 	if _, ok := (*song)["directory"]; ok {
-		panic("Tried to read a directory as local file")
+		return fmt.Errorf("Tried to read a directory as local file")
 	}
 
 	track.Uri = mpdToUri((*song)["file"])
@@ -557,13 +561,14 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) {
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
 		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
-			panic(err)
+			return err
 		} else {
 			track.Duration = time.Duration(duration) * time.Second
 		}
 	}
 
 	player.InterpolateMissingFields(track)
+	return nil
 }
 
 // Helper to get an attribute as an integer from an MPD status.

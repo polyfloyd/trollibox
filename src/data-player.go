@@ -22,7 +22,7 @@ func trackJson(tr *player.Track) interface{} {
 		return nil
 	}
 	return &struct {
-		Uri         string `json:"id"`
+		Uri         string `json:"uri"`
 		Artist      string `json:"artist,omitempty"`
 		Title       string `json:"title,omitempty"`
 		Genre       string `json:"genre,omitempty"`
@@ -48,7 +48,7 @@ func trackJson(tr *player.Track) interface{} {
 
 func plTrackJson(tr *player.PlaylistTrack) interface{} {
 	return &struct {
-		Uri         string `json:"id"`
+		Uri         string `json:"uri"`
 		Artist      string `json:"artist,omitempty"`
 		Title       string `json:"title,omitempty"`
 		Genre       string `json:"genre,omitempty"`
