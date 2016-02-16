@@ -29,7 +29,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 		});
 
 		// Flatten the tree into a list.
-		this.albums = Object.keys(artistAlbums)
+		var albums = Object.keys(artistAlbums)
 			.sort(stringCompareCaseInsensitive)
 			.reduce(function(albums, artistName) {
 				return Object.keys(artistAlbums[artistName])
@@ -50,8 +50,23 @@ var BrowserAlbumsView = Backbone.View.extend({
 					}, albums);
 		}, []);
 
-		$tab.find('ul').lazyLoad(this.doLazyLoad, this);
-		this.appendAlbums(24);
+		var $list = $tab.find('ul');
+		$list.lazyLoad(albums, function(album) {
+			var $el = $(this.albumPreviewTemplate({
+				artist:   album.artist,
+				title:    album.title,
+				duration: this.albumDuration(album.tracks),
+			}));
+			showTrackArt($el.find('.track-art'), this.model, album.tracks[0], function(success) {
+				$el.toggleClass('show-details', !success);
+			});
+			$el.on('click', function() {
+				$list.find('.active').removeClass('active');
+				$el.addClass('active');
+				this.renderAlbum(album.tracks);
+			}.bind(this));
+			return $el;
+		}, this);
 	},
 
 	renderAlbum: function(album) {
@@ -60,15 +75,9 @@ var BrowserAlbumsView = Backbone.View.extend({
 		album.sort(function(a, b) {
 			var at = a.albumtrack;
 			var bt = b.albumtrack;
-
 			// Add a zero padding to make sure '12' > '4'.
-			while (at.length > bt.length) {
-				bt = '0'+bt;
-			}
-			while (bt.length > at.length) {
-				at = '0'+at;
-			}
-
+			while (at.length > bt.length) bt = '0'+bt;
+			while (bt.length > at.length) at = '0'+at;
 			return stringCompareCaseInsensitive(at, bt);
 		});
 
@@ -108,38 +117,6 @@ var BrowserAlbumsView = Backbone.View.extend({
 		$tab.find('.result-list li.track').on('click', function() {
 			self.model.appendToPlaylist(album[$(this).attr('data-index')]);
 		});
-	},
-
-	appendAlbums: function(count) {
-		var self = this;
-
-		var $list = this.$('.tab-name-list ul');
-		var numChildren = $list.children().length;
-		var albums = this.albums.slice(numChildren, numChildren + count);
-		if (!albums.length) {
-			return;
-		}
-
-		$list.append(albums.map(function(album) {
-			var $el = $(this.albumPreviewTemplate({
-				artist:   album.artist,
-				title:    album.title,
-				duration: this.albumDuration(album.tracks),
-			}));
-			showTrackArt($el.find('.track-art'), this.model, album.tracks[0], function(success) {
-				$el.toggleClass('show-details', !success);
-			});
-			$el.on('click', function() {
-				$list.find('li.active').removeClass('active');
-				$el.addClass('active');
-				self.renderAlbum(album.tracks);
-			});
-			return $el;
-		}, this));
-	},
-
-	doLazyLoad: function() {
-		this.appendAlbums(8);
 	},
 
 	albumDuration: function(tracks) {

@@ -21,7 +21,6 @@ var BrowserSearchView = Backbone.View.extend({
 
 	render: function() {
 		this.$el.html(this.template());
-		this.$('.result-list').lazyLoad(this.doLazyLoad, this);
 	},
 
 	focusInput: function() {
@@ -51,9 +50,7 @@ var BrowserSearchView = Backbone.View.extend({
 			}
 
 			self.trigger('search-complete');
-			self.$('.result-list').empty();
-			self.results = results;
-			self.appendResults(60);
+			self.$('.result-list').lazyLoad(results, self.renderResult, self);
 		});
 	},
 
@@ -61,19 +58,7 @@ var BrowserSearchView = Backbone.View.extend({
 		return this.$('.search-input input').val();
 	},
 
-	doLazyLoad: function() {
-		this.appendResults(20);
-	},
-
-	appendResults: function(count) {
-		var $list = this.$('.result-list');
-
-		var numChildren = $list.children().length;
-		var results = this.results.slice(numChildren, numChildren + count);
-		if (!results.length) {
-			return;
-		}
-
+	renderResult: function(result) {
 		function highlight(result, property) {
 			var m = result.matches[property];
 			if (!m) {
@@ -87,17 +72,14 @@ var BrowserSearchView = Backbone.View.extend({
 			return _.escape(value).replace(/&lt;(\/)?em&gt;/g, '<$1em>');
 		}
 
-		$list.append(results.map(function(result) {
-			var self = this;
-			var $el = $(this.resultTemplate({
-				result:    result,
-				highlight: highlight,
-			}));
-			$el.on('click', function() {
-				self.model.appendToPlaylist(result.track);
-			});
-			return $el;
-		}, this));
+		var $el = $(this.resultTemplate({
+			result:    result,
+			highlight: highlight,
+		}));
+		$el.on('click', function() {
+			this.model.appendToPlaylist(result.track);
+		}.bind(this));
+		return $el;
 	},
 
 	template: _.template(

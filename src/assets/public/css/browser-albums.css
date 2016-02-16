@@ -13,6 +13,14 @@
 	flex-shrink: 0;
 }
 
+.browser-albums .tab-name-list ul {
+	flex-grow: 1;
+}
+
+.browser-albums .tab-name-list ul:before {
+	line-height: 1em;
+}
+
 .browser-albums .tab-name-album {
 	display: flex;
 	flex-direction: column;

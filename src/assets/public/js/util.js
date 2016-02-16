@@ -41,14 +41,26 @@ jQuery.fn.toggleAttr = function(attr, value, toggle) {
 	});
 };
 
-$.fn.lazyLoad = function(callback, thisArg) {
-	thisArg = thisArg || this;
-	var $el = this;
-	this.on('scroll mousewheel DOMMouseScroll', function(event) {
-		if ($el.scrollTop() == $el[0].scrollHeight - $el.innerHeight()) {
-			callback.call(thisArg, event);
+$.fn.lazyLoad = function(list, render, thisArg) {
+	var $list = this;
+	$list.off('scroll.lazy mousewheel.lazy DOMMouseScroll.lazy');
+	$list.attr('lazy-index', '0');
+	$list.empty();
+	var handler = function() {
+		var elemSize = $list.children().last().outerHeight();
+		while ($list.scrollTop() >= $list[0].scrollHeight - $list.innerHeight() - elemSize) {
+			var listIndex = parseInt($list.attr('lazy-index'), 10);
+			if (listIndex >= list.length) {
+				$list.off('scroll.lazy mousewheel.lazy DOMMouseScroll.lazy');
+				return;
+			}
+			$list.append(render.call(thisArg, list[listIndex]));
+			$list.attr('lazy-index', listIndex + 1);
+			elemSize = $list.children().last().outerHeight();
 		}
-	});
+	};
+	this.on('scroll.lazy mousewheel.lazy DOMMouseScroll.lazy', handler);
+	handler();
 };
 
 function durationToString(seconds) {
