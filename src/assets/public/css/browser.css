@@ -137,16 +137,3 @@
 .browser-player .player {
 	overflow-x: auto;
 }
-
-.track-duration {
-	margin-left: 0.5em;
-	color: #aaa;
-}
-
-.track-duration:before {
-	content: "(";
-}
-
-.track-duration:after {
-	content: ")";
-}

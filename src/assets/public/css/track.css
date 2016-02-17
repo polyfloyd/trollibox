@@ -5,6 +5,11 @@ ul.result-list {
 	overflow-y: auto;
 }
 
+ul.result-list li {
+	display: flex;
+	flex-wrap: wrap;
+}
+
 ul.result-list li .track-num,
 ul.result-list li .track-num:after {
 	color: #aaa;
@@ -15,8 +20,23 @@ ul.result-list li .track-num:not(:empty):after {
 }
 
 ul.result-list li .track-album {
-	float: right;
+	margin: 0 0.5em;
+	flex-grow: 1;
+	text-align: right;
 	color: #aaa;
+}
+
+ul.result-list li .track-duration {
+	margin-left: 0.35em;
+	color: #aaa;
+}
+
+ul.result-list li .track-duration:before {
+	content: "(";
+}
+
+ul.result-list li .track-duration:after {
+	content: ")";
 }
 
 ul.result-list li:hover {
@@ -39,7 +59,8 @@ ul.result-list li em {
 }
 
 ul.result-list li .track-artist:after {
-	content: " - ";
+	content: "-";
+	margin: 0 0.35em;
 }
 
 ul.result-list.grid-list {
