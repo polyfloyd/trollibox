@@ -28,6 +28,9 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:playlist', '/player/'+this.name+'/playlist', function(data) {
 			var plist = data.tracks.map(this.fillMissingTrackFields, this);
 			this.setInternal('playlist', plist);
+			if (this.get('current') === data.current) {
+				this.trigger('change:current');
+			}
 			this.setInternal('current', data.current);
 			if (plist.length > 0 && data.current >= 0) {
 				this.setInternal('progress', data.tracks[data.current].progress);

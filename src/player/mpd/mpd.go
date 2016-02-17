@@ -147,8 +147,21 @@ func (pl *Player) mainLoop() {
 				log.Println(err)
 				continue
 			}
+			var curTrackIndex int
+			if err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
+				curTrackIndex, err = currentTrackIndex(mpdc)
+				return
+			}); err != nil {
+				log.Println(err)
+				continue
+			}
+
 			if len(tracks) == 0 {
 				pl.Emit("playlist-end")
+			} else if curTrackIndex != -1 && strings.HasPrefix(tracks[curTrackIndex].Uri, "http") {
+				go func() {
+					time.Sleep(time.Millisecond * 200)
+				}()
 			}
 
 		case "mpd-mixer":
@@ -281,15 +294,8 @@ func (pl *Player) Seek(trackIndex int, progress time.Duration) error {
 		}
 
 		if trackIndex >= 0 {
-			currentTrackIndex, err := currentTrackIndex(mpdc)
-			if err != nil {
-				return err
-			}
 			if err := mpdc.Play(trackIndex); err != nil {
 				return err
-			}
-			if currentTrackIndex != trackIndex {
-				pl.Emit("playlist")
 			}
 		}
 		if progress >= 0 {
