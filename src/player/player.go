@@ -9,39 +9,13 @@ import (
 )
 
 const (
-	PlayStateInvalid = PlayState(iota)
-	PlayStatePlaying
-	PlayStateStopped
-	PlayStatePaused
+	PlayStateInvalid = PlayState("")
+	PlayStatePlaying = PlayState("playing")
+	PlayStateStopped = PlayState("stopped")
+	PlayStatePaused  = PlayState("paused")
 )
 
-type PlayState int
-
-func NamedPlaystate(str string) PlayState {
-	switch str {
-	case "playing":
-		return PlayStatePlaying
-	case "stopped":
-		return PlayStateStopped
-	case "paused":
-		return PlayStatePaused
-	default:
-		return PlayStateInvalid
-	}
-}
-
-func (state PlayState) Name() string {
-	switch state {
-	case PlayStatePlaying:
-		return "playing"
-	case PlayStateStopped:
-		return "stopped"
-	case PlayStatePaused:
-		return "paused"
-	default:
-		return "invalid"
-	}
-}
+type PlayState string
 
 type Library interface {
 	// Returns all available tracks in the libary.

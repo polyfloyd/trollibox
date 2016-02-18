@@ -222,7 +222,7 @@ func htPlayerGetPlaystate(pl player.Player) func(res http.ResponseWriter, req *h
 		}
 
 		json.NewEncoder(res).Encode(map[string]interface{}{
-			"playstate": playstate.Name(),
+			"playstate": playstate,
 		})
 	}
 }
@@ -239,7 +239,7 @@ func htPlayerSetPlaystate(pl player.Player) func(res http.ResponseWriter, req *h
 			return
 		}
 
-		if err := pl.SetState(player.NamedPlaystate(data.State)); err != nil {
+		if err := pl.SetState(player.PlayState(data.State)); err != nil {
 			writeError(res, err)
 			return
 		}
