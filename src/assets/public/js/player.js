@@ -235,6 +235,13 @@ var Player = Backbone.Model.extend({
 		if (!Array.isArray(tracks)) {
 			tracks = [tracks];
 		}
+		this.set('playlist', this.get('playlist').concat(tracks.map(function(tr) {
+			var newTr = {};
+			for (var k in tr) newTr[k] = tr[k];
+			newTr.queuedby = 'user';
+			newTr.progress = 0;
+			return newTr;
+		})));
 		this.callServer('/player/'+this.name+'/playlist', 'PUT', {
 			position: -1,
 			tracks:   tracks.map(function(track) {
@@ -247,12 +254,19 @@ var Player = Backbone.Model.extend({
 		if (!Array.isArray(trackIndices)) {
 			trackIndices = [trackIndices];
 		}
+		this.set('playlist', this.get('playlist').filter(function(tr, i) {
+			return trackIndices.indexOf(i) === -1;
+		}));
 		this.callServer('/player/'+this.name+'/playlist', 'DELETE', {
 			positions: trackIndices,
 		});
 	},
 
 	moveInPlaylist: function(from, to) {
+		var plist = this.get('playlist');
+		plist.splice(to, 0, plist.splice(from, 1)[0]);
+		this.set('playlist', plist);
+		this.trigger('change:playlist');
 		this.callServer('/player/'+this.name+'/playlist', 'PATCH', {
 			from: from,
 			to:   to,
