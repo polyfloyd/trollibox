@@ -172,7 +172,9 @@ func (serv *Server) Players() ([]*Player, error) {
 	for _, pl := range players {
 		pl.playlist.Playlist = slimPlaylist{player: pl}
 		// Add a way to halt the eventLoop?
-		go pl.eventLoop()
+		go func(pl *Player) {
+			pl.eventLoop()
+		}(pl)
 	}
 	return players, nil
 }
