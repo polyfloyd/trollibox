@@ -152,6 +152,11 @@ func (pl *Player) maybeEmitPlaylistEnd() error {
 	return nil
 }
 
+func (pl *Player) killRandomPlay() error {
+	_, err := pl.Serv.request(pl.ID, "randomplay", "disable")
+	return err
+}
+
 func (pl *Player) Tracks() ([]player.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
 	if err != nil {
@@ -393,6 +398,7 @@ type slimPlaylist struct {
 }
 
 func (plist slimPlaylist) Insert(pos int, tracks ...player.PlaylistTrack) error {
+	plist.player.killRandomPlay()
 	if pos == -1 {
 		for _, track := range tracks {
 			if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeUri(track.Uri)); err != nil {
@@ -407,11 +413,13 @@ func (plist slimPlaylist) Insert(pos int, tracks ...player.PlaylistTrack) error 
 }
 
 func (plist slimPlaylist) Move(fromPos, toPos int) error {
+	plist.player.killRandomPlay()
 	_, err := plist.player.Serv.request(plist.player.ID, "playlist", "move", strconv.Itoa(fromPos), strconv.Itoa(toPos))
 	return err
 }
 
 func (plist slimPlaylist) Remove(positions ...int) error {
+	plist.player.killRandomPlay()
 	sort.Ints(positions)
 	for i := len(positions) - 1; i >= 0; i-- {
 		if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "delete", strconv.Itoa(positions[i])); err != nil {
