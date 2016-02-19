@@ -25,8 +25,7 @@ type Player struct {
 
 	Serv *Server
 
-	playlist  player.PlaylistKeeper
-	lastTrack string
+	playlist player.PlaylistKeeper
 
 	util.Emitter
 }
@@ -52,6 +51,7 @@ func (pl *Player) eventLoop() {
 			// Server global events.
 			if len(line) >= 2 && line[0] == "rescan" && line[1] == "done" {
 				pl.Emit("tracks")
+				continue
 			}
 
 			if line[0] != pl.ID || len(line) < 2 {
@@ -60,32 +60,13 @@ func (pl *Player) eventLoop() {
 			// Events local to the player.
 			switch {
 			case line[1] == "playlist":
-				if len(line) >= 4 && line[2] == "newsong" && pl.lastTrack != line[3] {
-					pl.lastTrack = line[3]
-
-					plist, currentTrackIndex, err := pl.Playlist()
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					tracks, err := plist.Tracks()
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					if len(tracks) > 0 && currentTrackIndex >= 0 && tracks[currentTrackIndex].Progress != 0 {
-						if err := pl.Seek(-1, tracks[currentTrackIndex].Progress); err != nil {
-							log.Println(err)
-							continue
-						}
-					}
-
+				if len(line) >= 3 && line[2] == "newsong" {
 					// It takes a while to get the metainformation from HTTP
 					// streams. Emit another change event to inform that the
 					// loading has been completed.
 					pl.Emit("playlist")
 				}
-				if len(line) >= 3 && (line[2] == "load_done" || line[2] == "delete") {
+				if len(line) >= 3 && (line[2] == "load_done" || line[2] == "move" || line[2] == "delete") {
 					pl.Emit("playlist")
 				}
 				if len(line) >= 2 && line[2] == "stop" {
