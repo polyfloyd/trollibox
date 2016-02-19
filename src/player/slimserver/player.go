@@ -404,7 +404,7 @@ func (pl *Player) Events() *util.Emitter {
 }
 
 func (pl *Player) String() string {
-	return fmt.Sprintf("%s [%s] [%s]", pl.Name, pl.ID, pl.Model)
+	return fmt.Sprintf("Slim{%s, %s, %s}", pl.Name, pl.ID, pl.Model)
 }
 
 type slimPlaylist struct {

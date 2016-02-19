@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 	"time"
@@ -53,6 +54,10 @@ func (track *Track) Attr(attr string) interface{} {
 		return track.HasArt
 	}
 	return nil
+}
+
+func (track Track) String() string {
+	return fmt.Sprintf("%s - %s (%v)", track.Artist, track.Title, track.Duration)
 }
 
 type PlaylistTrack struct {

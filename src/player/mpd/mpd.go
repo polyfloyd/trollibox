@@ -439,6 +439,10 @@ func (pl *Player) Events() *util.Emitter {
 	return &pl.Emitter
 }
 
+func (pl *Player) String() string {
+	return fmt.Sprintf("MPD{%s}", pl.address)
+}
+
 type mpdPlaylist struct {
 	player *Player
 }

@@ -169,6 +169,7 @@ func main() {
 	}
 
 	for name, pl := range players {
+		log.Printf("Attached player %v", pl)
 		cache := &player.TrackCache{Player: pl}
 		players[name] = cache
 		go cache.Run()

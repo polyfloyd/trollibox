@@ -1,6 +1,7 @@
 package player
 
 import (
+	"fmt"
 	"sync"
 
 	"../util"
@@ -96,4 +97,8 @@ func (cache *TrackCache) reloadTracks() {
 	for i, track := range cache.tracks {
 		cache.index[track.Uri] = &cache.tracks[i]
 	}
+}
+
+func (cache *TrackCache) String() string {
+	return fmt.Sprintf("Cache{%v}", cache.Player)
 }
