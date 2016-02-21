@@ -1,3 +1,15 @@
+.track-duration {
+	color: #aaa;
+}
+
+.track-duration:before {
+	content: "(";
+}
+
+.track-duration:after {
+	content: ")";
+}
+
 ul.result-list {
 	margin: 0;
 	padding: 0;
@@ -10,13 +22,17 @@ ul.result-list li {
 	flex-wrap: wrap;
 }
 
+ul.result-list li .track-num {
+	margin-right: 0.3em;
+}
+
 ul.result-list li .track-num,
 ul.result-list li .track-num:after {
 	color: #aaa;
 }
 
 ul.result-list li .track-num:not(:empty):after {
-	content: ". ";
+	content: ".";
 }
 
 ul.result-list li .track-album {
@@ -28,15 +44,6 @@ ul.result-list li .track-album {
 
 ul.result-list li .track-duration {
 	margin-left: 0.35em;
-	color: #aaa;
-}
-
-ul.result-list li .track-duration:before {
-	content: "(";
-}
-
-ul.result-list li .track-duration:after {
-	content: ")";
 }
 
 ul.result-list li:hover {
@@ -64,10 +71,35 @@ ul.result-list li .track-artist:after {
 }
 
 ul.result-list.grid-list {
+	display: flex;
+	flex-wrap: wrap;
 	line-height: 0;
 }
 
+ul.result-list.grid-list:after {
+	content: "";
+}
+
 ul.result-list.grid-list li {
+	min-width: 160px;
+	position: relative;
 	display: inline-block;
+	flex-grow: 1;
 	line-height: initial;
+
+	/* Hack to prevent items from becoming really big */
+	overflow: hidden;
+	max-width: 320px;
+}
+
+ul.result-list.grid-list li img.ratio {
+	width: 100%;
+}
+
+ul.result-list.grid-list li img.ratio + * {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 }
