@@ -115,21 +115,6 @@ func (pl *Player) mainLoop() {
 	for {
 		switch event := <-listener; event {
 		case "mpd-player":
-			err := pl.withMpd(func(mpdc *mpd.Client) error {
-				currentTrackIndex, err := currentTrackIndex(mpdc)
-				if err != nil {
-					return err
-				}
-				if currentTrackIndex == -1 {
-					pl.Emit("playlist-end")
-				}
-				return nil
-			})
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
 			pl.Emit("playstate")
 			pl.Emit("progress")
 			fallthrough
@@ -156,9 +141,7 @@ func (pl *Player) mainLoop() {
 				continue
 			}
 
-			if len(tracks) == 0 {
-				pl.Emit("playlist-end")
-			} else if curTrackIndex != -1 && strings.HasPrefix(tracks[curTrackIndex].Uri, "http") {
+			if len(tracks) > 0 && curTrackIndex != -1 && strings.HasPrefix(tracks[curTrackIndex].Uri, "http") {
 				go func() {
 					time.Sleep(time.Millisecond * 200)
 				}()
@@ -286,17 +269,13 @@ func (pl *Player) seekWith(mpdc *mpd.Client, progress time.Duration) error {
 
 func (pl *Player) Seek(trackIndex int, progress time.Duration) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
-		if playlistLength, ok := playlistLength(mpdc); !ok {
-			return fmt.Errorf("Unable to determine playlistlength")
-		} else if trackIndex >= playlistLength {
-			pl.Emit("playlist-end")
-			return nil
-		}
-
 		if trackIndex >= 0 {
-			if err := mpdc.Play(trackIndex); err != nil {
-				return err
+			if playlistLength, ok := playlistLength(mpdc); !ok {
+				return fmt.Errorf("Unable to determine playlistlength")
+			} else if trackIndex >= playlistLength {
+				return pl.SetState(player.PlayStateStopped)
 			}
+			return mpdc.Play(trackIndex)
 		}
 		if progress >= 0 {
 			return pl.seekWith(mpdc, progress)
@@ -336,14 +315,6 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 		if err != nil {
 			return err
 		}
-
-		// Don't attempt to start playback, just immediately end the
-		// playlist.
-		if status["playlistlength"] == "0" {
-			pl.Emit("playlist-end")
-			return nil
-		}
-
 		if status["state"] == "stop" {
 			return mpdc.Play(0)
 		} else {

@@ -69,9 +69,6 @@ func (pl *Player) eventLoop() {
 				if len(line) >= 3 && (line[2] == "load_done" || line[2] == "move" || line[2] == "delete") {
 					pl.Emit("playlist")
 				}
-				if len(line) >= 2 && line[2] == "stop" {
-					pl.maybeEmitPlaylistEnd()
-				}
 
 			case (line[1] == "play" || line[1] == "stop" || line[1] == "pause"):
 				pl.Emit("playstate")
@@ -137,19 +134,6 @@ func (pl *Player) currentTrackIndex() (int, error) {
 		return -1, err
 	}
 	return strconv.Atoi(res[3])
-}
-
-// Checks wether the playlist-end event should be emitted and fires it if no
-// more tracks are available for playing.
-func (pl *Player) maybeEmitPlaylistEnd() error {
-	currentTrackIndex, err := pl.currentTrackIndex()
-	if err != nil {
-		return err
-	}
-	if currentTrackIndex == -1 {
-		pl.Emit("playlist-end")
-	}
-	return nil
 }
 
 func (pl *Player) Tracks() ([]player.Track, error) {
@@ -272,12 +256,11 @@ func (pl *Player) Seek(trackIndex int, offset time.Duration) error {
 		if err != nil {
 			return err
 		}
-		if currentTrackIndex == plistLen-1 {
-			pl.Emit("playlist-end")
+		if currentTrackIndex < plistLen-1 {
+			_, err := pl.Serv.request(pl.ID, "playlist", "index", strconv.Itoa(trackIndex))
+			return err
 		} else {
-			if _, err := pl.Serv.request(pl.ID, "playlist", "index", strconv.Itoa(trackIndex)); err != nil {
-				return err
-			}
+			return pl.SetState(player.PlayStateStopped)
 		}
 	}
 
@@ -287,9 +270,8 @@ func (pl *Player) Seek(trackIndex int, offset time.Duration) error {
 			return err
 		}
 		if currentTrackIndex != -1 {
-			if _, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second))); err != nil {
-				return err
-			}
+			_, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second)))
+			return err
 		}
 	}
 	return nil
@@ -315,9 +297,6 @@ func (pl *Player) State() (player.PlayState, error) {
 func (pl *Player) SetState(state player.PlayState) error {
 	switch state {
 	case player.PlayStatePlaying:
-		if err := pl.maybeEmitPlaylistEnd(); err != nil {
-			return err
-		}
 		_, err := pl.Serv.request(pl.ID, "play")
 		return err
 	case player.PlayStatePaused:

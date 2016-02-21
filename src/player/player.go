@@ -112,8 +112,6 @@ type Player interface {
 	// Gets the event emitter for this player. The following events are emitted:
 	//   "playlist"     After the playlist was changed. Includes changes to the
 	//                  currently playing track.
-	//   "playlist-end" After the playlist has ended or an attempt was made to
-	//                  play a track when no more tracks are available for playing.
 	//   "playstate"    After the playstate was changed.
 	//   "progress"     After the playback offset of the currently playing track was changed.
 	//   "tracks"       After the track library was changed.

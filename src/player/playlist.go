@@ -39,28 +39,38 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 		for {
 			select {
 			case event := <-events:
-				if event != "playlist-end" {
+				if event != "playstate" && event != "playlist" {
 					continue
 				}
+				plist, currentTrackIndex, err := pl.Playlist()
+				if err != nil {
+					com <- err
+					return
+				}
+				state, err := pl.State()
+				if err != nil {
+					com <- err
+					return
+				}
+				if state != PlayStateStopped && currentTrackIndex != -1 {
+					continue
+				}
+
 				track, ok := iter.NextTrack()
 				if !ok {
 					break outer
 				}
-				if plist, _, err := pl.Playlist(); err != nil {
+				if err := plist.Insert(-1, track); err != nil {
 					com <- err
 					return
-				} else if err := plist.Insert(-1, track); err != nil {
-					com <- err
-					return
-				} else {
-					tracks, err := plist.Tracks()
-					if err != nil {
-						com <- err
-						return
-					}
-					pl.SetState(PlayStatePlaying)
-					pl.Seek(len(tracks)-1, -1)
 				}
+				tracks, err := plist.Tracks()
+				if err != nil {
+					com <- err
+					return
+				}
+				pl.SetState(PlayStatePlaying)
+				pl.Seek(len(tracks)-1, -1)
 
 			case <-com:
 				break outer
