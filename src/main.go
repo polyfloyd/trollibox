@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"regexp"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -26,8 +25,8 @@ import (
 )
 
 const (
-	PUBLIC   = "public"
-	CONFFILE = "config.json"
+	PUBLIC_DIR = "public"
+	CONFFILE   = "config.json"
 )
 
 var (
@@ -35,11 +34,7 @@ var (
 	VERSION = strings.Trim(string(assets.MustAsset("_VERSION")), "\n ")
 )
 
-var (
-	config  Config
-	static  map[string][]string
-	players = map[string]player.Player{}
-)
+var static = getStaticAssets(assets.AssetNames())
 
 type Config struct {
 	Address string `json:"listen-address"`
@@ -84,14 +79,17 @@ func (h AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-	log.Printf("Version: %v (%v)\n", VERSION, BUILD)
-
-	// Prevent blocking routines to lock up the whole program
-	runtime.GOMAXPROCS(8)
-
 	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
+	printVersion := flag.Bool("version", false, "Print the version string")
 	flag.Parse()
 
+	if *printVersion {
+		fmt.Printf("Version: %v (%v)\n", VERSION, BUILD)
+		return
+	}
+
+	log.Printf("Version: %v (%v)\n", VERSION, BUILD)
+	var config Config
 	if err := config.Load(*configFile); err != nil {
 		log.Fatal(err)
 	}
@@ -111,49 +109,10 @@ func main() {
 		log.Fatalf("Unable to create queuer: %v", err)
 	}
 
-	addPlayer := func(pl player.Player, name string) error {
-		if match, _ := regexp.MatchString("^\\w+$", name); !match {
-			return fmt.Errorf("Invalid player name: %q", name)
-		}
-		if _, ok := players[name]; ok {
-			return fmt.Errorf("Duplicate player name: %q", name)
-		}
-		players[name] = pl
-		return nil
+	players, err := connectToPlayers(&config)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	for _, mpdConf := range config.Mpd {
-		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
-		if err != nil {
-			log.Fatalf("Unable to create MPD player: %v", err)
-		}
-		if err := addPlayer(mpdPlayer, mpdConf.Name); err != nil {
-			log.Fatal(err)
-		}
-	}
-	if config.SlimServer != nil {
-		slimServ, err := slimserver.Connect(
-			config.SlimServer.Network,
-			config.SlimServer.Address,
-			config.SlimServer.Username,
-			config.SlimServer.Password,
-			config.SlimServer.WebUrl,
-		)
-		if err != nil {
-			log.Fatalf("Unable to connect to SlimServer: %v", err)
-		}
-		players, err := slimServ.Players()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		for _, pl := range players {
-			if err := addPlayer(pl, pl.Name); err != nil {
-				log.Fatal(err)
-			}
-		}
-	}
-
 	if len(players) == 0 {
 		log.Fatal("No players configured")
 	}
@@ -181,9 +140,11 @@ func main() {
 		}(cache, name)
 	}
 
-	rawServer := &player.RawTrackServer{
-		UrlRoot: fmt.Sprintf("%sdata/raw", DetermineFullURLRoot(config.URLRoot, config.Address)),
+	fullUrlRoot, err := determineFullURLRoot(config.URLRoot, config.Address)
+	if err != nil {
+		log.Fatal(err)
 	}
+	rawServer := &player.RawTrackServer{UrlRoot: fmt.Sprintf("%sdata/raw", fullUrlRoot)}
 
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
@@ -192,17 +153,16 @@ func main() {
 			playerOnline := func(r *http.Request, rm *mux.RouteMatch) bool {
 				return pl.Available()
 			}
-			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(name))
+			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(&config, players, name))
 			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuer, rawServer)
 		}(name, pl)
 	}
 
-	static = getStaticAssets(assets.AssetNames())
 	for _, file := range assets.AssetNames() {
-		if !strings.HasPrefix(file, PUBLIC) {
+		if !strings.HasPrefix(file, PUBLIC_DIR) {
 			continue
 		}
-		urlPath := strings.TrimPrefix(file, PUBLIC)
+		urlPath := strings.TrimPrefix(file, PUBLIC_DIR)
 		r.Path(urlPath).Handler(AssetServeHandler(file))
 	}
 	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb, rawServer)
@@ -215,21 +175,65 @@ func main() {
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	log.Fatalf("Unable to start webserver: %v", server.ListenAndServe())
+	log.Fatalf("Error running webserver: %v", server.ListenAndServe())
 }
 
-func getStaticAssets(files []string) (static map[string][]string) {
-	static = map[string][]string{
+func connectToPlayers(config *Config) (map[string]player.Player, error) {
+	players := map[string]player.Player{}
+	addPlayer := func(pl player.Player, name string) error {
+		if match, _ := regexp.MatchString("^\\w+$", name); !match {
+			return fmt.Errorf("Invalid player name: %q", name)
+		}
+		if _, ok := players[name]; ok {
+			return fmt.Errorf("Duplicate player name: %q", name)
+		}
+		players[name] = pl
+		return nil
+	}
+
+	for _, mpdConf := range config.Mpd {
+		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to connect to MPD: %v", err)
+		}
+		if err := addPlayer(mpdPlayer, mpdConf.Name); err != nil {
+			return nil, err
+		}
+	}
+	if config.SlimServer != nil {
+		slimServ, err := slimserver.Connect(
+			config.SlimServer.Network,
+			config.SlimServer.Address,
+			config.SlimServer.Username,
+			config.SlimServer.Password,
+			config.SlimServer.WebUrl,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to connect to SlimServer: %v", err)
+		}
+		players, err := slimServ.Players()
+		if err != nil {
+			return nil, err
+		}
+		for _, pl := range players {
+			if err := addPlayer(pl, pl.Name); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return players, nil
+}
+
+func getStaticAssets(files []string) map[string][]string {
+	static := map[string][]string{
 		"js":  []string{},
 		"css": []string{},
 	}
-
 	for _, file := range files {
-		if !strings.HasPrefix(file, PUBLIC) {
+		if !strings.HasPrefix(file, PUBLIC_DIR) {
 			continue
 		}
-		urlPath := strings.TrimPrefix(file, PUBLIC+"/")
-
+		urlPath := strings.TrimPrefix(file, PUBLIC_DIR+"/")
 		switch path.Ext(file) {
 		case ".css":
 			static["css"] = append(static["css"], urlPath)
@@ -237,15 +241,39 @@ func getStaticAssets(files []string) (static map[string][]string) {
 			static["js"] = append(static["js"], urlPath)
 		}
 	}
-
 	for _, a := range static {
 		sort.Strings(a)
 	}
-
-	return
+	return static
 }
 
-func GetBaseParamMap() map[string]interface{} {
+func determineFullURLRoot(root, address string) (string, error) {
+	// Handle "http://host:port/"
+	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
+		return root, nil
+	}
+	// Handle "//host:port/"
+	if regexp.MustCompile("^\\/\\/.").MatchString(root) {
+		// Assume plain HTTP. If you are smart enough to set up HTTPS you are
+		// also smart enough to configure the URLRoot.
+		return "http:" + root, nil
+	}
+	// Handle "/"
+	if root == "/" {
+		i := strings.LastIndex(address, ":")
+		host, port := address[:i], address[i+1:]
+		if host == "" || host == "0.0.0.0" {
+			host = "127.0.0.1"
+		} else if host == "[::]" {
+			host = "[::1]"
+		}
+		return fmt.Sprintf("http://%s:%s/", host, port), nil
+	}
+	// Give up
+	return "", fmt.Errorf("Unsupported URL Root format: %q", root)
+}
+
+func baseParamMap(config *Config, players map[string]player.Player) map[string]interface{} {
 	playerNames := make([]string, 0, len(players))
 	for name := range players {
 		playerNames = append(playerNames, name)
@@ -258,30 +286,4 @@ func GetBaseParamMap() map[string]interface{} {
 		"time":    time.Now(),
 		"players": playerNames,
 	}
-}
-
-func DetermineFullURLRoot(root, address string) string {
-	// Handle "http://host:port/"
-	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
-		return root
-	}
-
-	// Handle "//host:port/"
-	if regexp.MustCompile("^\\/\\/.").MatchString(root) {
-		return "http:" + root
-	}
-
-	// Handle "/"
-	if root == "/" {
-		i := strings.LastIndex(address, ":")
-		host, port := address[:i], address[i+1:]
-		if host == "" || host == "0.0.0.0" {
-			host = "127.0.0.1"
-		} else if host == "[::]" {
-			host = "[::1]"
-		}
-		return fmt.Sprintf("http://%s:%s/", host, port)
-	}
-
-	panic(fmt.Sprintf("Unsupported URL Root format %v", root))
 }
