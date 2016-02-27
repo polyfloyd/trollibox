@@ -103,21 +103,21 @@ func pltrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 
 func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuer *player.Queuer, rawServer *player.RawTrackServer) {
 	libs := []player.Library{pl, streamdb, rawServer}
-	r.Path("/playstate").Methods("GET").HandlerFunc(htPlayerGetPlaystate(pl))
-	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
-	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
-	r.Path("/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
 	r.Path("/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl, libs))
 	r.Path("/playlist").Methods("PUT").HandlerFunc(htPlayerPlaylistInsert(pl))
 	r.Path("/playlist").Methods("PATCH").HandlerFunc(htPlayerPlaylistMove(pl))
 	r.Path("/playlist").Methods("DELETE").HandlerFunc(htPlayerPlaylistRemove(pl))
+	r.Path("/playlist/appendraw").Methods("POST").HandlerFunc(htRawTrackAdd(pl, rawServer))
+	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
 	r.Path("/time").Methods("GET").HandlerFunc(htPlayerGetTime(pl))
 	r.Path("/time").Methods("POST").HandlerFunc(htPlayerSetTime(pl))
+	r.Path("/playstate").Methods("GET").HandlerFunc(htPlayerGetPlaystate(pl))
+	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
+	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
+	r.Path("/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
-	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(libs))
-	r.Path("/next").Methods("POST").HandlerFunc(htPlayerNext(pl))
-	r.Path("/appendraw").Methods("POST").HandlerFunc(htRawTrackAdd(pl, rawServer))
+	r.Path("/tracks/art").Methods("GET").HandlerFunc(htTrackArt(libs))
 	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, streamdb, queuer)))
 }
 

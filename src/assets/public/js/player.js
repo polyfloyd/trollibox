@@ -313,7 +313,7 @@ var Player = Backbone.Model.extend({
 		});
 
 		$.ajax({
-			url:         URLROOT+'data/player/'+this.name+'/appendraw',
+			url:         URLROOT+'data/player/'+this.name+'/playlist/appendraw',
 			method:      'POST',
 			context:     this,
 			data:        form,
