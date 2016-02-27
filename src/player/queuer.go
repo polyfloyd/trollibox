@@ -266,20 +266,19 @@ type queuerIterator struct {
 	queuer *Queuer
 }
 
-func (qi queuerIterator) NextTrack() (PlaylistTrack, bool) {
+func (qi queuerIterator) NextTrack() (Track, TrackMeta, bool) {
 	tracks, err := qi.player.Tracks()
 	if err != nil {
-		return PlaylistTrack{}, false
+		return Track{}, TrackMeta{}, false
 	}
 	track := qi.queuer.SelectRandomTrack(tracks)
 	if track == nil {
 		track = qi.queuer.RandomTrack(tracks)
 		if track == nil {
-			return PlaylistTrack{}, false
+			return Track{}, TrackMeta{}, false
 		}
 	}
-	return PlaylistTrack{
-		Track:    *track,
+	return *track, TrackMeta{
 		QueuedBy: "system",
 	}, true
 }

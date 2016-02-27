@@ -22,14 +22,14 @@ var Hotkeys = {
 		$scope.bind('keydown', 'right', function() {
 			var cur = player.get('current');
 			if (!cur) return;
-			var pr = player.get('progress') + SEEK_STEP;
-			player.set('progress', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
+			var pr = player.get('time') + SEEK_STEP;
+			player.set('time', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
 		});
 		$scope.bind('keydown', 'left', function() {
 			var cur = player.get('current');
 			if (!cur) return;
-			var pr = player.get('progress') - SEEK_STEP;
-			player.set('progress', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
+			var pr = player.get('time') - SEEK_STEP;
+			player.set('time', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
 		});
 
 		var VOL_STEP = 0.05;

@@ -3,7 +3,7 @@ package player
 type Playlist interface {
 	// Insert a bunch of tracks into the playlist starting at the specified
 	// position. Position -1 can be used to append to the end of the playlist.
-	Insert(pos int, track ...PlaylistTrack) error
+	Insert(pos int, tracks ...Track) error
 
 	// Moves a track from position A to B. An error is returned if at least one
 	// of the positions is out of range.
@@ -13,13 +13,26 @@ type Playlist interface {
 	Remove(pos ...int) error
 
 	// Returns all tracks in the playlist.
-	Tracks() ([]PlaylistTrack, error)
+	Tracks() ([]Track, error)
+
+	// Len() returns the total number of tracks in the playlist.
+	Len() (int, error)
+}
+
+// A MetaPlaylist is used as the main playlist of a player. It allows metadata
+// specific to tracks in the playlist to be persisted.
+type MetaPlaylist interface {
+	Playlist
+
+	InsertWithMeta(pos int, tracks []Track, meta []TrackMeta) error
+
+	Meta() ([]TrackMeta, error)
 }
 
 type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end.
-	NextTrack() (PlaylistTrack, bool)
+	NextTrack() (Track, TrackMeta, bool)
 }
 
 // Attaches a listener to the specified player. The iterator is used to get
@@ -42,7 +55,8 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 				if event != "playstate" && event != "playlist" {
 					continue
 				}
-				plist, currentTrackIndex, err := pl.Playlist()
+				plist := pl.Playlist()
+				trackIndex, err := pl.TrackIndex()
 				if err != nil {
 					com <- err
 					return
@@ -52,15 +66,15 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 					com <- err
 					return
 				}
-				if state != PlayStateStopped && currentTrackIndex != -1 {
+				if state != PlayStateStopped && trackIndex != -1 {
 					continue
 				}
 
-				track, ok := iter.NextTrack()
+				track, meta, ok := iter.NextTrack()
 				if !ok {
 					break outer
 				}
-				if err := plist.Insert(-1, track); err != nil {
+				if err := plist.InsertWithMeta(-1, []Track{track}, []TrackMeta{meta}); err != nil {
 					com <- err
 					return
 				}
@@ -70,7 +84,7 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 					return
 				}
 				pl.SetState(PlayStatePlaying)
-				pl.Seek(len(tracks)-1, -1)
+				pl.SetTrackIndex(len(tracks) - 1)
 
 			case <-com:
 				break outer

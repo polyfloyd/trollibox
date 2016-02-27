@@ -4,7 +4,7 @@ var Player = Backbone.Model.extend({
 	defaults: {
 		'current':    -1,
 		'playlist':   [],
-		'progress':   0,
+		'time':       0,
 		'queuerules': [],
 		'state':      'stopped',
 		'streams':    [],
@@ -22,8 +22,8 @@ var Player = Backbone.Model.extend({
 		this.attachServerReloader('server-event:volume', '/player/'+this.name+'/volume', function(data) {
 			this.setInternal('volume', data.volume);
 		});
-		this.attachServerReloader('server-event:progress', '/player/'+this.name+'/progress', function(data) {
-			this.setInternal('progress', data.progress);
+		this.attachServerReloader('server-event:time', '/player/'+this.name+'/time', function(data) {
+			this.setInternal('time', data.time);
 		});
 		this.attachServerReloader('server-event:playlist', '/player/'+this.name+'/playlist', function(data) {
 			var plist = data.tracks.map(this.fillMissingTrackFields, this);
@@ -32,11 +32,7 @@ var Player = Backbone.Model.extend({
 				this.trigger('change:current');
 			}
 			this.setInternal('current', data.current);
-			if (plist.length > 0 && data.current >= 0) {
-				this.setInternal('progress', data.tracks[data.current].progress);
-			} else {
-				this.setInternal('progress', 0);
-			}
+			this.setInternal('time', data.time);
 		});
 		this.attachServerReloader('server-event:tracks', '/player/'+this.name+'/tracks', function(data) {
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
@@ -49,8 +45,8 @@ var Player = Backbone.Model.extend({
 			this.setInternal('queuerules', data.queuerules);
 		});
 
-		this.attachServerUpdater('progress', '/player/'+this.name+'/progress', function(value) {
-			return { progress: value };
+		this.attachServerUpdater('time', '/player/'+this.name+'/time', function(value) {
+			return { time: value };
 		});
 		this.attachServerUpdater('state', '/player/'+this.name+'/playstate', function(value) {
 			return { playstate: value };
@@ -195,18 +191,18 @@ var Player = Backbone.Model.extend({
 	reloadProgressUpdater: function() {
 		var self = this;
 
-		clearInterval(this.progressUpdater);
-		clearTimeout(this.progressTimeout);
+		clearInterval(this.timeUpdater);
+		clearTimeout(this.timeTimeout);
 
 		var cur = this.getCurrentTrack();
 		if (cur && this.get('state') === 'playing') {
-			this.progressUpdater = setInterval(function() {
-				self.setInternal('progress', self.get('progress') + 1);
+			this.timeUpdater = setInterval(function() {
+				self.setInternal('time', self.get('time') + 1);
 			}, 1000);
 			if (cur.duration) {
-				this.progressTimeout = setTimeout(function() {
+				this.timeTimeout = setTimeout(function() {
 					self.reload('server-event:player');
-				}, 1000 * (cur.duration - this.get('progress')));
+				}, 1000 * (cur.duration - this.get('time')));
 			}
 		}
 	},
@@ -239,7 +235,6 @@ var Player = Backbone.Model.extend({
 			var newTr = {};
 			for (var k in tr) newTr[k] = tr[k];
 			newTr.queuedby = 'user';
-			newTr.progress = 0;
 			return newTr;
 		})));
 		this.callServer('/player/'+this.name+'/playlist', 'PUT', {

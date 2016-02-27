@@ -27,7 +27,7 @@ type Player struct {
 	network, address string
 	passwd           string
 
-	playlist player.PlaylistKeeper
+	playlist player.PlaylistMetaKeeper
 
 	// Sometimes, the volume returned by MPD is invalid, so we have to take
 	// care of that ourselves.
@@ -116,27 +116,19 @@ func (pl *Player) mainLoop() {
 		switch event := <-listener; event {
 		case "mpd-player":
 			pl.Emit("playstate")
-			pl.Emit("progress")
+			pl.Emit("time")
 			fallthrough
 
 		case "mpd-playlist":
 			pl.Emit("playlist")
 
-			plist, _, err := pl.Playlist()
+			tracks, err := pl.Playlist().Tracks()
 			if err != nil {
 				log.Println(err)
 				continue
 			}
-			tracks, err := plist.Tracks()
+			curTrackIndex, err := pl.TrackIndex()
 			if err != nil {
-				log.Println(err)
-				continue
-			}
-			var curTrackIndex int
-			if err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
-				curTrackIndex, err = currentTrackIndex(mpdc)
-				return
-			}); err != nil {
 				log.Println(err)
 				continue
 			}
@@ -247,41 +239,64 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 	return tracks, err
 }
 
-func (pl *Player) Playlist() (player.Playlist, int, error) {
-	var index int
+func (pl *Player) Time() (time.Duration, error) {
+	var offset time.Duration
 	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
-		index, err = currentTrackIndex(mpdc)
+		status, err := mpdc.Status()
+		if err != nil {
+			return err
+		}
+		timef, _ := strconv.ParseFloat(status["elapsed"], 32)
+		offset = time.Duration(timef) * time.Second
 		return
 	})
-	if err != nil {
-		return nil, -1, err
-	}
-	return &pl.playlist, index, nil
+	return offset, err
 }
 
-func (pl *Player) seekWith(mpdc *mpd.Client, progress time.Duration) error {
-	index, err := currentTrackIndex(mpdc)
+func (pl *Player) setTimeWith(mpdc *mpd.Client, offset time.Duration) error {
+	index, err := pl.trackIndexWith(mpdc)
 	if err != nil {
 		return err
 	}
-	return mpdc.Seek(index, int(progress/time.Second))
+	return mpdc.Seek(index, int(offset/time.Second))
 }
 
-func (pl *Player) Seek(trackIndex int, progress time.Duration) error {
+func (pl *Player) SetTime(offset time.Duration) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
-		if trackIndex >= 0 {
-			if playlistLength, ok := playlistLength(mpdc); !ok {
-				return fmt.Errorf("Unable to determine playlistlength")
-			} else if trackIndex >= playlistLength {
-				return pl.SetState(player.PlayStateStopped)
-			}
-			return mpdc.Play(trackIndex)
-		}
-		if progress >= 0 {
-			return pl.seekWith(mpdc, progress)
-		}
-		return nil
+		return pl.setTimeWith(mpdc, offset)
 	})
+}
+
+func (pl *Player) SetTrackIndex(trackIndex int) error {
+	return pl.withMpd(func(mpdc *mpd.Client) error {
+		if plistLen, err := pl.Playlist().Len(); err != nil {
+			return err
+		} else if trackIndex >= plistLen {
+			return pl.setStateWith(mpdc, player.PlayStateStopped)
+		}
+		return mpdc.Play(trackIndex)
+	})
+}
+
+func (pl *Player) trackIndexWith(mpdc *mpd.Client) (int, error) {
+	status, err := mpdc.Status()
+	if err != nil {
+		return -1, err
+	}
+	cur, ok := statusAttrInt(status, "song")
+	if !ok {
+		return -1, nil
+	}
+	return cur, nil
+}
+
+func (pl *Player) TrackIndex() (int, error) {
+	var trackIndex int
+	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
+		trackIndex, err = pl.trackIndexWith(mpdc)
+		return
+	})
+	return trackIndex, err
 }
 
 func (pl *Player) stateWith(mpdc *mpd.Client) (player.PlayState, error) {
@@ -374,6 +389,10 @@ func (pl *Player) Available() bool {
 	return pl.withMpd(func(mpdc *mpd.Client) error { return mpdc.Ping() }) == nil
 }
 
+func (pl *Player) Playlist() player.MetaPlaylist {
+	return &pl.playlist
+}
+
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	pl.withMpd(func(mpdc *mpd.Client) error {
 		id := uriToMpd(track)
@@ -418,7 +437,7 @@ type mpdPlaylist struct {
 	player *Player
 }
 
-func (plist mpdPlaylist) Insert(pos int, tracks ...player.PlaylistTrack) error {
+func (plist mpdPlaylist) Insert(pos int, tracks ...player.Track) error {
 	return plist.player.withMpd(func(mpdc *mpd.Client) error {
 		if pos == -1 {
 			for _, track := range tracks {
@@ -461,32 +480,18 @@ func (plist mpdPlaylist) Remove(positions ...int) error {
 	})
 }
 
-func (plist mpdPlaylist) Tracks() ([]player.PlaylistTrack, error) {
-	var tracks []player.PlaylistTrack
+func (plist mpdPlaylist) Tracks() ([]player.Track, error) {
+	var tracks []player.Track
 	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistInfo(-1, -1)
 		if err != nil {
 			return err
 		}
-		tracks = make([]player.PlaylistTrack, len(songs))
+		tracks = make([]player.Track, len(songs))
 		for i, song := range songs {
-			if err := trackFromMpdSong(mpdc, &song, &tracks[i].Track); err != nil {
+			if err := trackFromMpdSong(mpdc, &song, &tracks[i]); err != nil {
 				return err
 			}
-		}
-
-		// Update the progress attribute of the currently playing track.
-		currentTrackIndex, err := currentTrackIndex(mpdc)
-		if err != nil {
-			return err
-		}
-		if currentTrackIndex >= 0 {
-			status, err := mpdc.Status()
-			if err != nil {
-				return err
-			}
-			progressf, _ := strconv.ParseFloat(status["elapsed"], 32)
-			tracks[currentTrackIndex].Progress = time.Duration(progressf) * time.Second
 		}
 		return nil
 	})
@@ -496,16 +501,12 @@ func (plist mpdPlaylist) Tracks() ([]player.PlaylistTrack, error) {
 	return tracks, nil
 }
 
-func currentTrackIndex(mpdc *mpd.Client) (int, error) {
-	status, err := mpdc.Status()
+func (plist mpdPlaylist) Len() (int, error) {
+	tracks, err := plist.Tracks()
 	if err != nil {
 		return -1, err
 	}
-	cur, ok := statusAttrInt(status, "song")
-	if !ok {
-		return -1, nil
-	}
-	return cur, nil
+	return len(tracks), err
 }
 
 func playlistLength(mpdc *mpd.Client) (int, bool) {

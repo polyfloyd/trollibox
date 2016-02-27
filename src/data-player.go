@@ -46,7 +46,7 @@ func trackJson(tr *player.Track) interface{} {
 	}
 }
 
-func plTrackJson(tr *player.PlaylistTrack) interface{} {
+func plTrackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
 	return &struct {
 		Uri         string `json:"uri"`
 		Artist      string `json:"artist,omitempty"`
@@ -60,7 +60,6 @@ func plTrackJson(tr *player.PlaylistTrack) interface{} {
 		HasArt      bool   `json:"hasart"`
 
 		QueuedBy string `json:"queuedby"`
-		Progress int    `json:"progress"`
 	}{
 		Uri:         tr.Uri,
 		Artist:      tr.Artist,
@@ -73,8 +72,7 @@ func plTrackJson(tr *player.PlaylistTrack) interface{} {
 		Duration:    int(tr.Duration / time.Second),
 		HasArt:      tr.HasArt,
 
-		QueuedBy: tr.QueuedBy,
-		Progress: int(tr.Progress / time.Second),
+		QueuedBy: meta.QueuedBy,
 	}
 }
 
@@ -86,7 +84,7 @@ func trackJsonList(inList []player.Track) (outList []interface{}) {
 	return
 }
 
-func pltrackJsonList(inList []player.PlaylistTrack, libs []player.Library) ([]interface{}, error) {
+func pltrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []player.Library) ([]interface{}, error) {
 	outList := make([]interface{}, len(inList))
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
@@ -97,9 +95,8 @@ func pltrackJsonList(inList []player.PlaylistTrack, libs []player.Library) ([]in
 		return nil, err
 	}
 
-	for i, tr := range inList {
-		tr.Track = tracks[i]
-		outList[i] = plTrackJson(&tr)
+	for i, tr := range tracks {
+		outList[i] = plTrackJson(&tr, &meta[i])
 	}
 	return outList, nil
 }
@@ -114,8 +111,8 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, qu
 	r.Path("/playlist").Methods("PUT").HandlerFunc(htPlayerPlaylistInsert(pl))
 	r.Path("/playlist").Methods("PATCH").HandlerFunc(htPlayerPlaylistMove(pl))
 	r.Path("/playlist").Methods("DELETE").HandlerFunc(htPlayerPlaylistRemove(pl))
-	r.Path("/progress").Methods("GET").HandlerFunc(htPlayerGetProgress(pl))
-	r.Path("/progress").Methods("POST").HandlerFunc(htPlayerSetProgress(pl))
+	r.Path("/time").Methods("GET").HandlerFunc(htPlayerGetTime(pl))
+	r.Path("/time").Methods("POST").HandlerFunc(htPlayerSetTime(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/art").Methods("GET").HandlerFunc(htTrackArt(libs))
@@ -153,12 +150,12 @@ func htPlayerListen(pl player.Player, streamdb *stream.DB, queuer *player.Queuer
 func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		_, currentTrackIndex, err := pl.Playlist()
+		trackIndex, err := pl.TrackIndex()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
-		if err := pl.Seek(currentTrackIndex+1, -1); err != nil {
+		if err := pl.SetTrackIndex(trackIndex + 1); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -166,11 +163,11 @@ func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Requ
 	}
 }
 
-func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerSetTime(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		var data struct {
-			Progress int `json:"progress"`
+			Time int `json:"time"`
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
@@ -178,7 +175,7 @@ func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *ht
 			return
 		}
 
-		if err := pl.Seek(-1, time.Duration(data.Progress)*time.Second); err != nil {
+		if err := pl.SetTime(time.Duration(data.Time) * time.Second); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -186,28 +183,16 @@ func htPlayerSetProgress(pl player.Player) func(res http.ResponseWriter, req *ht
 	}
 }
 
-func htPlayerGetProgress(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetTime(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		plist, currentTrackIndex, err := pl.Playlist()
+		tim, err := pl.Time()
 		if err != nil {
 			writeError(res, err)
 			return
-		}
-		tracks, err := plist.Tracks()
-		if err != nil {
-			writeError(res, err)
-			return
-		}
-
-		var progress time.Duration
-		if len(tracks) > 0 && currentTrackIndex >= 0 {
-			progress = tracks[currentTrackIndex].Progress
-		} else {
-			progress = 0
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
-			"progress": int(progress / time.Second),
+			"time": int(tim / time.Second),
 		})
 	}
 }
@@ -286,24 +271,35 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		plist, currentTrackIndex, err := pl.Playlist()
+		tracks, err := pl.Playlist().Tracks()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
-		tracks, err := plist.Tracks()
+		meta, err := pl.Playlist().Meta()
 		if err != nil {
 			writeError(res, err)
 			return
 		}
-		trJson, err := pltrackJsonList(tracks, libs)
+		trackIndex, err := pl.TrackIndex()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+		tim, err := pl.Time()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+		trJson, err := pltrackJsonList(tracks, meta, libs)
 		if err != nil {
 			writeError(res, err)
 			return
 		}
 
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
-			"current": currentTrackIndex,
+			"time":    int(tim / time.Second),
+			"current": trackIndex,
 			"tracks":  trJson,
 		})
 		if err != nil {
@@ -326,13 +322,16 @@ func htPlayerPlaylistInsert(pl player.Player) func(res http.ResponseWriter, req 
 			return
 		}
 
-		tracks := make([]player.PlaylistTrack, len(data.Tracks))
+		tracks := make([]player.Track, len(data.Tracks))
 		for i, uri := range data.Tracks {
 			tracks[i].Uri = uri
-			tracks[i].QueuedBy = "user"
 		}
-		plist, _, _ := pl.Playlist()
-		if err := plist.Insert(data.Pos, tracks...); err != nil {
+		meta := make([]player.TrackMeta, len(data.Tracks))
+		for i := range data.Tracks {
+			meta[i].QueuedBy = "user"
+		}
+		plist := pl.Playlist()
+		if err := plist.InsertWithMeta(data.Pos, tracks, meta); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -353,8 +352,7 @@ func htPlayerPlaylistMove(pl player.Player) func(res http.ResponseWriter, req *h
 			return
 		}
 
-		plist, _, _ := pl.Playlist()
-		if err := plist.Move(data.From, data.To); err != nil {
+		if err := pl.Playlist().Move(data.From, data.To); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -374,8 +372,7 @@ func htPlayerPlaylistRemove(pl player.Player) func(res http.ResponseWriter, req 
 			return
 		}
 
-		plist, _, _ := pl.Playlist()
-		if err := plist.Remove(data.Positions...); err != nil {
+		if err := pl.Playlist().Remove(data.Positions...); err != nil {
 			writeError(res, err)
 			return
 		}
@@ -462,11 +459,6 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 			writeError(res, err)
 			return
 		}
-		plist, _, err := pl.Playlist()
-		if err != nil {
-			writeError(res, err)
-			return
-		}
 
 		for {
 			part, err := mpReader.NextPart()
@@ -493,11 +485,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 					if event != "playlist" {
 						continue
 					}
-					plist, _, err := pl.Playlist()
-					if err != nil {
-						break
-					}
-					tracks, err := plist.Tracks()
+					tracks, err := pl.Playlist().Tracks()
 					if err != nil {
 						break
 					}
@@ -514,9 +502,8 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 				rawServer.Remove(track)
 			}(track)
 
-			err = plist.Insert(-1, player.PlaylistTrack{
-				Track:    track,
-				QueuedBy: "user",
+			err = pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
+				{QueuedBy: "user"},
 			})
 			if err != nil {
 				writeError(res, err)

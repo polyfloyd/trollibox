@@ -60,12 +60,6 @@ func (track Track) String() string {
 	return fmt.Sprintf("%s - %s (%v)", track.Artist, track.Title, track.Duration)
 }
 
-type PlaylistTrack struct {
-	Track
-	Progress time.Duration
-	QueuedBy string
-}
-
 // Players may use this function to extract the artist and title from other
 // track information if they are unavailable.
 func InterpolateMissingFields(track *Track) {
