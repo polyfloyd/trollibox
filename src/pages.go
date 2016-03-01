@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	assets "./assets-go"
+	"./player"
 )
 
 var pageTemplate = mkTemplate()
@@ -20,9 +21,9 @@ func getTemplate() *template.Template {
 	return pageTemplate
 }
 
-func htBrowserPage(playerName string) func(res http.ResponseWriter, req *http.Request) {
+func htBrowserPage(config *Config, players map[string]player.Player, playerName string) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		params := GetBaseParamMap()
+		params := baseParamMap(config, players)
 		params["player"] = playerName
 
 		res.Header().Set("Content-Type", "text/html")

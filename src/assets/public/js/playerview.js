@@ -10,7 +10,7 @@ var PlayerView = Backbone.View.extend({
 		'click .do-toggle-state':  'doToggleState',
 		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
-		'input .do-set-progress':  'doSetProgress',
+		'input .do-set-time':  'doSetProgress',
 		'dragover':                'doMakeDroppable',
 		'dragenter':               'doMakeDroppable',
 		'drop':                    'doAcceptRawFiles',
@@ -20,7 +20,7 @@ var PlayerView = Backbone.View.extend({
 		this.listenTo(this.model, 'change:current',  this.renderCurrent);
 		this.listenTo(this.model, 'change:current',  this.renderPlaylist);
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
-		this.listenTo(this.model, 'change:progress', this.renderProgress);
+		this.listenTo(this.model, 'change:time', this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);
 		this.listenTo(this.model, 'change:volume',   this.renderVolume);
 		this.render();
@@ -56,16 +56,16 @@ var PlayerView = Backbone.View.extend({
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby);
 		this.$('.track-duration-total').text((typeof cur.duration === 'number') ? durationToString(cur.duration) : '');
-		this.$('.do-set-progress')
+		this.$('.do-set-time')
 			.attr('max', cur.duration || 0)
 			.toggleAttr('disabled', !cur.duration);
 	},
 
 	renderProgress: function() {
-		var pr = this.model.get('progress') || 0;
+		var pr = this.model.get('time') || 0;
 		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
 		this.$('.track-duration-current').text(text);
-		this.$('.do-set-progress').val(pr);
+		this.$('.do-set-time').val(pr);
 	},
 
 	renderState: function() {
@@ -137,7 +137,7 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	doSetProgress: function() {
-		this.model.set('progress', parseInt(this.$('.do-set-progress').val(), 10));
+		this.model.set('time', parseInt(this.$('.do-set-time').val(), 10));
 	},
 
 	doSetVolume: function() {
@@ -175,7 +175,7 @@ var PlayerView = Backbone.View.extend({
 					'<span class="track-duration-current"></span>'+
 					'<span class="track-duration-total"></span>'+
 				'</p>'+
-				'<input class="do-set-progress" type="range" min="0" max="100" title="Seek in the current track" />'+
+				'<input class="do-set-time" type="range" min="0" max="100" title="Seek in the current track" />'+
 			'</div>'+
 			'<div class="input-group">'+
 				'<span class="input-group-btn">'+

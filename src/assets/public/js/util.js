@@ -87,7 +87,7 @@ function showTrackArt($elem, player, track, cb) {
 		return;
 	}
 
-	var url = URLROOT+'data/player/'+player.name+'/art?track='+encodeURIComponent(track.uri).replace(/'/g, '%27');
+	var url = URLROOT+'data/player/'+player.name+'/tracks/art?track='+encodeURIComponent(track.uri).replace(/'/g, '%27');
 	if (track.hasart) {
 		$elem.css('background-image', 'url(\''+url+'\')');
 	}

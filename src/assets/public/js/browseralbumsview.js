@@ -131,6 +131,7 @@ var BrowserAlbumsView = Backbone.View.extend({
 	),
 	albumPreviewTemplate:_.template(
 		'<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">'+
+			'<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />'+
 			'<div class="track-art">'+
 				'<span class="album-artist"><%- artist %></span>'+
 				'<span class="album-title"><%- title %></span>'+

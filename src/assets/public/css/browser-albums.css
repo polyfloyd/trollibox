@@ -42,20 +42,6 @@
 	cursor: pointer;
 }
 
-.browser-albums .tab-name-list li {
-	width: 160px;
-	height: 160px;
-}
-
-@media (max-width: 991px) {
-
-	.browser-albums .tab-name-list li {
-		width: 120px;
-		height: 120px;
-	}
-
-}
-
 .browser-albums li .track-art {
 	width: calc(100% - 8px);
 	height: calc(100% - 8px);
@@ -115,7 +101,8 @@
 }
 
 .browser-albums .tab-name-album .disc-title:before {
-	content: "Disc ";
+	content: "Disc";
+	margin-right: 0.3em;
 }
 
 .browser-albums .tab-name-album .album-title {
@@ -124,6 +111,10 @@
 
 .browser-albums .tab-name-album .album-title {
 	font-size: 1.4em;
+}
+
+.browser-albums .tab-name-album .album-duration {
+	margin: 0.3em;
 }
 
 .browser-albums .tab-name-album .album-artist {

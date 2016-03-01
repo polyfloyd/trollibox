@@ -84,15 +84,22 @@ func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
 type Player interface {
 	Library
 
-	// Returns the currently playing playlist as well as the index of the
-	// currently playing track.
-	Playlist() (plist Playlist, currentTrackIndex int, err error)
+	// Gets the time offset into the currently playing track. 0 if no track is
+	// being played.
+	Time() (time.Duration, error)
 
-	// Seeks to the absolute point in time of the specified track. This
-	// is a no-op if player has been stopped. Use -1 as trackIndex to seek in
-	// the current track.
-	Seek(trackIndex int, offset time.Duration) error
+	// SetTime Seeks to the absolute point in time of the current track. This is a
+	// no-op if player has been stopped.
+	SetTime(offset time.Duration) error
 
+	// Returns absolute index into the players' playlist.
+	TrackIndex() (int, error)
+
+	// Jumps to the specified track in the players' playlist. If the index is
+	// bigger than the length of the playlist, the playlist is ended.
+	SetTrackIndex(trackIndex int) error
+
+	// Returns the current playstate of the player.
 	State() (PlayState, error)
 
 	// Signal the player to start/resume, stop or pause playback. If the
@@ -109,15 +116,15 @@ type Player interface {
 	// Reports wether the player is online and reachable.
 	Available() bool
 
+	// Returns the currently playing playlist.
+	Playlist() MetaPlaylist
+
 	// Gets the event emitter for this player. The following events are emitted:
-	//   "playlist"     After the playlist was changed. Includes changes to the
-	//                  currently playing track.
-	//   "playlist-end" After the playlist has ended or an attempt was made to
-	//                  play a track when no more tracks are available for playing.
+	//   "playlist"     After the playlist or the current playlists' was changed.
 	//   "playstate"    After the playstate was changed.
-	//   "progress"     After the playback offset of the currently playing track was changed.
-	//   "tracks"       After the track library was changed.
+	//   "time"         After the playback offset of the currently playing track was changed.
 	//   "volume"       After the volume was changed.
+	//   "tracks"       After the track library was changed.
 	//   "availability" After the player comes online or goes offline.
 	Events() *util.Emitter
 }

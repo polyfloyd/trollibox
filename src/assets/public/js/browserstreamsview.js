@@ -74,16 +74,15 @@ var BrowserStreamsView = Backbone.View.extend({
 	},
 
 	template: _.template(
-		'<div>'+
-			'<h2>'+
-				'Streams '+
-				'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
-			'</h2>'+
-			'<ul class="result-list grid-list"></ul>'+
-		'</div>'
+		'<h2>'+
+			'Streams '+
+			'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
+		'</h2>'+
+		'<ul class="result-list grid-list"></ul>'
 	),
 	streamTemplate: _.template(
 		'<li title="<%- title %>">'+
+			'<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />'+
 			'<div class="track-art">'+
 				'<span class="stream-title"><%- title %></span>'+
 				'<button class="glyphicon glyphicon-remove do-remove"></button>'+
