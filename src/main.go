@@ -42,6 +42,7 @@ type Config struct {
 
 	StorageDir string `json:"storage-dir"`
 
+	AutoQueue     bool   `json:"autoqueue"`
 	DefaultPlayer string `json:"default-player"`
 
 	Mpd []struct {
@@ -132,12 +133,17 @@ func main() {
 		cache := &player.TrackCache{Player: pl}
 		players[name] = cache
 		go cache.Run()
-		go func(pl player.Player, name string) {
-			for {
-				ch := player.AutoAppend(pl, queuer.Iterator(pl))
-				log.Printf("Error while autoqueueing for %q: %v", name, <-ch)
-			}
-		}(cache, name)
+	}
+
+	if config.AutoQueue {
+		for name, pl := range players {
+			go func(pl player.Player, name string) {
+				for {
+					ch := player.AutoAppend(pl, queuer.Iterator(pl))
+					log.Printf("Error while autoqueueing for %q: %v", name, <-ch)
+				}
+			}(pl, name)
+		}
 	}
 
 	fullUrlRoot, err := determineFullURLRoot(config.URLRoot, config.Address)

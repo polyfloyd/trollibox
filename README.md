@@ -61,6 +61,10 @@ to change:
   // saved to configured players.
   "storage-dir": "~/.config/trollibox",
 
+  // Enable or disable random tracks being automatically queued when the
+  // playlist ends.
+  "autoqueue": true,
+
   // Sets the default player by name. Leave empty to let Trollibox select a
   // random player.
   "default-player": "",

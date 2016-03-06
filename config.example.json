@@ -4,6 +4,7 @@
 
 	"storage-dir": "~/.config/trollibox",
 
+	"autoqueue":      true,
 	"default-player": "",
 
 	"mpd": [
