@@ -309,6 +309,13 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 	case player.PlayStatePaused:
 		return mpdc.Pause(true)
 	case player.PlayStatePlaying:
+		if plistLen, err := pl.Playlist().Len(); err != nil {
+			return err
+		} else if plistLen == 0 {
+			pl.Emit("playstate")
+			return nil
+		}
+
 		status, err := mpdc.Status()
 		if err != nil {
 			return err
