@@ -37,11 +37,10 @@ func (store *PersistentStorage) Value() interface{} {
 }
 
 func (store *PersistentStorage) SetValue(value interface{}) error {
-	store.value = value
-
 	store.fileLock.Lock()
 	defer store.fileLock.Unlock()
 
+	store.value = value
 	file, err := os.Create(store.file)
 	if err != nil {
 		return err
