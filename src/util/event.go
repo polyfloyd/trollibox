@@ -18,21 +18,16 @@ type Emitter struct {
 }
 
 func (emitter *Emitter) init() {
-	// Double checked locking.
 	if emitter.listeners == nil {
-		emitter.lock.Lock()
-		if emitter.listeners == nil {
-			emitter.listeners = map[chan string]struct{}{}
-			emitter.releaseReset = map[string]chan struct{}{}
-		}
-		emitter.lock.Unlock()
+		emitter.listeners = map[chan string]struct{}{}
+		emitter.releaseReset = map[string]chan struct{}{}
 	}
 }
 
 func (emitter *Emitter) Emit(event string) {
-	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
+	emitter.init()
 
 	if emitter.Release == 0 {
 		for l := range emitter.listeners {
@@ -75,9 +70,9 @@ func (emitter *Emitter) Emit(event string) {
 }
 
 func (emitter *Emitter) Listen() chan string {
-	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
+	emitter.init()
 
 	ch := make(chan string, 16)
 	emitter.listeners[ch] = struct{}{}
@@ -85,9 +80,9 @@ func (emitter *Emitter) Listen() chan string {
 }
 
 func (emitter *Emitter) Unlisten(ch chan string) {
-	emitter.init()
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
+	emitter.init()
 
 	close(ch)
 	delete(emitter.listeners, ch)

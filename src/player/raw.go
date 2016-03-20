@@ -28,15 +28,11 @@ type RawTrackServer struct {
 
 func (rp *RawTrackServer) init() {
 	if rp.tracks == nil {
-		rp.lock.Lock()
-		if rp.tracks == nil {
-			rp.tracks = map[string]rawTrack{}
-		}
+		rp.tracks = map[string]rawTrack{}
 		if rp.TmpDir == "" {
 			rp.TmpDir = path.Join(os.TempDir(), "trollibox-raw")
 		}
 		os.MkdirAll(rp.TmpDir, 0755|os.ModeTemporary)
-		rp.lock.Unlock()
 	}
 }
 
@@ -54,7 +50,9 @@ func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 }
 
 func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
+	rp.lock.Lock()
 	rp.init()
+	rp.lock.Unlock()
 
 	file, err := ioutil.TempFile(rp.TmpDir, "")
 	if err != nil {
@@ -74,9 +72,9 @@ func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
 }
 
 func (rp *RawTrackServer) Tracks() ([]Track, error) {
-	rp.init()
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
+	rp.init()
 
 	tracks := make([]Track, 0, len(rp.tracks))
 	for trackId, rt := range rp.tracks {
@@ -89,9 +87,9 @@ func (rp *RawTrackServer) Tracks() ([]Track, error) {
 }
 
 func (rp *RawTrackServer) TrackInfo(uris ...string) ([]Track, error) {
-	rp.init()
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
+	rp.init()
 
 	tracks := make([]Track, len(uris))
 	for i, uri := range uris {
@@ -111,9 +109,9 @@ func (rp *RawTrackServer) TrackArt(track string) (io.ReadCloser, string) {
 }
 
 func (rp *RawTrackServer) Remove(track Track) error {
-	rp.init()
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
+	rp.init()
 
 	trackId := rawIdFromUrl(track.Uri)
 	rt, ok := rp.tracks[trackId]
