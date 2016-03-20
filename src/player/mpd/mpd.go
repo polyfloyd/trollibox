@@ -122,23 +122,6 @@ func (pl *Player) mainLoop() {
 		case "mpd-playlist":
 			pl.Emit("playlist")
 
-			tracks, err := pl.Playlist().Tracks()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-			curTrackIndex, err := pl.TrackIndex()
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
-			if len(tracks) > 0 && curTrackIndex != -1 && strings.HasPrefix(tracks[curTrackIndex].Uri, "http") {
-				go func() {
-					time.Sleep(time.Millisecond * 200)
-				}()
-			}
-
 		case "mpd-mixer":
 			pl.Emit("volume")
 
