@@ -1,6 +1,6 @@
 'use strict';
 
-var BrowserStreamsView = Backbone.View.extend({
+var BrowserStreamsView = BrowserView.extend({
 	tagName:   'div',
 	className: 'view browser-streams',
 

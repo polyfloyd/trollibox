@@ -1,6 +1,6 @@
 'use strict';
 
-var BrowserSearchView = Backbone.View.extend({
+var BrowserSearchView = BrowserView.extend({
 	tagName:   'div',
 	className: 'view browser-search',
 

@@ -1,6 +1,6 @@
 'use strict';
 
-var BrowserAlbumsView = Backbone.View.extend({
+var BrowserAlbumsView = BrowserView.extend({
 	tagName:   'div',
 	className: 'view browser-albums',
 

@@ -1,6 +1,6 @@
 'use strict';
 
-var BrowserFilesView = Backbone.View.extend({
+var BrowserFilesView = BrowserView.extend({
 	tagName:   'div',
 	className: 'view browser-files',
 
@@ -61,14 +61,32 @@ var BrowserFilesView = Backbone.View.extend({
 
 	render: function() {
 		this.tabs.clearTabs();
-		this.showDirectory('/');
+		try {
+			this.showDirectory(this.getState());
+		} catch (err) {
+			this.showDirectory('/');
+		}
+	},
+
+	setState: function(state) {
+		this.shownDirectory = this.trimSlashes(state || '');
+		try {
+			this.showDirectory(this.shownDirectory);
+		} catch (err) {
+			this.showDirectory('/');
+		}
+		this.trigger('change-state', this.shownDirectory);
+	},
+
+	getState: function() {
+		return this.trimSlashes(this.shownDirectory || '');
 	},
 
 	showDirectory: function(path, lastOnly) {
 		var self = this;
 
-		path = this.trimSlashes(path);
-		var pathParts = path.split('/');
+		var trimmedPath = this.trimSlashes(path);
+		var pathParts = trimmedPath.split('/');
 
 		var shownDirs = [ this.getFile('/') ].concat(pathParts.reduce(function(prev, pathPart) {
 			var path = self.join(prev[0], pathPart);
@@ -82,7 +100,7 @@ var BrowserFilesView = Backbone.View.extend({
 			return !shownDirs;
 		});
 		if (pathNotExist) {
-			return;
+			throw new Error('The directory path "'+trimmedPath+'" does not exist');
 		}
 
 		shownDirs.forEach(function(dir, i) {
@@ -119,7 +137,9 @@ var BrowserFilesView = Backbone.View.extend({
 				$tab.find('.result-list > li.active').removeClass('active');
 				var $li = $(this);
 				$li.addClass('active');
-				self.showDirectory($li.attr('data-path'), true);
+				var targetPath = $li.attr('data-path');
+				self.showDirectory(targetPath, true);
+				self.trigger('change-state', targetPath);
 			});
 			$tab.find('.result-list > li.type-track').on('click', function() {
 				var $li = $(this);

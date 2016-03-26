@@ -1,6 +1,6 @@
 'use strict';
 
-var BrowserBrowseView = Backbone.View.extend({
+var BrowserBrowseView = BrowserView.extend({
 	tagName:   'div',
 	className: 'view browser-browse',
 

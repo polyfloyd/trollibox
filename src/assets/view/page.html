@@ -48,31 +48,31 @@
 					<li class="nav-item show-view view-name-search">
 						<a
 							class="glyphicon glyphicon-search"
-							href="/browse/search"
+							href="/browse/search/"
 							title="Search Everything"></a>
 					</li>
 					<li class="nav-item show-view view-name-albums">
 						<a
 							class="glyphicon glyphicon-cd"
-							href="/browse/albums"
+							href="/browse/albums/"
 							title="Browse Albums"></a>
 					</li>
 					<li class="nav-item show-view view-name-browse">
 						<a
 							class="glyphicon glyphicon-music"
-							href="/browse/browse"
+							href="/browse/browse/"
 							title="Browse Artists By Genre"></a>
 					</li>
 					<li class="nav-item show-view view-name-files">
 						<a
 							class="glyphicon glyphicon-folder-open"
-							href="/browse/files"
+							href="/browse/files/"
 							title="Browse Files"></a>
 					</li>
 					<li class="nav-item show-view view-name-streams">
 						<a
 							class="glyphicon glyphicon-globe"
-							href="/browse/streams"
+							href="/browse/streams/"
 							title="Network Streams"></a>
 					</li>
 					<li class="nav-item show-view view-name-queuer">
@@ -153,15 +153,16 @@
 			};
 			var app = new Backbone.Router({
 				routes: {
-					'browse/search':  'search',
-					'browse/albums':  'albums',
-					'browse/browse':  'browse',
-					'browse/files':   'files',
-					'browse/streams': 'streams',
-					'queuer':         'queuer',
-					'player':         'player',
+					'browse/search/':  'search',
+					'browse/albums/':  'albums',
+					'browse/browse/':  'browse',
+					'browse/files/':   'files',
+					'browse/streams/': 'streams',
+					'queuer':          'queuer',
+					'player':          'player',
 				},
 			});
+			app.route(/^browse\/files(.*)$/, 'files');
 
 			function routeByName(name) {
 				return Object.keys(app.routes).find(function(route) {
@@ -169,12 +170,13 @@
 				});
 			}
 
-			app.on('route', function(route) {
+			app.on('route', function(route, state) {
 				// Toggle visibility of the views.
 				if (route !== 'player') {
 					for (var k in views) {
 						views[k].$el.toggleClass('hidden', k !== route);
 					}
+					views[route].setState(state[0]);
 				}
 
 				// Toggle the 'active' class of the navigation buttons.
@@ -190,15 +192,19 @@
 			});
 
 			app.once('route', function(initRoute) {
-				// Make sure to focus on the view when it emits a request-focus event.
 				Object.keys(views).forEach(function(k) {
 					if (k !== initRoute) {
 						views[k].$el.addClass('hidden');
 					}
 					$('.views-container').append(views[k].$el);
+					// Make sure to focus on the view when it emits a request-focus event.
 					views[k].on('request-focus', function() {
 						app.navigate(routeByName(k), { trigger: true });
 					});
+					// Listen to view state changes.
+					views[k].on('change-state', function(state) {
+						app.navigate(routeByName(k)+state, { trigger: false });
+					})
 				});
 				// Enable navigation by clicking one of the naviation buttons.
 				$('.nav > .nav-item > a').each(function(i, el) {
@@ -220,7 +226,7 @@
 
 			if (!Backbone.history.start()) {
 				// Go to the search view if the current page mathces no route.
-				app.navigate('browse/search', {
+				app.navigate('browse/search/', {
 					trigger: true,
 					replace: true,
 				});
