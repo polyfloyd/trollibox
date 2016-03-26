@@ -176,6 +176,8 @@
 					for (var k in views) {
 						views[k].$el.toggleClass('hidden', k !== route);
 					}
+				}
+				if (!!routeByName(route).match(/^browse/)) {
 					views[route].setState(state[0]);
 				}
 
