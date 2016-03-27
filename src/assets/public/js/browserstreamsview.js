@@ -8,7 +8,8 @@ var BrowserStreamsView = BrowserView.extend({
 		'click .do-add-stream': 'doShowAddDialog',
 	},
 
-	initialize: function() {
+	initialize: function(args) {
+		this.player = args.player;
 		this.listenTo(this.model, 'change:streams', this.render);
 		this.render();
 	},
@@ -24,13 +25,13 @@ var BrowserStreamsView = BrowserView.extend({
 			var $el = $(this.streamTemplate({
 				title: stream.title || stream.url,
 			}));
-			showTrackArt($el.find('.track-art'), this.model, stream);
+			showTrackArt($el.find('.track-art'), this.player, stream);
 			$el.on('click', function() {
-				self.model.appendToPlaylist(stream);
+				self.player.appendToPlaylist(stream);
 			});
 			$el.find('.do-remove').on('click', function(event) {
 				event.stopPropagation();
-				self.model.removeStream(stream);
+				self.model.remove(stream);
 			});
 			return $el;
 		}, this));
@@ -44,7 +45,7 @@ var BrowserStreamsView = BrowserView.extend({
 			$dialog.remove();
 		});
 		$dialog.find('input[name="art"]').on('input', function() {
-			showTrackArt($dialog.find('.art-preview'), self.model, { art: $(this).val()});
+			showTrackArt($dialog.find('.art-preview'), self.player, { art: $(this).val()});
 		});
 		$dialog.find('form').on('submit', function(event) {
 			event.preventDefault();
@@ -68,7 +69,7 @@ var BrowserStreamsView = BrowserView.extend({
 				return;
 			}
 
-			self.model.addStream(stream);
+			self.model.add(stream);
 			$dialog.modal('hide');
 		});
 	},

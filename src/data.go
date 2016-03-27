@@ -4,15 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 
 	"./player"
 	"./stream"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/websocket"
 )
 
 func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB, rawServer *player.RawTrackServer) {
 	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuer))
 	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuer))
+	r.Path("/streams/listen").Handler(websocket.Handler(htStreamsListen(streamdb)))
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
 	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
@@ -26,6 +29,19 @@ func writeError(res http.ResponseWriter, err error) {
 	json.NewEncoder(res).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
+}
+
+func htStreamsListen(streamdb *stream.DB) func(*websocket.Conn) {
+	return func(conn *websocket.Conn) {
+		strCh := streamdb.Listen()
+		defer streamdb.Unlisten(strCh)
+		conn.SetDeadline(time.Time{})
+		for {
+			if _, err := conn.Write([]uint8(<-strCh)); err != nil {
+				break
+			}
+		}
+	}
 }
 
 func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
@@ -69,16 +85,8 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		var data struct {
-			Stream stream.Stream `json:"stream"`
-		}
-		defer req.Body.Close()
-		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
-			return
-		}
-
-		if err := streamdb.RemoveStreamByUrl(data.Stream.Url); err != nil {
+		uri := req.FormValue("uri")
+		if err := streamdb.RemoveStreamByUrl(uri); err != nil {
 			writeError(res, err)
 			return
 		}

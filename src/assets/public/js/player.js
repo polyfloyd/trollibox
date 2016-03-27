@@ -7,7 +7,6 @@ var Player = NetModel.extend({
 		'time':       0,
 		'queuerules': [],
 		'state':      'stopped',
-		'streams':    [],
 		'tracks':     [],
 		'volume':     0,
 	},
@@ -37,9 +36,6 @@ var Player = NetModel.extend({
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 
-		this.attachServerReloader('server-event:streams-update', '/streams', function(data) {
-			this.setInternal('streams', data.streams.map(this.fillMissingTrackFields, this));
-		});
 		this.attachServerReloader('server-event:queuer-update', '/queuer', function(data) {
 			this.setInternal('queuerules', data.queuerules);
 		});
@@ -161,14 +157,6 @@ var Player = NetModel.extend({
 			}, this);
 			cb(null, data.tracks);
 		});
-	},
-
-	addStream: function(stream) {
-		this.callServer('/streams', 'POST', { stream: stream });
-	},
-
-	removeStream: function(stream) {
-		this.callServer('/streams', 'DELETE', { stream: stream })
 	},
 
 	addDefaultQueueRule: function() {
