@@ -48,43 +48,57 @@
 					<li class="nav-item show-view view-name-search">
 						<a
 							class="glyphicon glyphicon-search"
-							href="/browse/search/"
+							href="#"
+							data-baseurl="/browse/search/"
+							data-state=""
 							title="Search Everything"></a>
 					</li>
 					<li class="nav-item show-view view-name-albums">
 						<a
 							class="glyphicon glyphicon-cd"
-							href="/browse/albums/"
+							href="#"
+							data-baseurl="/browse/albums/"
+							data-state=""
 							title="Browse Albums"></a>
 					</li>
 					<li class="nav-item show-view view-name-browse">
 						<a
 							class="glyphicon glyphicon-music"
-							href="/browse/browse/"
+							href="#"
+							data-baseurl="/browse/browse/"
+							data-state=""
 							title="Browse Artists By Genre"></a>
 					</li>
 					<li class="nav-item show-view view-name-files">
 						<a
 							class="glyphicon glyphicon-folder-open"
-							href="/browse/files/"
+							href="#"
+							data-baseurl="/browse/files/"
+							data-state=""
 							title="Browse Files"></a>
 					</li>
 					<li class="nav-item show-view view-name-streams">
 						<a
 							class="glyphicon glyphicon-globe"
-							href="/browse/streams/"
+							href="#"
+							data-baseurl="/browse/streams/"
+							data-state=""
 							title="Network Streams"></a>
 					</li>
 					<li class="nav-item show-view view-name-queuer">
 						<a
 							class="glyphicon glyphicon-random"
-							href="/queuer"
+							href="#"
+							data-baseurl="/queuer"
+							data-state=""
 							title="Configure The Queuer"></a>
 					</li>
 					<li class="nav-item view-name-player">
 						<a
 							class="glyphicon glyphicon-play"
-							href="/player"
+							href="#"
+							data-baseurl="/player"
+							data-state=""
 							title="Expand The Player"></a>
 					</li>
 				</ul>
@@ -139,7 +153,7 @@
 				console.error(err);
 				$('body > .modal').modal('hide');
 				var $el = $($('#tmpl-error-modal').html());
-				$el.find('.modal-body p').text(err.message);
+				$el.find('.modal-body p').text(err.messageA);
 				$el.on('hidden.bs.modal', function() { $el.remove(); });
 				$el.modal('show');
 			});
@@ -177,18 +191,16 @@
 					for (var k in views) {
 						views[k].$el.toggleClass('hidden', k !== route);
 					}
+					$('.browser').removeClass('expand-player');
 				}
 				if (!!routeByName(route).match(/^browse/)) {
+					$('.view-name-'+route+' a').attr('data-state', state[0]);
 					views[route].setState(state[0]);
 				}
 
 				// Toggle the 'active' class of the navigation buttons.
 				$('.nav > .nav-item').removeClass('active');
-				$('.nav > .nav-item.view-name-'+route+'').addClass('active');
-
-				if (route !== 'player') {
-					$('.browser').removeClass('expand-player');
-				}
+				$('.nav > .nav-item.view-name-'+route).addClass('active');
 			});
 			app.on('route:player', function() {
 				$('.browser').addClass('expand-player');
@@ -207,14 +219,15 @@
 					// Listen to view state changes.
 					views[k].on('change-state', function(state) {
 						app.navigate(routeByName(k)+state, { trigger: false });
-					})
+						$('.view-name-'+k+' a').attr('data-state', state);
+					});
 				});
 				// Enable navigation by clicking one of the naviation buttons.
 				$('.nav > .nav-item > a').each(function(i, el) {
 					var $el = $(el);
 					$el.on('click', function(event) {
 						event.preventDefault();
-						app.navigate($el.attr('href'), { trigger: true });
+						app.navigate($el.attr('data-baseurl') + $el.attr('data-state'), { trigger: true });
 						// Close the hamburger menu.
 						$('.navbar-toggle:visible').click();
 					});
