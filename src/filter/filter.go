@@ -43,11 +43,40 @@ func (l ByNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumM
 
 // Filters the tracks by applying the filter to all tracks.
 func FilterTracks(filter Filter, tracks []player.Track) []SearchResult {
+	const SPLIT = 1000
 	results := make([]SearchResult, 0, len(tracks))
-	for _, track := range tracks {
-		if res, ok := filter.Filter(track); ok {
-			results = append(results, res)
+	matchedStream := make(chan *SearchResult, 32)
+	remaining := 0
+
+	for input := tracks; len(input) != 0; {
+		var part []player.Track
+		if len(input) >= SPLIT {
+			part = input[0:SPLIT]
+			input = input[SPLIT:]
+		} else {
+			part = input
+			input = []player.Track{}
 		}
+
+		remaining++
+		go func(in []player.Track) {
+			for _, track := range in {
+				if res, ok := filter.Filter(track); ok {
+					matchedStream <- &res
+				}
+			}
+			matchedStream <- nil
+		}(part)
 	}
+
+	for remaining > 0 {
+		res := <-matchedStream
+		if res == nil {
+			remaining--
+			continue
+		}
+		results = append(results, *res)
+	}
+	close(matchedStream)
 	return results
 }
