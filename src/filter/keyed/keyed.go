@@ -1,46 +1,27 @@
-package player
+package keyed
 
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
+
+	filter "../"
+	"../../player"
 )
 
-var (
-	trackAttrs = map[string]bool{
-		"artist":      true,
-		"title":       true,
-		"genre":       true,
-		"album":       true,
-		"albumartist": true,
-		"albumtrack":  true,
-		"albumdisc":   true,
-	}
-)
-
-type SearchMatch struct {
-	Start int `json:"start"`
-	End   int `json:"end"`
+// Track attributes available for searching.
+var trackAttrs = map[string]bool{
+	"uri":         true,
+	"artist":      true,
+	"title":       true,
+	"genre":       true,
+	"album":       true,
+	"albumartist": true,
+	"albumtrack":  true,
+	"albumdisc":   true,
 }
 
-type SearchResult struct {
-	Track
-	Matches map[string][]SearchMatch
-}
-
-func (sr *SearchResult) AddMatch(property string, start, end int) {
-	sr.Matches[property] = append(sr.Matches[property], SearchMatch{Start: start, End: end})
-}
-
-func (sr SearchResult) NumMatches() (n int) {
-	for _, prop := range sr.Matches {
-		n += len(prop)
-	}
-	return
-}
-
-type SearchQuery struct {
+type Query struct {
 	patterns map[string][]*regexp.Regexp
 	untagged []string
 }
@@ -57,7 +38,7 @@ type SearchQuery struct {
 //
 // The query could look something like this:
 //   foo bar baz title:something album:one\ two artist:foo*ar
-func CompileSearchQuery(query string, untaggedFields []string) (*SearchQuery, error) {
+func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 	if query == "" {
 		return nil, fmt.Errorf("Query is empty")
 	}
@@ -71,7 +52,7 @@ func CompileSearchQuery(query string, untaggedFields []string) (*SearchQuery, er
 		return nil, fmt.Errorf("Query does not match the expected format")
 	}
 
-	compiled := &SearchQuery{
+	compiled := &Query{
 		patterns: map[string][]*regexp.Regexp{},
 		untagged: untaggedFields,
 	}
@@ -95,14 +76,14 @@ func CompileSearchQuery(query string, untaggedFields []string) (*SearchQuery, er
 	return compiled, nil
 }
 
-func (sq *SearchQuery) Matches(track Track) (SearchResult, bool) {
+func (sq *Query) Filter(track player.Track) (filter.SearchResult, bool) {
 	if sq == nil || len(sq.patterns) == 0 {
-		return SearchResult{}, false
+		return filter.SearchResult{}, false
 	}
 
-	result := SearchResult{
+	result := filter.SearchResult{
 		Track:   track,
-		Matches: map[string][]SearchMatch{},
+		Matches: map[string][]filter.SearchMatch{},
 	}
 	for property, patterns := range sq.patterns {
 		for _, re := range patterns {
@@ -117,7 +98,7 @@ func (sq *SearchQuery) Matches(track Track) (SearchResult, bool) {
 					}
 				}
 				if !foundMatch {
-					return SearchResult{}, false
+					return filter.SearchResult{}, false
 				}
 
 			} else {
@@ -127,34 +108,9 @@ func (sq *SearchQuery) Matches(track Track) (SearchResult, bool) {
 						continue
 					}
 				}
-				return SearchResult{}, false
+				return filter.SearchResult{}, false
 			}
 		}
 	}
 	return result, len(result.Matches) > 0
 }
-
-// Compiles the query and filters the specified tracks. The result is sorted by
-// the number of matches in descending order.
-func Search(tracks []Track, query string, untaggedFields []string) ([]SearchResult, error) {
-	compiledQuery, err := CompileSearchQuery(query, untaggedFields)
-	if err != nil {
-		return nil, err
-	}
-
-	results := make([]SearchResult, 0, len(tracks)/4)
-	for _, track := range tracks {
-		if res, ok := compiledQuery.Matches(track); ok {
-			results = append(results, res)
-		}
-	}
-
-	sort.Sort(byNumMatches(results))
-	return results, nil
-}
-
-type byNumMatches []SearchResult
-
-func (l byNumMatches) Len() int           { return len(l) }
-func (l byNumMatches) Swap(a, b int)      { l[a], l[b] = l[b], l[a] }
-func (l byNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumMatches() }

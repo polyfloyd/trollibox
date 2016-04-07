@@ -6,9 +6,12 @@ import (
 	"io"
 	"net/http"
 	"path"
+	"sort"
 	"strings"
 	"time"
 
+	"./filter"
+	"./filter/keyed"
 	"./player"
 	"./stream"
 	"github.com/gorilla/mux"
@@ -430,12 +433,14 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 			return
 		}
 
-		untagged := strings.Split(req.FormValue("untagged"), ",")
-		results, err := player.Search(tracks, req.FormValue("query"), untagged)
+		untaggedFields := strings.Split(req.FormValue("untagged"), ",")
+		compiledQuery, err := keyed.CompileQuery(req.FormValue("query"), untaggedFields)
 		if err != nil {
 			writeError(res, err)
 			return
 		}
+		results := filter.FilterTracks(compiledQuery, tracks)
+		sort.Sort(filter.ByNumMatches(results))
 
 		mappedResults := make([]interface{}, len(results))
 		for i, res := range results {
