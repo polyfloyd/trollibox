@@ -6,15 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"./filter/ruled"
 	"./player"
 	"./stream"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
-func htDataAttach(r *mux.Router, queuer *player.Queuer, streamdb *stream.DB, rawServer *player.RawTrackServer) {
-	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuer))
-	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuer))
+func htDataAttach(r *mux.Router, queuerdb *ruled.DB, streamdb *stream.DB, rawServer *player.RawTrackServer) {
+	r.Path("/queuer").Methods("GET").HandlerFunc(htQueuerulesGet(queuerdb))
+	r.Path("/queuer").Methods("POST").HandlerFunc(htQueuerulesSet(queuerdb))
 	r.Path("/streams/listen").Handler(websocket.Handler(htStreamsListen(streamdb)))
 	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
 	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
@@ -94,20 +95,20 @@ func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *htt
 	}
 }
 
-func htQueuerulesGet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
+func htQueuerulesGet(queuerdb *ruled.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(res).Encode(map[string]interface{}{
-			"queuerules": queuer.Rules(),
+			"queuerules": queuerdb.Rules(),
 		})
 	}
 }
 
-func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *http.Request) {
+func htQueuerulesSet(queuerdb *ruled.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
 		var data struct {
-			Rules []player.SelectionRule `json:"queuerules"`
+			Rules []ruled.Rule `json:"queuerules"`
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
@@ -115,8 +116,8 @@ func htQueuerulesSet(queuer *player.Queuer) func(res http.ResponseWriter, req *h
 			return
 		}
 
-		if err := queuer.SetRules(data.Rules); err != nil {
-			if err, ok := err.(*player.RuleError); ok {
+		if err := queuerdb.SetRules(data.Rules); err != nil {
+			if err, ok := err.(*ruled.RuleError); ok {
 				res.WriteHeader(400)
 				json.NewEncoder(res).Encode(map[string]interface{}{
 					"error": map[string]interface{}{

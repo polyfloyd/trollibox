@@ -16,6 +16,8 @@ import (
 	"time"
 
 	assets "./assets-go"
+	"./filter"
+	"./filter/ruled"
 	"./player"
 	"./player/mpd"
 	"./player/slimserver"
@@ -105,9 +107,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to create stream database: %v", err)
 	}
-	queuer, err := player.NewQueuer(path.Join(storeDir, "queuer.json"))
+	queuerdb, err := ruled.NewDB(path.Join(storeDir, "queuer.json"))
 	if err != nil {
-		log.Fatalf("Unable to create queuer: %v", err)
+		log.Fatalf("Unable to create queuerdb: %v", err)
 	}
 
 	players, err := connectToPlayers(&config)
@@ -138,9 +140,19 @@ func main() {
 	if config.AutoQueue {
 		for name, pl := range players {
 			go func(pl player.Player, name string) {
+				ev := queuerdb.Listen()
+				defer close(ev)
 				for {
-					ch := player.AutoAppend(pl, queuer.Iterator(pl))
-					log.Printf("Error while autoqueueing for %q: %v", name, <-ch)
+					ft, _ := ruled.BuildFilter(queuerdb.Rules())
+					com := player.AutoAppend(pl, filter.RandomIterator(pl, ft))
+					select {
+					case err := <-com:
+						if err != nil {
+							log.Printf("Error while autoqueueing for %q: %v", name, err)
+						}
+					case <-ev:
+						com <- nil
+					}
 				}
 			}(pl, name)
 		}
@@ -160,7 +172,7 @@ func main() {
 				return pl.Available()
 			}
 			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(&config, players, name))
-			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuer, rawServer)
+			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuerdb, rawServer)
 		}(name, pl)
 	}
 
@@ -171,7 +183,7 @@ func main() {
 		urlPath := strings.TrimPrefix(file, PUBLIC_DIR)
 		r.Path(urlPath).Handler(AssetServeHandler(file))
 	}
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuer, streamdb, rawServer)
+	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuerdb, streamdb, rawServer)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
