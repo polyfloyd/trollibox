@@ -122,15 +122,13 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, qu
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/tracks/art").Methods("GET").HandlerFunc(htTrackArt(libs))
-	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, streamdb, queuerdb)))
+	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, queuerdb)))
 }
 
-func htPlayerListen(pl player.Player, streamdb *stream.DB, queuerdb *ruled.DB) func(*websocket.Conn) {
+func htPlayerListen(pl player.Player, queuerdb *ruled.DB) func(*websocket.Conn) {
 	return func(conn *websocket.Conn) {
 		plCh := pl.Events().Listen()
 		defer pl.Events().Unlisten(plCh)
-		strCh := streamdb.Listen()
-		defer streamdb.Unlisten(strCh)
 		quCh := queuerdb.Listen()
 		defer queuerdb.Unlisten(quCh)
 
@@ -139,8 +137,6 @@ func htPlayerListen(pl player.Player, streamdb *stream.DB, queuerdb *ruled.DB) f
 			var event string
 			select {
 			case event = <-plCh:
-			case ev := <-strCh:
-				event = "streams-" + ev
 			case ev := <-quCh:
 				event = "queuer-" + ev
 			}
