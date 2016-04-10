@@ -409,11 +409,11 @@ func (plist slimPlaylist) Tracks() ([]player.Track, error) {
 }
 
 func (plist slimPlaylist) Len() (int, error) {
-	tracks, err := plist.Tracks()
+	res, err := plist.player.Serv.request(plist.player.ID, "playlist", "tracks", "?")
 	if err != nil {
 		return -1, err
 	}
-	return len(tracks), err
+	return strconv.Atoi(res[3])
 }
 
 func setSlimAttr(serv *Server, track *player.Track, key, value string) {

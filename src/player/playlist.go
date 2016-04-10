@@ -15,7 +15,9 @@ type Playlist interface {
 	// Returns all tracks in the playlist.
 	Tracks() ([]Track, error)
 
-	// Len() returns the total number of tracks in the playlist.
+	// Len() returns the total number of tracks in the playlist. It's much the
+	// same as getting the length of the slice returned by Tracks(), but
+	// probably a lot faster.
 	Len() (int, error)
 }
 
@@ -78,13 +80,13 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 					com <- err
 					return
 				}
-				tracks, err := plist.Tracks()
+				plistLen, err := plist.Len()
 				if err != nil {
 					com <- err
 					return
 				}
 				pl.SetState(PlayStatePlaying)
-				pl.SetTrackIndex(len(tracks) - 1)
+				pl.SetTrackIndex(plistLen - 1)
 
 			case <-com:
 				break outer

@@ -491,12 +491,12 @@ func (plist mpdPlaylist) Tracks() ([]player.Track, error) {
 	return tracks, nil
 }
 
-func (plist mpdPlaylist) Len() (int, error) {
-	tracks, err := plist.Tracks()
-	if err != nil {
-		return -1, err
-	}
-	return len(tracks), err
+func (plist mpdPlaylist) Len() (length int, err error) {
+	err = plist.player.withMpd(func(mpdc *mpd.Client) error {
+		length, _ = playlistLength(mpdc)
+		return nil
+	})
+	return
 }
 
 func playlistLength(mpdc *mpd.Client) (int, bool) {
