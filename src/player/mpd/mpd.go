@@ -222,6 +222,24 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 	return tracks, err
 }
 
+func (pl *Player) Lists() (map[string]player.Playlist, error) {
+	playlists := map[string]player.Playlist{}
+	err := pl.withMpd(func(mpdc *mpd.Client) error {
+		plAttrs, err := mpdc.ListPlaylists()
+		if err != nil {
+			return err
+		}
+		for _, attr := range plAttrs {
+			playlists[attr["playlist"]] = userPlaylist{
+				player: pl,
+				name:   attr["playlist"],
+			}
+		}
+		return nil
+	})
+	return playlists, err
+}
+
 func (pl *Player) Time() (time.Duration, error) {
 	var offset time.Duration
 	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {

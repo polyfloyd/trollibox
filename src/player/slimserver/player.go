@@ -18,6 +18,8 @@ import (
 	"../../util"
 )
 
+const trackTags = "uAglitdc"
+
 type Player struct {
 	ID    string
 	Name  string
@@ -130,7 +132,7 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 		return []player.Track{}, nil
 	}
 
-	reader, release, err := pl.Serv.requestRaw("songs", "0", strconv.Itoa(numSongs), "tags:uAglitdc")
+	reader, release, err := pl.Serv.requestRaw("songs", "0", strconv.Itoa(numSongs), "tags:"+trackTags)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +206,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 			player.InterpolateMissingFields(tr)
 
 		} else if !isHttp {
-			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:uAglitdc", "url:"+encodeUri(uri))
+			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:"+trackTags, "url:"+encodeUri(uri))
 			if err != nil {
 				return nil, err
 			}
@@ -318,6 +320,30 @@ func (pl *Player) SetVolume(vol float32) error {
 	}
 	_, err = pl.Serv.request(pl.ID, "mixer", "volume", strconv.Itoa(int(vol*100)))
 	return err
+}
+
+func (pl *Player) Lists() (map[string]player.Playlist, error) {
+	countRes, err := pl.Serv.requestAttrs("playlists")
+	if err != nil {
+		return nil, err
+	}
+	numPlaylists, err := strconv.Atoi(countRes["count"])
+	if err != nil {
+		return nil, err
+	}
+
+	playlists := map[string]player.Playlist{}
+	for i := 0; i < numPlaylists; i++ {
+		plAttrs, err := pl.Serv.requestAttrs("playlists", strconv.Itoa(i), "1")
+		if err != nil {
+			return nil, err
+		}
+		playlists[plAttrs["playlist"]] = userPlaylist{
+			player: pl,
+			id:     plAttrs["id"],
+		}
+	}
+	return playlists, nil
 }
 
 func (pl *Player) Available() bool {

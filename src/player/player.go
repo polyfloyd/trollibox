@@ -113,6 +113,10 @@ type Player interface {
 	// nothing is playing.
 	SetVolume(vol float32) error
 
+	// Retrieves the custom finite playlists that are stored by the player and
+	// maps them by their unique name.
+	Lists() (map[string]Playlist, error)
+
 	// Reports wether the player is online and reachable.
 	Available() bool
 
@@ -124,6 +128,7 @@ type Player interface {
 	//   "playstate"    After the playstate was changed.
 	//   "time"         After the playback offset of the currently playing track was changed.
 	//   "volume"       After the volume was changed.
+	//   "list"         After a stored playlist was changed.
 	//   "tracks"       After the track library was changed.
 	//   "availability" After the player comes online or goes offline.
 	Events() *util.Emitter

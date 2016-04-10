@@ -119,6 +119,8 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, qu
 	r.Path("/playstate").Methods("POST").HandlerFunc(htPlayerSetPlaystate(pl))
 	r.Path("/volume").Methods("GET").HandlerFunc(htPlayerGetVolume(pl))
 	r.Path("/volume").Methods("POST").HandlerFunc(htPlayerSetVolume(pl))
+	r.Path("/list/").Methods("GET").HandlerFunc(htPlayerListStoredPlaylists(pl))
+	r.Path("/list/{name}/").Methods("GET").HandlerFunc(htPlayerStoredPlaylistTracks(pl))
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/tracks/art").Methods("GET").HandlerFunc(htTrackArt(libs))
@@ -377,6 +379,54 @@ func htPlayerPlaylistRemove(pl player.Player) func(res http.ResponseWriter, req 
 			return
 		}
 		res.Write([]byte("{}"))
+	}
+}
+
+func htPlayerListStoredPlaylists(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+		playlists, err := pl.Lists()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+		names := make([]string, 0, len(playlists))
+		for name := range playlists {
+			names = append(names, name)
+		}
+		json.NewEncoder(res).Encode(map[string]interface{}{
+			"lists": names,
+		})
+	}
+}
+
+func htPlayerStoredPlaylistTracks(pl player.Player) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json")
+		playlists, err := pl.Lists()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+		playlist, ok := playlists[mux.Vars(req)["name"]]
+		if !ok {
+			res.WriteHeader(http.StatusNotFound)
+			res.Write([]byte("{}"))
+			return
+		}
+		tracks, err := playlist.Tracks()
+		if err != nil {
+			writeError(res, err)
+			return
+		}
+
+		outList := make([]interface{}, len(tracks))
+		for i, tr := range tracks {
+			outList[i] = trackJson(&tr)
+		}
+		json.NewEncoder(res).Encode(map[string]interface{}{
+			"tracks": outList,
+		})
 	}
 }
 
