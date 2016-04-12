@@ -1,6 +1,7 @@
 package ruled
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -133,14 +134,33 @@ func (err RuleError) Error() string {
 	return err.OrigErr.Error()
 }
 
-type ruleFuncs []func(player.Track) bool
+type nojsonRuleFilter struct {
+	Rules []Rule `json:"rules"`
 
-func (funcs ruleFuncs) Filter(track player.Track) (filter.SearchResult, bool) {
-	if len(funcs) == 0 {
+	funcs []func(player.Track) bool `json:"-"`
+}
+
+type RuleFilter nojsonRuleFilter
+
+func BuildFilter(rules []Rule) (filter.Filter, error) {
+	ft := &RuleFilter{
+		Rules: rules,
+		funcs: make([]func(player.Track) bool, len(rules)),
+	}
+	var err error
+	ft.funcs, err = compileFuncs(rules)
+	if err != nil {
+		return nil, err
+	}
+	return ft, nil
+}
+
+func (ft RuleFilter) Filter(track player.Track) (filter.SearchResult, bool) {
+	if len(ft.funcs) == 0 {
 		// No rules, match everything.
 		return filter.SearchResult{Track: track}, true
 	}
-	for _, rule := range funcs {
+	for _, rule := range ft.funcs {
 		if !rule(track) {
 			return filter.SearchResult{}, false
 		}
@@ -149,7 +169,16 @@ func (funcs ruleFuncs) Filter(track player.Track) (filter.SearchResult, bool) {
 	return filter.SearchResult{Track: track}, true
 }
 
-func BuildFilter(rules []Rule) (filter.Filter, error) {
+func (ft *RuleFilter) UnmarshalJSON(data []byte) error {
+	err := json.Unmarshal(data, (*nojsonRuleFilter)(ft))
+	if err != nil {
+		return err
+	}
+	ft.funcs, err = compileFuncs(ft.Rules)
+	return err
+}
+
+func compileFuncs(rules []Rule) ([]func(player.Track) bool, error) {
 	funcs := make([]func(player.Track) bool, len(rules))
 	for i, rule := range rules {
 		var err error
@@ -157,5 +186,5 @@ func BuildFilter(rules []Rule) (filter.Filter, error) {
 			return nil, &RuleError{OrigErr: err, Rule: rule, Index: i}
 		}
 	}
-	return ruleFuncs(funcs), nil
+	return funcs, nil
 }
