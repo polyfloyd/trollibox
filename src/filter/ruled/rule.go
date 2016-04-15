@@ -62,13 +62,13 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 	// Prevent type errors further down.
 	typeVal := reflect.ValueOf(rule.Value).Kind()
 	typeTrack := reflect.ValueOf((&player.Track{}).Attr(rule.Attribute)).Kind()
-	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int) {
+	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int64) {
 		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
 
 	// The duration is currently the only integer attribute.
 	if float64Val, ok := rule.Value.(float64); ok && rule.Attribute == "duration" {
-		durVal := time.Duration(float64Val * float64(time.Second))
+		durVal := time.Duration(float64Val) * time.Second
 		switch rule.Operation {
 		case OP_EQUALS:
 			return func(track player.Track) bool {
