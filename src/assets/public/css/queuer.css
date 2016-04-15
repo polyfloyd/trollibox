@@ -58,13 +58,13 @@
 	padding-left: 42px;
 }
 
-.queuer-rules input.queuer-value + .field-modified {
+.queuer-rules input.queuer-value ~ .field-modified {
 	padding: 0 2px;
 	font-size: 30px;
 	color: #f60;
 	background-color: transparent;
 }
 
-.queuer-rules input.queuer-value:not(.modified) + .field-modified {
+.queuer-rules input.queuer-value:not(.modified) ~ .field-modified {
 	display: none;
 }
