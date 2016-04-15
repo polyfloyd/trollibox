@@ -131,11 +131,11 @@ func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Requ
 		res.Header().Set("Content-Type", "application/json")
 		trackIndex, err := pl.TrackIndex()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		if err := pl.SetTrackIndex(trackIndex + 1); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -150,12 +150,12 @@ func htPlayerSetTime(pl player.Player) func(res http.ResponseWriter, req *http.R
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := pl.SetTime(time.Duration(data.Time) * time.Second); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -167,7 +167,7 @@ func htPlayerGetTime(pl player.Player) func(res http.ResponseWriter, req *http.R
 		res.Header().Set("Content-Type", "application/json")
 		tim, err := pl.Time()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -181,7 +181,7 @@ func htPlayerGetPlaystate(pl player.Player) func(res http.ResponseWriter, req *h
 		res.Header().Set("Content-Type", "application/json")
 		playstate, err := pl.State()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -199,12 +199,12 @@ func htPlayerSetPlaystate(pl player.Player) func(res http.ResponseWriter, req *h
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := pl.SetState(player.PlayState(data.State)); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -216,7 +216,7 @@ func htPlayerGetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 		res.Header().Set("Content-Type", "application/json")
 		volume, err := pl.Volume()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -234,12 +234,12 @@ func htPlayerSetVolume(pl player.Player) func(res http.ResponseWriter, req *http
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := pl.SetVolume(data.Volume); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -252,27 +252,27 @@ func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.
 		res.Header().Set("Content-Type", "application/json")
 		tracks, err := pl.Playlist().Tracks()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		meta, err := pl.Playlist().Meta()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		trackIndex, err := pl.TrackIndex()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		tim, err := pl.Time()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		trJson, err := pltrackJsonList(tracks, meta, libs)
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -282,7 +282,7 @@ func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.
 			"tracks":  trJson,
 		})
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 	}
@@ -297,7 +297,7 @@ func htPlayerPlaylistInsert(pl player.Player) func(res http.ResponseWriter, req 
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -311,7 +311,7 @@ func htPlayerPlaylistInsert(pl player.Player) func(res http.ResponseWriter, req 
 		}
 		plist := pl.Playlist()
 		if err := plist.InsertWithMeta(data.Pos, tracks, meta); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -327,12 +327,12 @@ func htPlayerPlaylistMove(pl player.Player) func(res http.ResponseWriter, req *h
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := pl.Playlist().Move(data.From, data.To); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -347,12 +347,12 @@ func htPlayerPlaylistRemove(pl player.Player) func(res http.ResponseWriter, req 
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := pl.Playlist().Remove(data.Positions...); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -364,7 +364,7 @@ func htPlayerListStoredPlaylists(pl player.Player) func(res http.ResponseWriter,
 		res.Header().Set("Content-Type", "application/json")
 		playlists, err := pl.Lists()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		names := make([]string, 0, len(playlists))
@@ -382,7 +382,7 @@ func htPlayerStoredPlaylistTracks(pl player.Player) func(res http.ResponseWriter
 		res.Header().Set("Content-Type", "application/json")
 		playlists, err := pl.Lists()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		playlist, ok := playlists[mux.Vars(req)["name"]]
@@ -393,7 +393,7 @@ func htPlayerStoredPlaylistTracks(pl player.Player) func(res http.ResponseWriter
 		}
 		tracks, err := playlist.Tracks()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -412,7 +412,7 @@ func htPlayerTracks(pl player.Player) func(res http.ResponseWriter, req *http.Re
 		res.Header().Set("Content-Type", "application/json")
 		tracks, err := pl.Tracks()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -453,14 +453,14 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 
 		tracks, err := pl.Tracks()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		untaggedFields := strings.Split(req.FormValue("untagged"), ",")
 		compiledQuery, err := keyed.CompileQuery(req.FormValue("query"), untaggedFields)
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		results := filter.FilterTracks(compiledQuery, tracks)
@@ -485,7 +485,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 
 		mpReader, err := req.MultipartReader()
 		if err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -494,13 +494,13 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				writeError(res, err)
+				writeError(req, res, err)
 				return
 			}
 			// Make the file available through the server.
 			track, err := rawServer.Add(part, part.FileName())
 			if err != nil {
-				writeError(res, err)
+				writeError(req, res, err)
 				return
 			}
 
@@ -535,7 +535,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 				{QueuedBy: "user"},
 			})
 			if err != nil {
-				writeError(res, err)
+				writeError(req, res, err)
 				return
 			}
 		}

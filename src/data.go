@@ -31,11 +31,22 @@ func htDataAttach(r *mux.Router, filterdb *filter.DB, streamdb *stream.DB, rawSe
 }
 
 // Writes an error to the client or an empty object if err is nil.
-func writeError(res http.ResponseWriter, err error) {
-	log.Printf("Error serving: %v, %v", err)
+func writeError(req *http.Request, res http.ResponseWriter, err error) {
+	log.Printf("Error serving %s: %v", req.RemoteAddr, err)
 	res.WriteHeader(http.StatusBadRequest)
+
+	if req.Header.Get("X-Requested-With") == "" {
+		res.Write([]byte(err.Error()))
+		return
+	}
+
+	data, _ := json.Marshal(err)
+	if data == nil {
+		data = []byte("{}")
+	}
 	json.NewEncoder(res).Encode(map[string]interface{}{
 		"error": err.Error(),
+		"data":  (*json.RawMessage)(&data),
 	})
 }
 
@@ -73,7 +84,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		filter, ok := filters[mux.Vars(req)["name"]]
 		if !ok {
 			// TODO: Return a proper response code.
-			writeError(res, fmt.Errorf("Not found"))
+			writeError(req, res, fmt.Errorf("Not found"))
 			return
 		}
 
@@ -84,7 +95,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		case *keyed.Query:
 			typ = "keyed"
 		default:
-			writeError(res, fmt.Errorf("Unknown filter type %T", filter))
+			writeError(req, res, fmt.Errorf("Unknown filter type %T", filter))
 			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -101,7 +112,7 @@ func htFilterRemove(filterdb *filter.DB) func(res http.ResponseWriter, req *http
 		res.Header().Set("Content-Type", "application/json")
 		name := mux.Vars(req)["name"]
 		if err := filterdb.Remove(name); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -118,7 +129,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 			} `json:"filter"`
 		}
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
@@ -129,20 +140,19 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		case "keyed":
 			filter = &keyed.Query{}
 		default:
-			writeError(res, fmt.Errorf("Unknown filter type %q", data.Filter.Type))
+			writeError(req, res, fmt.Errorf("Unknown filter type %q", data.Filter.Type))
 			return
 		}
 
 		if err := json.Unmarshal([]byte(data.Filter.Value), filter); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		name := mux.Vars(req)["name"]
 		if err := filterdb.Set(name, filter); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
-		// TODO: Handle RuleError
 		res.Write([]byte("{}"))
 	}
 }
@@ -173,12 +183,12 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 
 		if err := streamdb.AddStream(data.Stream); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))
@@ -190,7 +200,7 @@ func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *htt
 		res.Header().Set("Content-Type", "application/json")
 		uri := req.FormValue("uri")
 		if err := streamdb.RemoveStreamByUrl(uri); err != nil {
-			writeError(res, err)
+			writeError(req, res, err)
 			return
 		}
 		res.Write([]byte("{}"))

@@ -48,9 +48,8 @@ var NetModel = Backbone.Model.extend({
 		}).done(function(responseJson, status, res) {
 			if (cb) cb.call(this, null, responseJson);
 		}).fail(function(res, status, statusText) {
-			var err = res.responseJSON && res.responseJSON.error
-				? new Error(res.responseJSON.error)
-				: new Error(res.responseText);
+			var err = new Error(res.responseJSON.error);
+			err.data = res.responseJSON.data;
 			this.trigger('error', err);
 			if (cb) cb(err, null);
 		});

@@ -75,7 +75,8 @@ var QueuerView = Backbone.View.extend({
 			this.render();
 			this.removeRuleErrors();
 		});
-		this.listenTo(this.model, 'error', this.renderError); // TODO
+		this.listenTo(this, 'error', this.renderError);
+		this.listenTo(this.model, 'error', this.renderError);
 		this.copyRules();
 		this.render();
 	},
@@ -137,15 +138,17 @@ var QueuerView = Backbone.View.extend({
 				$(this).addClass('modified');
 			});
 			$el.find('.queuer-value').on('change', function() {
-					var $input = $(this)
+				var $input = $(this)
 				if (self.ruleAttr(rule).type === 'int') {
-					var val = self.stringToInt($(this).val());
-					if (!Number.isNaN(val)) {
-						rule.value = val;
-					} else {
-						self.trigger('error', new Error(val+' can not be interpreted as an integer'));
+					var strVal = $(this).val();
+					var val = self.stringToInt(strVal);
+					if (Number.isNaN(val)) {
+						var err = new Error('"'+strVal+'" can not be interpreted as an integer')
+						err.data = { index: ruleIndex, };
+						self.trigger('error', err);
 						return;
 					}
+					rule.value = val;
 				} else {
 					rule.value = $input.val();
 				}
@@ -162,10 +165,20 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	renderError: function(err) {
-		this.$('.queuer-error').text(err.message);
+		if (err.data && typeof err.data.index == 'number') {
+			var $li = this.$('.queuer-rules > li:nth-child('+(err.data.index+1)+') .queuer-value');
+			$li.tooltip({
+				title:    err.message,
+				template: this.ruleErrorTemplate(),
+				trigger:  'manual',
+			}).tooltip('show');
+		} else {
+			this.$('.queuer-error').text(err.message);
+		}
 	},
 
 	removeRuleErrors: function() {
+		this.$('.queuer-rules > li .queuer-value').tooltip('destroy');
 		this.$('.queuer-error').empty();
 	},
 

@@ -125,9 +125,9 @@ func (rule *Rule) String() string {
 }
 
 type RuleError struct {
-	OrigErr error
-	Rule    Rule
-	Index   int
+	OrigErr error `json:"-"`
+	Rule    Rule  `json:"rule"`
+	Index   int   `json:"index"`
 }
 
 func (err RuleError) Error() string {
