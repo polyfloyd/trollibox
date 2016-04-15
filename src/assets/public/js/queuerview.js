@@ -35,8 +35,9 @@ var QueuerView = Backbone.View.extend({
 			type: 'string',
 		},
 		{
-			name: 'duration',
-			type: 'int',
+			name:      'duration',
+			type:      'int',
+			renderVal: durationToString,
 		},
 	],
 	OP: [
@@ -107,9 +108,10 @@ var QueuerView = Backbone.View.extend({
 			});
 
 			var $el = $(this.ruleTemplate({
-				attrs: this.ATTRS,
-				ops:   ops,
-				rule:  rule,
+				attrs:     this.ATTRS,
+				ops:       ops,
+				rule:      rule,
+				renderVal: this.ruleAttr(rule).renderVal || function(v) { return v; },
 			}));
 
 			$el.find('.queuer-invert').on('change', function() {
@@ -274,7 +276,7 @@ var QueuerView = Backbone.View.extend({
 					'class="form-control queuer-value" '+
 					'type="text" '+
 					'placeholder="value" '+
-					'value="<%- rule.value %>" />'+
+					'value="<%- renderVal(rule.value) %>" />'+
 				'<span class="input-group-addon field-modified">*</span>'+
 				'<span class="input-group-addon addon-and">and</span>'+
 			'</div>'+
