@@ -148,6 +148,11 @@
 
 			var player = new Player({ name: '{{ .player }}' });
 			var streamdb = new StreamDB({ player: player });
+			var filterdb = new FilterDB();
+
+			filterdb.on('error', function(err) {
+				console.error(err);
+			});
 
 			player.on('error', function(err) {
 				console.error(err);
@@ -164,7 +169,7 @@
 				browse:  new BrowserBrowseView({ model: player }),
 				files:   new BrowserFilesView({ model: player }),
 				streams: new BrowserStreamsView({ model: streamdb, player: player }),
-				queuer:  new QueuerView({ model: player }),
+				queuer:  new QueuerView({ model: filterdb }),
 			};
 			var app = new Backbone.Router({
 				routes: {

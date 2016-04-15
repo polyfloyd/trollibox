@@ -12,7 +12,6 @@ import (
 
 	"./filter"
 	"./filter/keyed"
-	"./filter/ruled"
 	"./player"
 	"./stream"
 	"github.com/gorilla/mux"
@@ -105,7 +104,7 @@ func pltrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, queuerdb *ruled.DB, rawServer *player.RawTrackServer) {
+func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, rawServer *player.RawTrackServer) {
 	libs := []player.Library{pl, streamdb, rawServer}
 	r.Path("/playlist").Methods("GET").HandlerFunc(htPlayerGetPlaylist(pl, libs))
 	r.Path("/playlist").Methods("PUT").HandlerFunc(htPlayerPlaylistInsert(pl))
@@ -124,29 +123,7 @@ func htPlayerDataAttach(r *mux.Router, pl player.Player, streamdb *stream.DB, qu
 	r.Path("/tracks").Methods("GET").HandlerFunc(htPlayerTracks(pl))
 	r.Path("/tracks/search").Methods("GET").HandlerFunc(htTrackSearch(pl))
 	r.Path("/tracks/art").Methods("GET").HandlerFunc(htTrackArt(libs))
-	r.Path("/listen").Handler(websocket.Handler(htPlayerListen(pl, queuerdb)))
-}
-
-func htPlayerListen(pl player.Player, queuerdb *ruled.DB) func(*websocket.Conn) {
-	return func(conn *websocket.Conn) {
-		plCh := pl.Events().Listen()
-		defer pl.Events().Unlisten(plCh)
-		quCh := queuerdb.Listen()
-		defer queuerdb.Unlisten(quCh)
-
-		conn.SetDeadline(time.Time{})
-		for {
-			var event string
-			select {
-			case event = <-plCh:
-			case ev := <-quCh:
-				event = "queuer-" + ev
-			}
-			if _, err := conn.Write([]uint8(event)); err != nil {
-				break
-			}
-		}
-	}
+	r.Path("/listen").Handler(websocket.Handler(htListen(pl.Events())))
 }
 
 func htPlayerNext(pl player.Player) func(res http.ResponseWriter, req *http.Request) {

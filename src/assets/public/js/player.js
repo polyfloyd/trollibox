@@ -5,7 +5,6 @@ var Player = NetModel.extend({
 		'current':    -1,
 		'playlist':   [],
 		'time':       0,
-		'queuerules': [],
 		'state':      'stopped',
 		'tracks':     [],
 		'volume':     0,
@@ -14,6 +13,8 @@ var Player = NetModel.extend({
 	initialize: function(args) {
 		this.name = args.name;
 
+		this.on('change:current', this.reloadProgressUpdater, this);
+		this.on('change:state',   this.reloadProgressUpdater, this);
 		this.attachServerReloader('server-event:playstate', '/player/'+this.name+'/playstate', function(data) {
 			this.setInternal('state', data.playstate);
 		});
@@ -36,10 +37,6 @@ var Player = NetModel.extend({
 			this.setInternal('tracks', data.tracks.map(this.fillMissingTrackFields, this));
 		});
 
-		this.attachServerReloader('server-event:queuer-update', '/queuer', function(data) {
-			this.setInternal('queuerules', data.queuerules);
-		});
-
 		this.attachServerUpdater('time', '/player/'+this.name+'/time', function(value) {
 			return { time: value };
 		});
@@ -48,9 +45,6 @@ var Player = NetModel.extend({
 		});
 		this.attachServerUpdater('volume', '/player/'+this.name+'/volume', function(value) {
 			return { volume: value };
-		});
-		this.attachServerUpdater('queuerules', '/queuer', function(value) {
-			return { queuerules: value };
 		});
 		NetModel.prototype.initialize.call(this, {
 			eventSocketPath: '/player/'+this.name+'/listen',
@@ -157,15 +151,6 @@ var Player = NetModel.extend({
 			}, this);
 			cb(null, data.tracks);
 		});
-	},
-
-	addDefaultQueueRule: function() {
-		this.set('queuerules', this.get('queuerules').concat([{
-			attribute: 'artist',
-			invert:    false,
-			operation: 'contains',
-			value:     '',
-		}]));
 	},
 
 	playRawTracks: function(files) {

@@ -2,8 +2,6 @@
 
 var NetModel = Backbone.Model.extend({
 	initialize: function(args) {
-		this.on('change:current', this.reloadProgressUpdater, this);
-		this.on('change:state',   this.reloadProgressUpdater, this);
 		this.on('server-connect', this.reload, this);
 		this.connectEventSocket(args.eventSocketPath);
 	},

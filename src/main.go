@@ -17,6 +17,7 @@ import (
 
 	assets "./assets-go"
 	"./filter"
+	"./filter/keyed"
 	"./filter/ruled"
 	"./player"
 	"./player/mpd"
@@ -107,9 +108,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to create stream database: %v", err)
 	}
-	queuerdb, err := ruled.NewDB(path.Join(storeDir, "queuer.json"))
+
+	filterFactories := []func() filter.Filter{
+		func() filter.Filter { return &ruled.RuleFilter{} },
+		func() filter.Filter { return &keyed.Query{} },
+	}
+	filterdb, err := filter.NewDB(path.Join(storeDir, "filters.json"), filterFactories...)
 	if err != nil {
-		log.Fatalf("Unable to create queuerdb: %v", err)
+		log.Fatalf("Unable to create filterdb: %v", err)
 	}
 
 	players, err := connectToPlayers(&config)
@@ -140,10 +146,14 @@ func main() {
 	if config.AutoQueue {
 		for name, pl := range players {
 			go func(pl player.Player, name string) {
-				ev := queuerdb.Listen()
+				ev := filterdb.Listen()
 				defer close(ev)
 				for {
-					ft, _ := ruled.BuildFilter(queuerdb.Rules())
+					ft, ok := filterdb.Filters()["queuer"]
+					if !ok {
+						ft, _ = ruled.BuildFilter([]ruled.Rule{})
+						filterdb.Set("queuer", ft)
+					}
 					com := player.AutoAppend(pl, filter.RandomIterator(pl, ft))
 					select {
 					case err := <-com:
@@ -172,7 +182,7 @@ func main() {
 				return pl.Available()
 			}
 			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(&config, players, name))
-			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, queuerdb, rawServer)
+			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, rawServer)
 		}(name, pl)
 	}
 
@@ -183,7 +193,7 @@ func main() {
 		urlPath := strings.TrimPrefix(file, PUBLIC_DIR)
 		r.Path(urlPath).Handler(AssetServeHandler(file))
 	}
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), queuerdb, streamdb, rawServer)
+	htDataAttach(r.PathPrefix("/data/").Subrouter(), filterdb, streamdb, rawServer)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{

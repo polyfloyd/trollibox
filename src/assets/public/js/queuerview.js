@@ -3,7 +3,7 @@
 var QueuerView = Backbone.View.extend({
 	ATTRS: [
 		{
-			name: 'id',
+			name: 'uri',
 			type: 'string',
 		},
 		{
@@ -70,21 +70,25 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	initialize: function() {
-		this.listenTo(this.model, 'change:queuerules', function(obj, value, options) {
-			if (!options.queuerViewNoRender) {
-				this.copyRules();
-				this.render();
-			}
+		this.listenTo(this.model, 'change:filters', function(obj, value, options) {
+			this.copyRules();
+			this.render();
 			this.removeRuleErrors();
 		});
-		this.listenTo(this.model, 'error:queuerules', this.renderError);
+		this.listenTo(this.model, 'error', this.renderError); // TODO
 		this.copyRules();
 		this.render();
 	},
 
 	copyRules: function() {
+		var ft = this.model.get('filters').queuer;
+		if (!ft) {
+			this.rules = [];
+			return
+		}
+
 		// Map to prevent modifying the array contained in the model.
-		this.rules = this.model.get('queuerules').map(function(rule) {
+		this.rules = ft.value.rules.map(function(rule) {
 			var mutRule = {};
 			for (var k in rule) mutRule[k] = rule[k];
 			return mutRule;
@@ -130,6 +134,10 @@ var QueuerView = Backbone.View.extend({
 			});
 
 			$el.find('.queuer-value').on('input', function() {
+				$(this).addClass('modified');
+			});
+			$el.find('.queuer-value').on('change', function() {
+					var $input = $(this)
 				if (self.ruleAttr(rule).type === 'int') {
 					var val = self.stringToInt($(this).val());
 					if (!Number.isNaN(val)) {
@@ -139,11 +147,11 @@ var QueuerView = Backbone.View.extend({
 						return;
 					}
 				} else {
-					rule.value = $(this).val();
+					rule.value = $input.val();
 				}
 
-				// Set the noRender flag to preserve focus on the inputfield.
-				self.updateRules(true);
+				$input.removeClass('modified');
+				self.updateRules();
 			});
 			$el.find('.do-remove').on('click', function() {
 				self.rules.splice(ruleIndex, 1);
@@ -154,16 +162,11 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	renderError: function(err) {
-		var $li = this.$('.queuer-rules > li:nth-child('+(err.ruleindex+1)+') .queuer-value');
-		$li.tooltip({
-			title:    err.message,
-			template: this.ruleErrorTemplate(),
-			trigger:  'manual',
-		}).tooltip('show');
+		this.$('.queuer-error').text(err.message);
 	},
 
 	removeRuleErrors: function() {
-		this.$('.queuer-rules > li .queuer-value').tooltip('destroy');
+		this.$('.queuer-error').empty();
 	},
 
 	stringToInt: function(str) {
@@ -200,22 +203,28 @@ var QueuerView = Backbone.View.extend({
 		})[0];
 	},
 
-	updateRules: function(noRender) {
-		this.model.set('queuerules', this.rules, {
-			silent: true,
-		});
-		this.model.trigger('change:queuerules', this.model, this.rules, {
-			queuerViewNoRender: !!noRender,
+	updateRules: function() {
+		this.removeRuleErrors();
+		this.model.store('queuer', {
+			type:  'ruled',
+			value: { rules: this.rules },
 		});
 	},
 
 	doAddRule: function() {
-		this.model.addDefaultQueueRule();
+		this.rules.push({
+			attribute: 'artist',
+			invert:    false,
+			operation: 'contains',
+			value:     '',
+		});
+		this.updateRules();
 	},
 
 	template: _.template(
 		'<div>'+
 			'<h2>Queue Rules</h2>'+
+			'<p class="queuer-error"></p>'+
 			'<ul class="queuer-rules"></ul>'+
 			'<button class="glyphicon glyphicon-plus do-add-rule"></ul>'+
 		'</div>'
@@ -253,6 +262,7 @@ var QueuerView = Backbone.View.extend({
 					'type="text" '+
 					'placeholder="value" '+
 					'value="<%- rule.value %>" />'+
+				'<span class="input-group-addon field-modified">*</span>'+
 				'<span class="input-group-addon addon-and">and</span>'+
 			'</div>'+
 
