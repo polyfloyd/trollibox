@@ -8,23 +8,21 @@ import (
 )
 
 type randFilterIterator struct {
-	library player.Library
-	filter  Filter
-	rand    *rand.Rand
+	filter Filter
+	rand   *rand.Rand
 }
 
 // Creates a track iterator which will use the supplied filter to pick random
 // tracks.
-func RandomIterator(lib player.Library, filter Filter) player.TrackIterator {
+func RandomIterator(filter Filter) player.TrackIterator {
 	return &randFilterIterator{
-		library: lib,
-		filter:  filter,
-		rand:    rand.New(rand.NewSource(time.Now().Unix())),
+		filter: filter,
+		rand:   rand.New(rand.NewSource(time.Now().Unix())),
 	}
 }
 
-func (it randFilterIterator) NextTrack() (player.Track, player.TrackMeta, bool) {
-	tracks, err := it.library.Tracks()
+func (it randFilterIterator) NextTrack(pl player.Player) (player.Track, player.TrackMeta, bool) {
+	tracks, err := pl.Tracks()
 	if err != nil {
 		return player.Track{}, player.TrackMeta{}, false
 	}

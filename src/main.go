@@ -154,7 +154,7 @@ func main() {
 						ft, _ = ruled.BuildFilter([]ruled.Rule{})
 						filterdb.Set("queuer", ft)
 					}
-					com := player.AutoAppend(pl, filter.RandomIterator(pl, ft))
+					com := player.AutoAppend(pl, filter.RandomIterator(ft))
 					select {
 					case err := <-com:
 						if err != nil {

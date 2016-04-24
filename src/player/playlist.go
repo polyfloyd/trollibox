@@ -33,8 +33,9 @@ type MetaPlaylist interface {
 
 type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
-	// iterator has reached the end.
-	NextTrack() (Track, TrackMeta, bool)
+	// iterator has reached the end. The player that is requesting the next
+	// track is specified.
+	NextTrack(pl Player) (Track, TrackMeta, bool)
 }
 
 // Attaches a listener to the specified player. The iterator is used to get
@@ -72,7 +73,7 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 					continue
 				}
 
-				track, meta, ok := iter.NextTrack()
+				track, meta, ok := iter.NextTrack(pl)
 				if !ok {
 					break outer
 				}
