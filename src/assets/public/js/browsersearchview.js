@@ -76,7 +76,7 @@ var BrowserSearchView = BrowserView.extend({
 			highlight: highlight,
 		}));
 		$el.on('click', function() {
-			this.model.appendToPlaylist(result.track);
+			Hotkeys.playerInsert(this.model, [result.track]);
 		}.bind(this));
 		return $el;
 	},

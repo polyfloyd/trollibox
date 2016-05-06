@@ -109,13 +109,13 @@ var BrowserAlbumsView = BrowserView.extend({
 
 		showTrackArt($tab.find('.album-art'), this.model, album[0]);
 		$tab.find('.album-info').on('click', function() {
-			self.model.appendToPlaylist(album);
+			Hotkeys.playerInsert(self.model, album);
 		});
 		$tab.find('.disc-title').on('click', function() {
-			self.model.appendToPlaylist(discs[$(this).attr('data-index')].tracks);
+			Hotkeys.playerInsert(self.model, discs[$(this).attr('data-index')].tracks);
 		});
 		$tab.find('.result-list li.track').on('click', function() {
-			self.model.appendToPlaylist(album[$(this).attr('data-index')]);
+			Hotkeys.playerInsert(self.model, album[$(this).attr('data-index')]);
 		});
 	},
 

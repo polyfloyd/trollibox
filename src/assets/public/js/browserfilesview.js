@@ -143,12 +143,12 @@ var BrowserFilesView = BrowserView.extend({
 			});
 			$tab.find('.result-list > li.type-track').on('click', function() {
 				var $li = $(this);
-				self.model.appendToPlaylist(tracks[$li.attr('data-index')].track);
+				Hotkeys.playerInsert(self.model, tracks[$li.attr('data-index')].track);
 			});
 			$tab.find('.do-queue-all').on('click', function() {
 				var tracks = self.getTracksInDir(dir.path);
 				if (tracks.length < 20 || confirm('You are about to add '+tracks.length+' tracks to the playlist. Is that okay?')) {
-					self.model.appendToPlaylist(tracks);
+					Hotkeys.playerInsert(self.model, tracks);
 				}
 			});
 		}, this);

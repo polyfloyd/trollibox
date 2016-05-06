@@ -453,14 +453,13 @@ func (plist mpdPlaylist) Insert(pos int, tracks ...player.Track) error {
 					return err
 				}
 			}
-		} else {
-			for i, track := range tracks {
-				if _, err := mpdc.AddID(uriToMpd(track.Uri), pos+i); err != nil {
-					return err
-				}
-			}
+			return nil
 		}
-		return nil
+
+		// TODO: Something will completely lock up when AddID is used with
+		// a non -1 index. It is either something in the client
+		// implementation or MPD itself.
+		return fmt.Errorf("UNSUPPORTED")
 	})
 }
 

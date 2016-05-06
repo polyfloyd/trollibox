@@ -27,7 +27,7 @@ var BrowserStreamsView = BrowserView.extend({
 			}));
 			showTrackArt($el.find('.track-art'), this.player, stream);
 			$el.on('click', function() {
-				self.player.appendToPlaylist(stream);
+				Hotkeys.playerInsert(self.player, [stream]);
 			});
 			$el.find('.do-remove').on('click', function(event) {
 				event.stopPropagation();

@@ -98,22 +98,31 @@ var Player = NetModel.extend({
 		return track;
 	},
 
-	appendToPlaylist: function(tracks) {
+	insertIntoPlaylist: function(tracks, index) {
 		if (!Array.isArray(tracks)) {
 			tracks = [tracks];
 		}
-		this.set('playlist', this.get('playlist').concat(tracks.map(function(tr) {
+
+		var insertTracks = tracks.map(function(tr) {
 			var newTr = {};
 			for (var k in tr) newTr[k] = tr[k];
 			newTr.queuedby = 'user';
 			return newTr;
-		})));
-		this.callServer('/player/'+this.name+'/playlist', 'PUT', {
-			position: -1,
-			tracks:   tracks.map(function(track) {
-				return track.uri;
-			}),
 		});
+		var plist = this.get('playlist');
+		var newPlist = index != -1
+			? plist.slice(0, index).concat(insertTracks).concat(plist.slice(index))
+			: plist.concat(insertTracks);
+		this.set('playlist', newPlist);
+
+		this.callServer('/player/'+this.name+'/playlist', 'PUT', {
+			position: index,
+			tracks:   tracks.map(function(track) { return track.uri; }),
+		});
+	},
+
+	appendToPlaylist: function(tracks) {
+		this.insertIntoPlaylist(tracks, -1);
 	},
 
 	removeFromPlaylist: function(trackIndices) {

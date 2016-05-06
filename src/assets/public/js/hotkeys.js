@@ -1,6 +1,9 @@
 'use strict';
 
+
 var Hotkeys = {
+	state: {},
+
 	player: function(player, $scope) {
 		$scope.bind('keydown', 'space', function() {
 			switch (player.get('state')) {
@@ -50,4 +53,18 @@ var Hotkeys = {
 			}, 1);
 		});
 	},
+
+	playerInsert: function(player, tracks) {
+		var cur = player.get('current');
+		if (Hotkeys.state.ctrl && cur > 0) {
+			player.insertIntoPlaylist(tracks, cur + 1);
+		} else {
+			player.appendToPlaylist(tracks);
+		}
+	},
 };
+
+$('body').bind('keydown keyup', function(event) {
+	var key = jQuery.hotkeys.specialKeys[event.keyCode];
+	Hotkeys.state[key] = event.type == 'keydown';
+});

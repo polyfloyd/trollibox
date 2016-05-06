@@ -75,7 +75,7 @@ var BrowserBrowseView = BrowserView.extend({
 		})), { name: 'track' });
 		$tab.find('.result-list li').on('click', function() {
 			var index = $(this).attr('data-index');
-			self.model.appendToPlaylist(self.genreTree[genreTitle][artistTitle][index]);
+			Hotkeys.playerInsert(self.model, self.genreTree[genreTitle][artistTitle][index]);
 		});
 	},
 

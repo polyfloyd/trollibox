@@ -396,9 +396,22 @@ func (plist slimPlaylist) Insert(pos int, tracks ...player.Track) error {
 				return err
 			}
 		}
-	} else {
-		// TODO
-		return fmt.Errorf("UNIMPLEMENTED")
+		return nil
+	}
+
+	currentTrackIndex, err := plist.player.TrackIndex()
+	if err != nil {
+		return err
+	}
+	for i := len(tracks) - 1; i >= 0; i-- {
+		if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "insert", encodeUri(tracks[i].Uri)); err != nil {
+			return err
+		}
+		if pos-1 != currentTrackIndex {
+			// SlimServer does not support inserting at a specific position, so
+			// We'll just have to move it ourselves.
+			return plist.Move(currentTrackIndex+1, pos)
+		}
 	}
 	return nil
 }
