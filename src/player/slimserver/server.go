@@ -2,7 +2,9 @@ package slimserver
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"strconv"
@@ -10,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	player "../"
 	"../../util"
 )
 
@@ -177,6 +180,66 @@ func (serv *Server) Players() ([]*Player, error) {
 		}(pl)
 	}
 	return players, nil
+}
+
+func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn ...string) ([]player.Track, error) {
+	if numTracks == 0 {
+		return []player.Track{}, nil
+	}
+
+	reader, release, err := serv.requestRaw(p0, pn...)
+	if err != nil {
+		return nil, err
+	}
+	defer release()
+
+	scanner := bufio.NewScanner(reader)
+	// Set a custom scanner to split on spaces and newlines. atEOF is ignored
+	// since the reader does not end.
+	scanner.Split(func(data []byte, atEOF bool) (int, []byte, error) {
+		if i := bytes.IndexByte(data, ' '); i >= 0 {
+			return i + 1, data[0:i], nil
+		}
+		if i := bytes.IndexByte(data, '\n'); i >= 0 {
+			return i + 1, data[0:i], io.EOF
+		}
+		return 0, nil, nil
+	})
+
+	for i := 0; i < 1+len(pn); i++ {
+		scanner.Scan()
+	}
+	for scanner.Scan() {
+		if tag, err := url.QueryUnescape(scanner.Text()); err == nil {
+			if split := strings.SplitN(tag, ":", 2); split[0] == firstField {
+				break
+			}
+		}
+	}
+
+	setAttr := func(tracks *[]player.Track, track **player.Track, field string) {
+		tag, _ := url.QueryUnescape(scanner.Text())
+		split := strings.SplitN(tag, ":", 2)
+		if split[0] == firstField {
+			if *track != nil {
+				*tracks = append(*tracks, **track)
+			}
+			*track = &player.Track{}
+		}
+		setSlimAttr(serv, *track, split[0], split[1])
+	}
+
+	tracks := make([]player.Track, 0, numTracks)
+	var track *player.Track
+	setAttr(&tracks, &track, scanner.Text())
+	for scanner.Scan() {
+		setAttr(&tracks, &track, scanner.Text())
+	}
+	tracks = append(tracks, *track)
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return tracks, nil
 }
 
 func queryEscape(str string) string {

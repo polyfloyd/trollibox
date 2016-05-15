@@ -29,17 +29,7 @@ func (plist userPlaylist) Tracks() ([]player.Track, error) {
 	if err != nil {
 		return nil, err
 	}
-	tracks := make([]player.Track, numTracks)
-	for i := 0; i < numTracks; i++ {
-		attrs, err := plist.player.Serv.requestAttrs("playlists", "tracks", strconv.Itoa(i), "1", "playlist_id:"+plist.id, "tags:"+trackTags)
-		if err != nil {
-			return nil, err
-		}
-		for key, value := range attrs {
-			setSlimAttr(plist.player.Serv, &tracks[i], key, value)
-		}
-	}
-	return tracks, nil
+	return plist.player.Serv.decodeTracks("id", numTracks, "playlists", "tracks", "0", strconv.Itoa(numTracks), "playlist_id:"+plist.id, "tags:"+trackTags)
 }
 
 func (plist userPlaylist) Len() (int, error) {

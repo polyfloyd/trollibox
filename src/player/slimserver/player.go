@@ -2,7 +2,6 @@ package slimserver
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"log"
@@ -92,28 +91,6 @@ func (pl *Player) eventLoop() {
 	}
 }
 
-// Gets the ID's of the tracks in the SlimServer's playlist.
-func (pl *Player) serverPlaylist() ([]string, error) {
-	// Get the length of the playlist.
-	res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
-	if err != nil {
-		return nil, err
-	}
-	playlistLength, _ := strconv.Atoi(res[3])
-
-	// Get the URLs of the tracks in the playlist.
-	trackIds := make([]string, playlistLength)
-	for i := 0; i < playlistLength; i++ {
-		res, err := pl.Serv.request(pl.ID, "playlist", "path", strconv.Itoa(i), "?")
-		if err != nil {
-			return nil, err
-		}
-		dec, _ := url.QueryUnescape(res[4])
-		trackIds[i] = dec
-	}
-	return trackIds, nil
-}
-
 func (pl *Player) playlistLength() (int, error) {
 	res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
 	if err != nil {
@@ -127,55 +104,8 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	if err != nil {
 		return nil, err
 	}
-	numSongs, _ := strconv.Atoi(res[3])
-	if numSongs == 0 {
-		return []player.Track{}, nil
-	}
-
-	reader, release, err := pl.Serv.requestRaw("songs", "0", strconv.Itoa(numSongs), "tags:"+trackTags)
-	if err != nil {
-		return nil, err
-	}
-	defer release()
-
-	scanner := bufio.NewScanner(reader)
-	// Set a custom scanner to split on spaces and newlines. atEOF is ignored
-	// since the reader does not end.
-	scanner.Split(func(data []byte, atEOF bool) (int, []byte, error) {
-		if i := bytes.IndexByte(data, ' '); i >= 0 {
-			return i + 1, data[0:i], nil
-		}
-		if i := bytes.IndexByte(data, '\n'); i >= 0 {
-			return i + 1, data[0:i], io.EOF
-		}
-		return 0, nil, nil
-	})
-
-	scanner.Scan() // "songs"
-	scanner.Scan() // "0"
-	scanner.Scan() // "n"
-	scanner.Scan() // "tags"
-
-	tracks := make([]player.Track, 0, numSongs)
-	var track *player.Track
-	for scanner.Scan() {
-		tag, _ := url.QueryUnescape(scanner.Text())
-		split := strings.SplitN(tag, ":", 2)
-
-		if split[0] == "id" {
-			if track != nil {
-				tracks = append(tracks, *track)
-			}
-			track = &player.Track{}
-		}
-		setSlimAttr(pl.Serv, track, split[0], split[1])
-	}
-	tracks = append(tracks, *track)
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return tracks, nil
+	numTracks, _ := strconv.Atoi(res[3])
+	return pl.Serv.decodeTracks("id", numTracks, "songs", "0", strconv.Itoa(numTracks), "tags:"+trackTags)
 }
 
 func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
@@ -432,19 +362,15 @@ func (plist slimPlaylist) Remove(positions ...int) error {
 }
 
 func (plist slimPlaylist) Tracks() ([]player.Track, error) {
-	trackUris, err := plist.player.serverPlaylist()
+	res, err := plist.player.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err
 	}
-	tracks, err := plist.player.TrackInfo(trackUris...)
+	numTracks, err := strconv.Atoi(res[3])
 	if err != nil {
 		return nil, err
 	}
-	plTracks := make([]player.Track, len(tracks))
-	for i, tr := range tracks {
-		plTracks[i] = tr
-	}
-	return plTracks, err
+	return plist.player.Serv.decodeTracks("id", numTracks, plist.player.ID, "status", "0", strconv.Itoa(numTracks), "tags:"+trackTags)
 }
 
 func (plist slimPlaylist) Len() (int, error) {
