@@ -3,7 +3,6 @@
 /bin
 /lib/gopath
 /lib/node_modules
-/lib/gpm
 /config.json
 /src/assets-go/
 /src/assets/_*

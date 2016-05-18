@@ -32,13 +32,7 @@ EOF
 
 case ${1:-} in
 	"install")
-		GPM="$LIB/gpm"
-		if [ ! -e "$GPM" ]; then
-			echo "*** Installing Dependency Manager ***"
-			wget -qO- https://raw.githubusercontent.com/pote/gpm/v1.3.2/bin/gpm > "$GPM"
-			chmod 755 "$GPM"
-		fi
-
+		echo "*** Installing minifiers ***"
 		if [ ! -e "$MIN_JS" ]; then
 			npm install --prefix "$LIB" "uglifyjs" "minify@v1.4.23"
 		fi
@@ -46,10 +40,15 @@ case ${1:-} in
 		echo "*** Installing go-bindata ***"
 		GOPATH="$GOPATH" go get -u github.com/jteeuwen/go-bindata/...
 
-		echo "*** Installing Dependencies ***"
-		cd "$WORKSPACE/src"
-		GOPATH="$GOPATH" "$GPM" install
-		cd "$WORKSPACE"
+		echo "*** Installing dependencies ***"
+		cat "$WORKSPACE/src/Godeps" | \
+		while read dep; do
+			pkg=`echo $dep | cut -f1 -d' '`
+			rev=`echo $dep | cut -f2 -d' '`
+			echo "  Installing $pkg"
+			GOPATH="$GOPATH" go get "$pkg"
+			pushd "$GOPATH/src/$pkg" > /dev/null; git checkout $rev --quiet; popd > /dev/null
+		done
 	;;
 
 	"build")
