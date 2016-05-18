@@ -1,10 +1,9 @@
-~*
 *~
 *.sw*
 /bin
-/lib
+/lib/gopath
+/lib/node_modules
+/lib/gpm
 /config.json
 /src/assets-go/
-/src/assets/_BUILD
-/src/assets/_VERSION
-/src/assets/public/00-dep/
+/src/assets/_*

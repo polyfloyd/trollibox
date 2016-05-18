@@ -1,0 +1,1 @@
+../../../../../lib/web/bootstrap/dist/js/bootstrap.js
