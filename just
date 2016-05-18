@@ -9,10 +9,7 @@ WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
 GOPATH="$LIB/gopath"
-DIR_NPM="$WORKSPACE/lib/node_modules"
 ASSETS="$WORKSPACE/src/assets"
-MIN_JS="$DIR_NPM/.bin/uglifyjs"
-MIN_CSS="$DIR_NPM/.bin/minify"
 
 mkdir -p "$BIN"
 mkdir -p "$LIB"
@@ -32,10 +29,8 @@ EOF
 
 case ${1:-} in
 	"install")
-		echo "*** Installing minifiers ***"
-		if [ ! -e "$MIN_JS" ]; then
-			npm install --prefix "$LIB" "uglifyjs" "minify@v1.4.23"
-		fi
+		echo "*** Installing minifier ***"
+		GOPATH="$GOPATH" go get -u github.com/tdewolff/minify/...
 
 		echo "*** Installing go-bindata ***"
 		GOPATH="$GOPATH" go get -u github.com/jteeuwen/go-bindata/...
@@ -58,16 +53,14 @@ case ${1:-} in
 			INCLUDE_DIR="$TEMP"
 
 			mkdir -p "$TEMP/public/js"
-			$MIN_JS \
-				`find "$ASSETS" -name "*.js" | sort` \
-				--mangle \
-				--compress warnings=false\
-				--screw-ie8 \
-				--output "$TEMP/public/js/app.js"
+			cat `find "$ASSETS" -name "*.js" | sort` \
+				| $GOPATH/bin/minify --type=js \
+				> "$TEMP/public/js/app.js"
 
 			mkdir -p "$TEMP/public/css"
 			cat `find "$ASSETS" -name "*.css" | sort` \
-				| $MIN_CSS -css > "$TEMP/public/css/app.css"
+				| $GOPATH/bin/minify --type=css \
+				> "$TEMP/public/css/app.css"
 
 			rsync -rL --exclude="*.css" --exclude="*.js" --exclude="/public/00-dep" "$ASSETS/" "$TEMP/"
 			rsync -rL --exclude="*.css" --exclude="*.js" "$ASSETS/public/00-dep/" "$TEMP/public"

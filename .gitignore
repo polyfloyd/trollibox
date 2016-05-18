@@ -2,7 +2,6 @@
 *.sw*
 /bin
 /lib/gopath
-/lib/node_modules
 /config.json
 /src/assets-go/
 /src/assets/_*
