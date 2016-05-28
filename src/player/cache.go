@@ -73,14 +73,17 @@ func (cache *TrackCache) Run() {
 	listener := cache.Player.Events().Listen()
 	defer cache.Player.Events().Unlisten(listener)
 
+	go func() {
+		// Reload tracks on startup.
+		listener <- "tracks"
+	}()
+
 	for event := range listener {
-		if event != "tracks" {
-			cache.Emit(event)
-			continue
+		if event == "tracks" {
+			cache.lock.Lock()
+			cache.reloadTracks()
+			cache.lock.Unlock()
 		}
-		cache.lock.Lock()
-		cache.reloadTracks()
-		cache.lock.Unlock()
 		cache.Emit(event)
 	}
 }
