@@ -41,13 +41,13 @@ jQuery.fn.toggleAttr = function(attr, value, toggle) {
 	});
 };
 
-$.fn.lazyLoad = function(list, render, thisArg) {
+$.fn.lazyLoad = function(list, render, thisArg, overrideElemSize) {
 	var $list = this;
 	$list.off('scroll.lazy mousewheel.lazy DOMMouseScroll.lazy');
 	$list.attr('lazy-index', '0');
 	$list.empty();
 	var handler = function() {
-		var elemSize = $list.children().last().outerHeight();
+		var elemSize = overrideElemSize || $list.children().last().outerHeight();
 		while ($list.scrollTop() >= $list[0].scrollHeight - $list.innerHeight() - elemSize) {
 			var listIndex = parseInt($list.attr('lazy-index'), 10);
 			if (listIndex >= list.length) {
