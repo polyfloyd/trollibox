@@ -38,29 +38,21 @@ var NetModel = Backbone.Model.extend({
 		};
 	},
 
-	callServer: function(path, method, body, cb) {
-		$.ajax({
+	callServer: function(path, method, body) {
+		return promiseAjax({
 			url:      URLROOT+'data'+path,
 			method:   method,
 			dataType: 'json',
 			data:     body ? JSON.stringify(body) : null,
-			context:  this,
-		}).done(function(responseJson, status, res) {
-			if (cb) cb.call(this, null, responseJson);
-		}).fail(function(res, status, statusText) {
-			var err = new Error(res.responseJSON.error);
-			err.data = res.responseJSON.data;
+		}).catch(function(err) {
 			this.trigger('error', err);
-			if (cb) cb(err, null);
-		});
+		}.bind(this));
 	},
 
 	attachServerReloader: function(event, path, handler) {
 		this.reloaders = this.reloaders || {};
 		var reload = function() {
-			this.callServer(path, 'GET', null, function(err, data) {
-				if (!err) handler.call(this, data);
-			});
+			this.callServer(path, 'GET', null).then(handler.bind(this));
 		};
 		this.on(event, reload, this);
 		this.reloaders[event] = reload;
@@ -72,11 +64,7 @@ var NetModel = Backbone.Model.extend({
 
 		function update(value) {
 			waiting = true;
-			this.callServer(path, 'POST', getUpdateData.call(this, value), function(err, data) {
-				if (err) {
-					waiting = false;
-					return;
-				}
+			this.callServer(path, 'POST', getUpdateData.call(this, value)).then(function(data) {
 				setTimeout(function() {
 					waiting = false;
 					if (typeof nextValue !== 'undefined') {
@@ -84,6 +72,8 @@ var NetModel = Backbone.Model.extend({
 						nextValue = undefined;
 					}
 				}.bind(this), 200);
+			}.bind(this)).catch(function() {
+				waiting = false;
 			});
 		}
 

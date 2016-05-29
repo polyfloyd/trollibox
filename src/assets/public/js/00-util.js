@@ -63,6 +63,23 @@ $.fn.lazyLoad = function(list, render, thisArg, overrideElemSize) {
 	handler();
 };
 
+function promiseAjax() {
+	var ajaxArgs = arguments;
+	return new Promise(function(resolve, reject) {
+		$.ajax.apply($, ajaxArgs).done(function(responseJSON) {
+			resolve(responseJSON);
+		}).fail(function(req, status, statusText) {
+			if (req.responseJSON) {
+				var err = new Error(req.responseJSON.error);
+				err.data = req.responseJSON.data;
+				reject(err);
+			} else {
+				reject(new Error('Error sending request'));
+			}
+		});
+	});
+}
+
 function durationToString(seconds) {
 	var parts = [];
 	for (var i = 1; i <= 3; i++) {

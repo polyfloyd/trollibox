@@ -118,7 +118,9 @@ var Player = NetModel.extend({
 		this.callServer('/player/'+this.name+'/playlist', 'PUT', {
 			position: index,
 			tracks:   tracks.map(function(track) { return track.uri; }),
-		});
+		}).catch(function() {
+			this.set('playlist', plist);
+		}.bind(this));
 	},
 
 	appendToPlaylist: function(tracks) {
@@ -129,37 +131,45 @@ var Player = NetModel.extend({
 		if (!Array.isArray(trackIndices)) {
 			trackIndices = [trackIndices];
 		}
-		this.set('playlist', this.get('playlist').filter(function(tr, i) {
+		var plist = this.get('playlist');
+		this.set('playlist', plist.filter(function(tr, i) {
 			return trackIndices.indexOf(i) === -1;
 		}));
 		this.callServer('/player/'+this.name+'/playlist', 'DELETE', {
 			positions: trackIndices,
-		});
+		}).catch(function() {
+			this.set('playlist', plist);
+		}.bind(this));
 	},
 
 	moveInPlaylist: function(from, to) {
 		var plist = this.get('playlist');
+		var oldPlist = this.get('playlist').map(function(e) { return e; });
 		plist.splice(to, 0, plist.splice(from, 1)[0]);
 		this.set('playlist', plist);
 		this.trigger('change:playlist');
 		this.callServer('/player/'+this.name+'/playlist', 'PATCH', {
 			from: from,
 			to:   to,
-		});
+		}).catch(function() {
+			this.set('playlist', oldPlist);
+		}.bind(this));
 	},
 
-	searchTracks: function(query, untagged, cb) {
-		var path = '/player/'+this.name+'/tracks/search?query='+encodeURIComponent(query)+'&untagged='+encodeURIComponent(untagged.join(','));
-		this.callServer(path, 'GET', null, function(err, data) {
-			if (err) {
-				cb(err, []);
-				return;
-			}
-			data.tracks.forEach(function(res) {
-				res.track = this.fillMissingTrackFields(res.track);
-			}, this);
-			cb(null, data.tracks);
-		});
+	searchTracks: function(query, untagged) {
+		var encUt = encodeURIComponent(untagged.join(','));
+		var encQ = encodeURIComponent(query);
+		var path = '/player/'+this.name+'/tracks/search?query='+encQ+'&untagged='+encUt;
+		return new Promise(function(resolve, reject) {
+			this.callServer(path, 'GET', null).then(function(data) {
+				data.tracks.forEach(function(res) {
+					res.track = this.fillMissingTrackFields(res.track);
+				}, this);
+				resolve(data.tracks);
+			}.bind(this)).catch(function(err) {
+				reject(err);
+			});
+		}.bind(this));
 	},
 
 	playRawTracks: function(files) {
@@ -175,24 +185,15 @@ var Player = NetModel.extend({
 			form.append('files', file, file.name);
 		});
 
-		$.ajax({
+		promiseAjax({
 			url:         URLROOT+'data/player/'+this.name+'/playlist/appendraw',
 			method:      'POST',
 			context:     this,
 			data:        form,
 			processData: false,
 			contentType: false,
-			error:       function(res, status, message) {
-				var err = res.responseJSON && res.responseJSON.error
-					? new Error(res.responseJSON.error)
-					: new Error(message);
-				this.trigger('error', err);
-			},
-		}).fail(function(res, status, statusText) {
-			var err = res.responseJSON && res.responseJSON.error
-				? new Error(res.responseJSON.error)
-				: new Error(res.responseText);
+		}).catch(function(err) {
 			this.trigger('error', err);
-		});
+		}.bind(this));
 	},
 });
