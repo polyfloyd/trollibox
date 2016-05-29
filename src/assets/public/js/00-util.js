@@ -2,7 +2,7 @@
 
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/findIndex
 Array.prototype.findIndex = Array.prototype.findIndex || function(predicate) {
-	if (this == null) {
+	if (this === null) {
 		throw new TypeError('Array.prototype.findIndex called on null or undefined');
 	}
 	if (typeof predicate !== 'function') {

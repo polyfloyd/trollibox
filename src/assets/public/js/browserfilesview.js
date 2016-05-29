@@ -39,7 +39,7 @@ var BrowserFilesView = BrowserView.extend({
 						track: track,
 						name:  pathPart,
 						path:  path,
-					}
+					};
 					return; // Last iteration.
 				}
 
@@ -165,7 +165,7 @@ var BrowserFilesView = BrowserView.extend({
 
 	getTracksInDir: function(path) {
 		var self = this;
-		if (path == '' || path == '/') {
+		if (path === '' || path === '/') {
 			return this.model.get('tracks');
 		}
 		return this.model.get('tracks').filter(function(track) {

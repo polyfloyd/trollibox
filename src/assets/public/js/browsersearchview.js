@@ -50,7 +50,7 @@ var BrowserSearchView = BrowserView.extend({
 
 			this.trigger('search-complete');
 			this.$('.result-list').lazyLoad(results, this.renderResult, this, 200);
-		});
+		}.bind(this));
 	},
 
 	query: function() {
