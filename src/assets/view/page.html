@@ -158,7 +158,7 @@
 				console.error(err);
 				$('body > .modal').modal('hide');
 				var $el = $($('#tmpl-error-modal').html());
-				$el.find('.modal-body p').text(err.messageA);
+				$el.find('.modal-body p').text(err.message);
 				$el.on('hidden.bs.modal', function() { $el.remove(); });
 				$el.modal('show');
 			});
