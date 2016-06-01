@@ -29,7 +29,7 @@ var NetModel = Backbone.Model.extend({
 			}
 			self.sock = null;
 			setTimeout(function() {
-				self.connectEventSocket();
+				self.connectEventSocket(eventSocketPath);
 			}, 1000 * 4);
 		};
 
