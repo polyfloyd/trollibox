@@ -44,16 +44,16 @@ var BrowserStreamsView = BrowserView.extend({
 		$dialog.on('hidden.bs.modal', function() {
 			$dialog.remove();
 		});
-		$dialog.find('input[name="art"]').on('input', function() {
-			showTrackArt($dialog.find('.art-preview'), self.player, { art: $(this).val()});
+		$dialog.find('input[name="arturi"]').on('input', function() {
+			showTrackArt($dialog.find('.art-preview'), self.player, { art: $(this).val() });
 		});
 		$dialog.find('form').on('submit', function(event) {
 			event.preventDefault();
 
 			var stream = {
-				url:   $dialog.find('input[name="url"]').val(),
-				title: $dialog.find('input[name="title"]').val(),
-				art:   $dialog.find('input[name="art"]').val(),
+				url:    $dialog.find('input[name="url"]').val(),
+				title:  $dialog.find('input[name="title"]').val(),
+				arturi: $dialog.find('input[name="arturi"]').val(),
 			};
 
 			function isValidUrl(url) {
@@ -64,8 +64,8 @@ var BrowserStreamsView = BrowserView.extend({
 				alert('Stream URL "'+stream.url+'" is invalid');
 				return;
 			}
-			if (stream.art && !isValidUrl(stream.art)) {
-				alert('Art URL "'+stream.art+'" is invalid');
+			if (stream.arturi && !isValidUrl(stream.arturi)) {
+				alert('Art URL "'+stream.arturi+'" is invalid');
 				return;
 			}
 
@@ -102,7 +102,7 @@ var BrowserStreamsView = BrowserView.extend({
 						'<div class="input-group">'+
 							'<input class="form-control" type="text" name="url" placeholder="URL" required />'+
 							'<input class="form-control" type="text" name="title" placeholder="Title" required />'+
-							'<input class="form-control" type="text" name="art" placeholder="Image URL" />'+
+							'<input class="form-control" type="text" name="arturi" placeholder="Image URL" />'+
 						'</div>'+
 						'<div class="art-preview track-art"></div>'+
 					'</div>'+

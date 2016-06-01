@@ -104,7 +104,7 @@ func main() {
 	}
 	log.Printf("Using \"%s\" for storage", storeDir)
 
-	streamdb, err := stream.NewDB(path.Join(storeDir, "streams.json"))
+	streamdb, err := stream.NewDB(path.Join(storeDir, "streams"))
 	if err != nil {
 		log.Fatalf("Unable to create stream database: %v", err)
 	}

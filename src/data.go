@@ -160,13 +160,18 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		streams := streamdb.Streams()
+		streams, err := streamdb.Streams()
+		if err != nil {
+			writeError(req, res, err)
+			return
+		}
 		mapped := make([]interface{}, len(streams))
 		for i, stream := range streams {
 			mapped[i] = map[string]interface{}{
-				"uri":    stream.Url,
-				"title":  stream.StreamTitle,
-				"hasart": stream.ArtUrl != "",
+				"filename": stream.Filename,
+				"url":      stream.URL,
+				"title":    stream.Title,
+				"hasart":   stream.ArtURI != "",
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -187,7 +192,7 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 			return
 		}
 
-		if err := streamdb.AddStream(data.Stream); err != nil {
+		if err := streamdb.StoreStream(&data.Stream); err != nil {
 			writeError(req, res, err)
 			return
 		}
@@ -198,8 +203,8 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		uri := req.FormValue("uri")
-		if err := streamdb.RemoveStreamByUrl(uri); err != nil {
+		stream := stream.Stream{Filename: req.FormValue("filename")}
+		if err := streamdb.RemoveStream(&stream); err != nil {
 			writeError(req, res, err)
 			return
 		}
