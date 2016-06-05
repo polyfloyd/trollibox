@@ -37,45 +37,64 @@ type Stream struct {
 }
 
 func LoadM3U(filename string) (*Stream, error) {
-	m3u, err := os.Open(filename)
+	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
 	}
-	defer m3u.Close()
+	defer fd.Close()
 
-	stream := &Stream{
-		Filename: path.Base(filename),
+	stream := &Stream{Filename: path.Base(filename)}
+
+	m3u := bufio.NewReader(fd)
+	// The first line should be the M3U header: #EXTM3U
+	firstLine, err := m3u.ReadString('\n')
+	if err != nil {
+		return nil, err
 	}
-	extinfRe := regexp.MustCompile("^#EXTINF:\\d+,(.+)$")
-	extartRe := regexp.MustCompile("^#EXTART:(data:[a-z]+/[a-z]+;base64,.+)$")
+	if firstLine != "#EXTM3U\n" {
+		return nil, fmt.Errorf("Error loading stream from M3U: first line is not \"#EXTM3U\"")
+	}
 
-	scanner := bufio.NewScanner(m3u)
-	for scanner.Scan() {
-		line := scanner.Text()
-		infMatch := extinfRe.FindStringSubmatch(line)
-		if infMatch != nil {
-			if stream.Title != "" {
-				return nil, fmt.Errorf("Error loading stream from M3U: Duplicate title")
-			}
-			stream.Title = infMatch[1]
+	for {
+		lineStart, err := m3u.Peek(7)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
 		}
 
-		if artMatch := extartRe.FindStringSubmatch(line); artMatch != nil {
-			if stream.ArtURI != "" {
-				return nil, fmt.Errorf("Error loading stream from M3U: Duplicate art")
+		if string(lineStart) == "#EXTART" {
+			m3u.Discard(len("#EXTART:"))
+			art, err := m3u.ReadString('\n')
+			if err != nil {
+				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
 			}
-			stream.ArtURI = artMatch[1]
-		}
-		if len(line) > 0 && line[0] != '#' {
-			if stream.URL != "" {
-				return nil, fmt.Errorf("Error loading stream from M3U: Duplicate URL")
+			stream.ArtURI = art[0 : len(art)-1]
+
+		} else if string(lineStart) == "#EXTINF" {
+			m3u.ReadString(',')
+			title, err := m3u.ReadString('\n')
+			if err != nil {
+				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
 			}
-			stream.URL = line
+			stream.Title = title[0 : len(title)-1]
+
+		} else if string(lineStart[0:4]) == "http" {
+			url, err := m3u.ReadString('\n')
+			if err != nil {
+				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+			}
+			stream.URL = url[0 : len(url)-1]
+
+		} else {
+			if _, err := m3u.Discard(1); err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+			}
 		}
 	}
-	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
-	}
+
 	if stream.URL == "" {
 		return nil, fmt.Errorf("Error loading stream from M3U: Empty URL")
 	}
