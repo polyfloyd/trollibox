@@ -62,12 +62,17 @@
 	opacity: 0.7;
 }
 
-.track-duration-total:before {
+.track-duration-current:not(:empty) + .track-duration-total:before {
 	content: " / ";
 }
 
-.track-duration-total:empty:before {
-	content: "";
+.player-current.track-infinite .do-set-time {
+	opacity: 0;
+}
+
+.player-current.track-infinite .track-duration-current:not(:empty) + .track-duration-total:after {
+	content: "∞";
+	font-size: 1.6em;
 }
 
 .player.player-playing .do-play,

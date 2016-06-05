@@ -10,7 +10,7 @@ var PlayerView = Backbone.View.extend({
 		'click .do-toggle-state':  'doToggleState',
 		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
-		'input .do-set-time':  'doSetProgress',
+		'input .do-set-time':      'doSetProgress',
 		'dragover':                'doMakeDroppable',
 		'dragenter':               'doMakeDroppable',
 		'drop':                    'doAcceptRawFiles',
@@ -20,7 +20,7 @@ var PlayerView = Backbone.View.extend({
 		this.listenTo(this.model, 'change:current',  this.renderCurrent);
 		this.listenTo(this.model, 'change:current',  this.renderPlaylist);
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
-		this.listenTo(this.model, 'change:time', this.renderProgress);
+		this.listenTo(this.model, 'change:time',     this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);
 		this.listenTo(this.model, 'change:volume',   this.renderVolume);
 		this.render();
@@ -54,11 +54,12 @@ var PlayerView = Backbone.View.extend({
 		this.$('.player-current .track-title').text(cur.title || '');
 		this.$('.player-current')
 			.removeClass('queuedby-system queuedby-user')
-			.addClass('queuedby-'+cur.queuedby);
-		this.$('.track-duration-total').text((typeof cur.duration === 'number') ? durationToString(cur.duration) : '');
+			.addClass('queuedby-'+cur.queuedby)
+			.toggleClass('track-infinite', cur.duration == 0);
+		this.$('.track-duration-total')
+			.text(cur.duration ? durationToString(cur.duration) : '');
 		this.$('.do-set-time')
-			.attr('max', cur.duration || 0)
-			.toggleAttr('disabled', !cur.duration);
+			.attr('max', cur.duration || 0);
 	},
 
 	renderProgress: function() {
