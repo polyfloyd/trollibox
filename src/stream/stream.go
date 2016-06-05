@@ -101,6 +101,13 @@ func (stream *Stream) Art() (io.ReadCloser, string) {
 	return nil, ""
 }
 
+func (stream *Stream) String() string {
+	if stream.Title != "" {
+		return fmt.Sprintf("Stream{%s, %q}", stream.URL, stream.Title)
+	}
+	return fmt.Sprintf("Stream{%s}", stream.URL)
+}
+
 type DB struct {
 	util.Emitter
 
@@ -208,6 +215,10 @@ func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
 		return nil, ""
 	}
 	return stream.Art()
+}
+
+func (db *DB) String() string {
+	return fmt.Sprintf("StreamDB{%s}", db.directory)
 }
 
 func (db *DB) streamByURL(url string) (*Stream, error) {
