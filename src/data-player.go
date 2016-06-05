@@ -87,7 +87,7 @@ func trackJsonList(inList []player.Track) (outList []interface{}) {
 	return
 }
 
-func pltrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []player.Library) ([]interface{}, error) {
+func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []player.Library, trackIndex int) ([]interface{}, error) {
 	outList := make([]interface{}, len(inList))
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
@@ -96,6 +96,21 @@ func pltrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	tracks, err := player.AllTrackInfo(libs, uris...)
 	if err != nil {
 		return nil, err
+	}
+
+	if trackIndex >= 0 {
+		// Because players are allowed to overide the metadata of other sources
+		// like the stream database, artwork contained by these secondary
+		// sources will be overridden.
+		// This is a hacky way to ensure that such artwork will still be served
+		// for the current track.
+		for _, lib := range libs {
+			if image, _ := lib.TrackArt(inList[trackIndex].Uri); image != nil {
+				image.Close()
+				tracks[trackIndex].HasArt = true
+				break
+			}
+		}
 	}
 
 	for i, tr := range tracks {
@@ -270,7 +285,7 @@ func htPlayerGetPlaylist(pl player.Player, libs []player.Library) func(res http.
 			writeError(req, res, err)
 			return
 		}
-		trJson, err := pltrackJsonList(tracks, meta, libs)
+		trJson, err := plTrackJsonList(tracks, meta, libs, trackIndex)
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -438,10 +453,8 @@ func htTrackArt(libs []player.Library) func(res http.ResponseWriter, req *http.R
 		defer image.Close()
 
 		res.Header().Set("Content-Type", mime)
-		if req.Method == "HEAD" {
-			return
-		}
 		var buf bytes.Buffer
+		// Copy to a buffer so seeking is supported.
 		io.Copy(&buf, image)
 		http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
 	}
