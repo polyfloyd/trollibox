@@ -135,7 +135,7 @@ func (db *DB) Streams() ([]Stream, error) {
 	streams := make([]Stream, 0, len(files))
 	for _, file := range files {
 		if path.Ext(file.Name()) == ".m3u" {
-			if stream, err := LoadM3U(path.Join(db.directory, file.Name())); err == nil {
+			if stream, err := db.StreamByFilename(file.Name()); err == nil {
 				streams = append(streams, *stream)
 			} else {
 				log.Printf("Unable to load stream from %q: %v", file.Name(), err)
@@ -143,6 +143,10 @@ func (db *DB) Streams() ([]Stream, error) {
 		}
 	}
 	return streams, nil
+}
+
+func (db *DB) StreamByFilename(filename string) (*Stream, error) {
+	return LoadM3U(path.Join(db.directory, filename))
 }
 
 func (db *DB) RemoveStream(stream *Stream) error {

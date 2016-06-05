@@ -44,18 +44,25 @@
 	right: 0;
 }
 
-.browser-streams ul > li .track-art > .do-remove {
+.browser-streams ul > li .track-art > button {
 	padding: 0.2em;
 	top: auto;
-	right: 0;
 	bottom: 0;
 	border: none;
 	opacity: 0;
 	transition: opacity 0.2s;
 }
 
-.browser-streams ul > li:hover .track-art > .do-remove {
+.browser-streams ul > li:hover .track-art > button {
 	opacity: 1;
+}
+
+.browser-streams ul > li .track-art > .do-remove {
+	right: 0;
+}
+
+.browser-streams ul > li .track-art > .do-edit {
+	left: 0;
 }
 
 .dialog-add-stream .art-preview {

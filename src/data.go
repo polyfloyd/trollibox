@@ -192,6 +192,16 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 			return
 		}
 
+		if data.Stream.ArtURI == "" && data.Stream.Filename != "" {
+			// Retain the artwork if no new uri is provided.
+			tmpl, err := streamdb.StreamByFilename(data.Stream.Filename)
+			if err != nil {
+				writeError(req, res, err)
+				return
+			}
+			data.Stream.ArtURI = tmpl.ArtURI
+		}
+
 		if err := streamdb.StoreStream(&data.Stream); err != nil {
 			writeError(req, res, err)
 			return

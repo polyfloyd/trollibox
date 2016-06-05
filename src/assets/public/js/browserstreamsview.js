@@ -29,6 +29,10 @@ var BrowserStreamsView = BrowserView.extend({
 			$el.on('click', function() {
 				Hotkeys.playerInsert(self.player, [stream]);
 			});
+			$el.find('.do-edit').on('click', function(event) {
+				event.stopPropagation();
+				self.showEditDialog(stream);
+			});
 			$el.find('.do-remove').on('click', function(event) {
 				event.stopPropagation();
 				self.model.remove(stream);
@@ -37,41 +41,51 @@ var BrowserStreamsView = BrowserView.extend({
 		}, this));
 	},
 
-	doShowAddDialog: function() {
+	showEditDialog: function(stream) {
 		var self = this;
 
-		var $dialog = $(this.addStreamDialog()).modal();
+		var $dialog = $(this.editStreamDialog(stream || { url: '', title: '', hasart: false })).modal();
+		showTrackArt($dialog.find('.art-preview'), self.player, stream);
 		$dialog.on('hidden.bs.modal', function() {
 			$dialog.remove();
 		});
 		$dialog.find('input[name="arturi"]').on('input', function() {
-			showTrackArt($dialog.find('.art-preview'), self.player, { art: $(this).val() });
+			var newArtURL = $(this).val();
+			if (newArtURL) {
+				$dialog.find('.art-preview').css('background-image', 'url(\''+newArtURL+'\')');
+			} else {
+				showTrackArt($dialog.find('.art-preview'), self.player, stream);
+			}
 		});
 		$dialog.find('form').on('submit', function(event) {
 			event.preventDefault();
 
-			var stream = {
-				url:    $dialog.find('input[name="url"]').val(),
-				title:  $dialog.find('input[name="title"]').val(),
-				arturi: $dialog.find('input[name="arturi"]').val(),
+			var newStream = {
+				filename: stream ? stream.filename : '',
+				url:      $dialog.find('input[name="url"]').val(),
+				title:    $dialog.find('input[name="title"]').val(),
+				arturi:   $dialog.find('input[name="arturi"]').val(),
 			};
 
 			function isValidUrl(url) {
 				return url.match(/^https?:\/\/.+$/);
 			}
-
-			if (!isValidUrl(stream.url)) {
-				alert('Stream URL "'+stream.url+'" is invalid');
+			if (!isValidUrl(newStream.url)) {
+				alert('Stream URL "'+newStream.url+'" is invalid');
 				return;
 			}
-			if (stream.arturi && !isValidUrl(stream.arturi)) {
-				alert('Art URL "'+stream.arturi+'" is invalid');
+			if (newStream.arturi && !isValidUrl(newStream.arturi)) {
+				alert('Art URL "'+newStream.arturi+'" is invalid');
 				return;
 			}
 
-			self.model.add(stream);
+			self.model.add(newStream);
 			$dialog.modal('hide');
 		});
+	},
+
+	doShowAddDialog: function() {
+		this.showEditDialog(null);
 	},
 
 	template: _.template(
@@ -87,10 +101,11 @@ var BrowserStreamsView = BrowserView.extend({
 			'<div class="track-art">'+
 				'<span class="stream-title"><%- title %></span>'+
 				'<button class="glyphicon glyphicon-remove do-remove"></button>'+
+				'<button class="glyphicon glyphicon-edit do-edit"></button>'+
 			'</div>'+
 		'</li>'
 	),
-	addStreamDialog: _.template(
+	editStreamDialog: _.template(
 		'<div class="modal fade">'+
 			'<div class="modal-dialog">'+
 				'<form class="modal-content dialog-add-stream">'+
@@ -100,9 +115,9 @@ var BrowserStreamsView = BrowserView.extend({
 					'</div>'+
 					'<div class="modal-body">'+
 						'<div class="input-group">'+
-							'<input class="form-control" type="text" name="url" placeholder="URL" required />'+
-							'<input class="form-control" type="text" name="title" placeholder="Title" required />'+
-							'<input class="form-control" type="text" name="arturi" placeholder="Image URL" />'+
+							'<input class="form-control" type="text" name="url" value="<%- url %>" placeholder="URL" required />'+
+							'<input class="form-control" type="text" name="title" value="<%- title %>" placeholder="Title" required />'+
+							'<input class="form-control" type="text" name="arturi" placeholder="<%- hasart ? "Keep current image URL" : "Image URL" %>" />'+
 						'</div>'+
 						'<div class="art-preview track-art"></div>'+
 					'</div>'+
