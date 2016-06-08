@@ -3,7 +3,10 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path"
 	"reflect"
+	"strings"
 
 	"../util"
 )
@@ -15,52 +18,87 @@ type storageFormat struct {
 
 type DB struct {
 	util.Emitter
-	storage   *util.PersistentStorage
+
+	directory string
 	factories map[string]func() Filter
 }
 
-func NewDB(file string, factories ...func() Filter) (*DB, error) {
+func NewDB(directory string, factories ...func() Filter) (*DB, error) {
 	namedFactories := map[string]func() Filter{}
 	for _, fac := range factories {
 		namedFactories[filterType(fac())] = fac
 	}
-
-	db := &DB{factories: namedFactories}
-	var err error
-	db.storage, err = util.NewPersistentStorage(file, &map[string]storageFormat{})
-	if err != nil {
+	if err := os.MkdirAll(directory, 0755); err != nil {
 		return nil, err
+	}
+	db := &DB{
+		directory: directory,
+		factories: namedFactories,
 	}
 	return db, nil
 }
 
-func (db *DB) Filters() map[string]Filter {
-	filters := map[string]Filter{}
-	for name, data := range *db.storage.Value().(*map[string]storageFormat) {
-		fac, ok := db.factories[data.Type]
-		if !ok {
-			panic(fmt.Errorf("Unknown filter type %q", data.Type))
-		}
-		ft := fac()
-		if err := json.Unmarshal(*data.Value, ft); err != nil {
-			panic(err)
-		}
-		filters[name] = ft
+func (db *DB) Names() ([]string, error) {
+	fd, err := os.Open(db.directory)
+	if err != nil {
+		return nil, err
 	}
-	return filters
+	defer fd.Close()
+
+	files, err := fd.Readdir(0)
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(files))
+	for _, file := range files {
+		if path.Ext(file.Name()) == ".json" {
+			name := strings.TrimSuffix(path.Base(file.Name()), path.Ext(file.Name()))
+			names = append(names, name)
+		}
+	}
+	return names, nil
 }
 
-func (db *DB) Set(name string, filter Filter) error {
-	val := db.storage.Value().(*map[string]storageFormat)
+func (db *DB) Get(name string) (Filter, error) {
+	fd, err := os.Open(db.filterFile(name))
+	if os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	var ft storageFormat
+	if err := json.NewDecoder(fd).Decode(&ft); err != nil {
+		return nil, err
+	}
+
+	fac, ok := db.factories[ft.Type]
+	if !ok {
+		return nil, fmt.Errorf("Unknown filter type: %s", ft.Type)
+	}
+	filter := fac()
+	if err := json.Unmarshal(([]byte)(*ft.Value), filter); err != nil {
+		return nil, err
+	}
+	return filter, nil
+}
+
+func (db *DB) Store(name string, filter Filter) error {
 	ftVal, err := json.Marshal(filter)
 	if err != nil {
 		return err
 	}
-	(*val)[name] = storageFormat{
+
+	fd, err := os.Create(db.filterFile(name))
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	if err := json.NewEncoder(fd).Encode(storageFormat{
 		Type:  filterType(filter),
 		Value: (*json.RawMessage)(&ftVal),
-	}
-	if err := db.storage.SetValue(val); err != nil {
+	}); err != nil {
 		return err
 	}
 	db.Emit("update")
@@ -68,13 +106,15 @@ func (db *DB) Set(name string, filter Filter) error {
 }
 
 func (db *DB) Remove(name string) error {
-	val := db.storage.Value().(*map[string]storageFormat)
-	delete(*val, name)
-	if err := db.storage.SetValue(val); err != nil {
+	if err := os.Remove(db.filterFile(name)); err != nil {
 		return err
 	}
 	db.Emit("update")
 	return nil
+}
+
+func (db *DB) filterFile(name string) string {
+	return path.Join(db.directory, path.Clean(name)+".json")
 }
 
 func filterType(filter Filter) string {

@@ -113,7 +113,7 @@ func main() {
 		func() filter.Filter { return &ruled.RuleFilter{} },
 		func() filter.Filter { return &keyed.Query{} },
 	}
-	filterdb, err := filter.NewDB(path.Join(storeDir, "filters.json"), filterFactories...)
+	filterdb, err := filter.NewDB(path.Join(storeDir, "filters"), filterFactories...)
 	if err != nil {
 		log.Fatalf("Unable to create filterdb: %v", err)
 	}
@@ -149,10 +149,12 @@ func main() {
 				ev := filterdb.Listen()
 				defer close(ev)
 				for {
-					ft, ok := filterdb.Filters()["queuer"]
-					if !ok {
+					ft, err := filterdb.Get("queuer")
+					if err != nil {
 						ft, _ = ruled.BuildFilter([]ruled.Rule{})
-						filterdb.Set("queuer", ft)
+						if err := filterdb.Store("queuer", ft); err != nil {
+							log.Printf("Error while autoqueueing for %q: %v", name, err)
+						}
 					}
 					com := player.AutoAppend(pl, filter.RandomIterator(ft))
 					select {

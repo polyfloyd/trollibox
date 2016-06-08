@@ -66,10 +66,10 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 func htFilterList(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		filters := filterdb.Filters()
-		names := make([]string, 0, len(filters))
-		for name := range filters {
-			names = append(names, name)
+		names, err := filterdb.Names()
+		if err != nil {
+			writeError(req, res, err)
+			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"filters": names,
@@ -80,9 +80,12 @@ func htFilterList(filterdb *filter.DB) func(res http.ResponseWriter, req *http.R
 func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", "application/json")
-		filters := filterdb.Filters()
-		filter, ok := filters[mux.Vars(req)["name"]]
-		if !ok {
+		filter, err := filterdb.Get(mux.Vars(req)["name"])
+		if err != nil {
+			writeError(req, res, err)
+			return
+		}
+		if filter == nil {
 			// TODO: Return a proper response code.
 			writeError(req, res, fmt.Errorf("Not found"))
 			return
@@ -149,7 +152,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 			return
 		}
 		name := mux.Vars(req)["name"]
-		if err := filterdb.Set(name, filter); err != nil {
+		if err := filterdb.Store(name, filter); err != nil {
 			writeError(req, res, err)
 			return
 		}
