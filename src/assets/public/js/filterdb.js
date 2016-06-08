@@ -15,7 +15,7 @@ var FilterDB = NetModel.extend({
 					return;
 				}
 				var name = data.filters[index];
-				self.callServer('/filters/'+name+'/', 'GET', null, function(err, filterData) {
+				self.callServer('/filters/'+name+'/', 'GET', null).then(function(filterData) {
 					filters[name] = filterData.filter;
 					next(index + 1);
 				});
