@@ -100,11 +100,17 @@ var PlayerView = Backbone.View.extend({
 		var $pl = this.$('.player-playlist');
 		$pl.empty();
 		$pl.append(playlist.map(function(track, i) {
-			var self = this;
 			var $li = $(this.playlistTemplate(track));
-			$li.find('.do-remove').on('click', function() {
-				self.model.removeFromPlaylist(self.model.get('current') + i + 1);
-			});
+			$li.on('click', function() {
+				if (Hotkeys.state.ctrl) {
+					var cur = this.model.get('current');
+					this.model.moveInPlaylist(cur + 1 + i, cur + 1);
+				}
+			}.bind(this));
+			$li.find('.do-remove').on('click', function(event) {
+				event.preventDefault();
+				this.model.removeFromPlaylist(this.model.get('current') + i + 1);
+			}.bind(this));
 			return $li;
 		}, this));
 		$pl.sortable('reload');
