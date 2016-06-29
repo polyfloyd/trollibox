@@ -25,7 +25,6 @@ Clone the repository.
 
 The following tools are required to build Trollibox:
 * [Golang](https://golang.org/)
-* [NPM](https://www.npmjs.com/)
 
 Once you got that sorted out, its time to build Trollibox. Build it by simply running:
 ```sh
