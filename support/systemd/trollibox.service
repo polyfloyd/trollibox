@@ -1,0 +1,15 @@
+[Unit]
+Description=Trollibox
+After=mpd.service network.target
+Requires=mpd.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=2s
+ExecStart=/usr/local/bin/trollibox -conf /etc/trollibox/config.json
+User=trollibox
+Group=trollibox
+
+[Install]
+WantedBy=multi-user.target
