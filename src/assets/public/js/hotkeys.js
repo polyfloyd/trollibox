@@ -2,7 +2,10 @@
 
 
 var Hotkeys = {
+	// Tracks the state of keys being pressed.
 	state: {},
+
+	_autorelease: {},
 
 	player: function(player, $scope) {
 		$scope.bind('keydown', 'space', function() {
@@ -67,4 +70,12 @@ var Hotkeys = {
 $('body').bind('keydown keyup', function(event) {
 	var key = jQuery.hotkeys.specialKeys[event.keyCode];
 	Hotkeys.state[key] = event.type == 'keydown';
+
+	// If the user is holding a key while navigating away from the page and
+	// then releases said key, this release event is never received. This
+	// little hack ensures that the keystate is reset after two seconds.
+	clearTimeout(Hotkeys._autorelease[key]);
+	Hotkeys._autorelease[key] = setTimeout(function() {
+		Hotkeys.state[key] = false;
+	}, 2000);
 });
