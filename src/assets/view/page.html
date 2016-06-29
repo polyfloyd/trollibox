@@ -190,7 +190,8 @@
 				});
 			}
 
-			app.on('route', function(route, state) {
+			app.on('route', function(route, args) {
+				var state = decodeURIComponent(args[0] || '');
 				// Toggle visibility of the views.
 				if (route !== 'player') {
 					for (var k in views) {
@@ -199,8 +200,8 @@
 					$('.browser').removeClass('expand-player');
 				}
 				if (!!routeByName(route).match(/^browse/)) {
-					$('.view-name-'+route+' a').attr('data-state', state[0]);
-					views[route].setState(state[0]);
+					$('.view-name-'+route+' a').attr('data-state', state);
+					views[route].setState(state);
 				}
 
 				// Toggle the 'active' class of the navigation buttons.
@@ -223,7 +224,7 @@
 					});
 					// Listen to view state changes.
 					views[k].on('change-state', function(state) {
-						app.navigate(routeByName(k)+state, { trigger: false });
+						app.navigate(routeByName(k)+encodeURIComponent(state || ''), { trigger: false });
 						$('.view-name-'+k+' a').attr('data-state', state);
 					});
 				});
