@@ -59,7 +59,7 @@ var Hotkeys = {
 
 	playerInsert: function(player, tracks) {
 		var cur = player.get('current');
-		if (Hotkeys.state.ctrl && cur > 0) {
+		if (Hotkeys.state.ctrl && cur >= 0) {
 			player.insertIntoPlaylist(tracks, cur + 1);
 		} else {
 			player.appendToPlaylist(tracks);
