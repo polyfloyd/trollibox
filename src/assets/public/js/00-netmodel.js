@@ -1,6 +1,8 @@
 'use strict';
 
 var NetModel = Backbone.Model.extend({
+	updating: {},
+
 	initialize: function(args) {
 		this.on('server-connect', this.reload, this);
 		this.connectEventSocket(args.eventSocketPath);
@@ -52,36 +54,39 @@ var NetModel = Backbone.Model.extend({
 	attachServerReloader: function(event, path, handler) {
 		this.reloaders = this.reloaders || {};
 		var reload = function() {
-			this.callServer(path, 'GET', null).then(handler.bind(this));
+			var property = event.split(':')[1];
+			if (!this.updating[property]) {
+				this.callServer(path, 'GET', null).then(handler.bind(this));
+			}
 		};
 		this.on(event, reload, this);
 		this.reloaders[event] = reload;
 	},
 
-	attachServerUpdater: function(event, path, getUpdateData) {
-		var waiting   = false;
+	attachServerUpdater: function(property, path, getUpdateData) {
+		this.updating[property] = false;
 		var nextValue = undefined;
 
 		function update(value) {
-			waiting = true;
+			this.updating[property] = true;
 			this.callServer(path, 'POST', getUpdateData.call(this, value)).then(function(data) {
 				setTimeout(function() {
-					waiting = false;
+					this.updating[property] = false;
 					if (typeof nextValue !== 'undefined') {
 						update.call(this, nextValue);
 						nextValue = undefined;
 					}
 				}.bind(this), 200);
 			}.bind(this)).catch(function() {
-				waiting = false;
+				this.updating[property] = false;
 			});
 		}
 
-		this.on('change:'+event, function(obj, value, options) {
+		this.on('change:'+property, function(obj, value, options) {
 			if (options.sender === this) {
 				return;
 			}
-			if (waiting) {
+			if (this.updating[property]) {
 				nextValue = value;
 			} else {
 				update.call(this, value);
