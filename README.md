@@ -43,58 +43,7 @@ should inform Trollibox by using the `-conf` option. Like this:
 trollibox -conf /etc/trollibox.json
 ```
 
-Inside the configuration file, you will find some options you should may need
-to change:
-```js
-{
-  // The network address to listen on. Must be in the Go listen format.
-  // For example:
-  //  ":80" // Listen on port 80 on all interfaces.
-  "listen-address": "127.0.0.1:3000",
-
-  // The base URL at which the webinterface will can be reached by clients.
-  // Must end with '/'.
-  "url-root":       "http://localhost:3000/",
-
-  // The directory which Trollibox will use to store data which can not be
-  // saved to configured players.
-  "storage-dir": "~/.config/trollibox",
-
-  // Enable or disable random tracks being automatically queued when the
-  // playlist ends.
-  "autoqueue": true,
-
-  // Sets the default player by name. Leave empty to let Trollibox select a
-  // random player.
-  "default-player": "",
-
-  // The sections below list options to configure the players that Trollibox
-  // will control. Each player is identified by a unique "name" property.
-
-  // MPD instances to control. Leave emtpy if you don't want to configure any
-  // MPD instances.
-  "mpd": [
-    {
-      "name":     "space",
-      "network":  "tcp",
-      "address":  "127.0.0.1:6600",
-      "password": null
-    }
-  ],
-
-  // Logitech SlimServer to control. Set to null if you don't want to configure
-  // a SlimServer. The players along with their names are automatically
-  // detected.
-  "slimserver": {
-    "network":  "tcp",
-    "address":  "127.0.0.1:9090",
-    "username": null,
-    "password": null,
-
-    // The root of the SlimServer's web interface. Used to query track art.
-    "weburl": "http://127.0.0.1:9000/"
-  }
-}
+Inside the configuration file, you will find some options you may need to change.
 ```
 
 ### Track Art and MPD

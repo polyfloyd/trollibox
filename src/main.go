@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
@@ -65,12 +66,20 @@ type Config struct {
 }
 
 func (conf *Config) Load(filename string) error {
-	if in, err := os.Open(filename); err != nil {
-		return fmt.Errorf("Could not open config file: %v", err)
-	} else if err := json.NewDecoder(in).Decode(conf); err != nil {
+	content, err := ioutil.ReadFile(filename)
+	if err != nil {
 		return fmt.Errorf("Unable to decode config: %v", err)
 	}
-	return nil
+	multilineCommentRe := regexp.MustCompile("(?s)/\\*.*\\*/")
+	content = multilineCommentRe.ReplaceAll(content, []byte{})
+	singlelineCommentRe := regexp.MustCompile("(\"[^\"]*\")|(//.*)")
+	content = singlelineCommentRe.ReplaceAllFunc(content, func(str []byte) []byte {
+		if str[0] == '"' && str[len(str)-1] == '"' {
+			return str
+		}
+		return []byte{}
+	})
+	return json.Unmarshal(content, conf)
 }
 
 type AssetServeHandler string
