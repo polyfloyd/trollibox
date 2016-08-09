@@ -44,7 +44,6 @@ trollibox -conf /etc/trollibox.json
 ```
 
 Inside the configuration file, you will find some options you may need to change.
-```
 
 ### Track Art and MPD
 Since MPD does not natively support art embedded in tracks, track art is
