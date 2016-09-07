@@ -24,30 +24,30 @@ func (cache *TrackCache) Tracks() ([]Track, error) {
 	if cache.tracks == nil {
 		cache.lock.RUnlock()
 		cache.lock.Lock()
-		cache.reloadTracks()
+		if cache.tracks == nil {
+			cache.reloadTracks()
+		}
 		cache.lock.Unlock()
 		cache.lock.RLock()
 	}
-
-	if cache.err != nil {
-		return nil, cache.err
-	}
-	return cache.tracks, nil
+	return cache.tracks, cache.err
 }
 
 func (cache *TrackCache) TrackInfo(uris ...string) ([]Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
-	if cache.err != nil {
-		return nil, cache.err
-	}
 	if cache.tracks == nil {
 		cache.lock.RUnlock()
 		cache.lock.Lock()
-		cache.reloadTracks()
+		if cache.tracks == nil {
+			cache.reloadTracks()
+		}
 		cache.lock.Unlock()
 		cache.lock.RLock()
+	}
+	if cache.err != nil {
+		return nil, cache.err
 	}
 
 	results := make([]Track, len(uris))
@@ -73,10 +73,11 @@ func (cache *TrackCache) Run() {
 	listener := cache.Player.Events().Listen()
 	defer cache.Player.Events().Unlisten(listener)
 
-	go func() {
-		// Reload tracks on startup.
-		listener <- "tracks"
-	}()
+	// Reload tracks on startup.
+	cache.lock.Lock()
+	cache.reloadTracks()
+	cache.lock.Unlock()
+	cache.Emit("tracks")
 
 	for event := range listener {
 		if event == "tracks" {

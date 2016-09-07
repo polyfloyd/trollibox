@@ -11,79 +11,93 @@ type Emitter struct {
 	// A zero value will disable buffering.
 	Release time.Duration
 
-	listeners map[chan string]struct{}
-	lock      sync.Mutex
+	listeners       map[<-chan string]chan string
+	listenerClosers map[<-chan string]chan struct{}
+	lock            sync.RWMutex
 
-	releaseReset map[string]chan struct{}
+	release map[string]struct{}
 }
 
 func (emitter *Emitter) init() {
-	if emitter.listeners == nil {
-		emitter.listeners = map[chan string]struct{}{}
-		emitter.releaseReset = map[string]chan struct{}{}
+	emitter.lock.RLock()
+	shouldInit := emitter.listeners == nil
+	emitter.lock.RUnlock()
+	if shouldInit {
+		emitter.lock.Lock()
+		if emitter.listeners == nil {
+			emitter.listeners = map[<-chan string]chan string{}
+			emitter.listenerClosers = map[<-chan string]chan struct{}{}
+			emitter.release = map[string]struct{}{}
+		}
+		emitter.lock.Unlock()
+	}
+}
+
+func (emitter *Emitter) broadcast(event string) {
+	emitter.lock.RLock()
+	defer emitter.lock.RUnlock()
+	for _, listener := range emitter.listeners {
+		go func(listener chan string) {
+			select {
+			case listener <- event:
+			case <-emitter.listenerClosers[listener]:
+			}
+		}(listener)
 	}
 }
 
 func (emitter *Emitter) Emit(event string) {
-	emitter.lock.Lock()
-	defer emitter.lock.Unlock()
 	emitter.init()
 
+	emitter.lock.RLock()
+	defer emitter.lock.RUnlock()
+
 	if emitter.Release == 0 {
-		for l := range emitter.listeners {
-			l <- event
-		}
+		go emitter.broadcast(event)
 		return
 	}
 
-	// Check wether the event is scheduled for emission and clear it.
-	if reset, ok := emitter.releaseReset[event]; ok {
-		reset <- struct{}{}
+	// Check wether the event is already scheduled.
+	if _, ok := emitter.release[event]; ok {
 		return
 	}
 
 	go func() {
 		emitter.lock.Lock()
-		reset := make(chan struct{})
-		emitter.releaseReset[event] = reset
+		emitter.release[event] = struct{}{}
 		emitter.lock.Unlock()
 
-	loop:
-		for {
-			select {
-			case <-time.After(emitter.Release):
-				emitter.lock.Lock()
-				for l := range emitter.listeners {
-					l <- event
-				}
-				emitter.lock.Unlock()
-				break loop
-			case <-reset:
-			}
-		}
+		time.Sleep(emitter.Release)
+		emitter.broadcast(event)
 
 		emitter.lock.Lock()
-		close(reset)
-		delete(emitter.releaseReset, event)
+		delete(emitter.release, event)
 		emitter.lock.Unlock()
 	}()
 }
 
-func (emitter *Emitter) Listen() chan string {
-	emitter.lock.Lock()
-	defer emitter.lock.Unlock()
+func (emitter *Emitter) Listen() <-chan string {
 	emitter.init()
 
-	ch := make(chan string, 16)
-	emitter.listeners[ch] = struct{}{}
+	emitter.lock.Lock()
+	defer emitter.lock.Unlock()
+
+	ch := make(chan string, 1)
+	emitter.listeners[ch] = ch
 	return ch
 }
 
-func (emitter *Emitter) Unlisten(ch chan string) {
-	emitter.lock.Lock()
-	defer emitter.lock.Unlock()
+func (emitter *Emitter) Unlisten(ch <-chan string) {
 	emitter.init()
 
-	close(ch)
+	emitter.lock.Lock()
+	defer emitter.lock.Unlock()
+
+	// Signal any remaining broadcasts to abort writing to the channel.
+	close(emitter.listenerClosers[ch])
+
+	// Ok, now clean up everything.
+	close(emitter.listeners[ch])
+	delete(emitter.listenerClosers, ch)
 	delete(emitter.listeners, ch)
 }

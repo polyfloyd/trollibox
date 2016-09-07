@@ -156,7 +156,7 @@ func main() {
 		for name, pl := range players {
 			go func(pl player.Player, name string) {
 				ev := filterdb.Listen()
-				defer close(ev)
+				defer filterdb.Unlisten(ev)
 				for {
 					ft, err := filterdb.Get("queuer")
 					if err != nil {
