@@ -1,6 +1,9 @@
 package filter
 
 import (
+	"runtime"
+	"sync"
+
 	"../player"
 )
 
@@ -43,40 +46,35 @@ func (l ByNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumM
 
 // Filters the tracks by applying the filter to all tracks.
 func FilterTracks(filter Filter, tracks []player.Track) []SearchResult {
-	const SPLIT = 1000
-	results := make([]SearchResult, 0, len(tracks))
-	matchedStream := make(chan *SearchResult, 32)
-	remaining := 0
-
-	for input := tracks; len(input) != 0; {
-		var part []player.Track
-		if len(input) >= SPLIT {
-			part = input[0:SPLIT]
-			input = input[SPLIT:]
-		} else {
-			part = input
-			input = []player.Track{}
+	trackStream := make(chan player.Track)
+	matchStream := make(chan SearchResult)
+	go func() {
+		defer close(trackStream)
+		for _, track := range tracks {
+			trackStream <- track
 		}
+	}()
 
-		remaining++
-		go func(in []player.Track) {
-			for _, track := range in {
+	var wg sync.WaitGroup
+	wg.Add(runtime.NumCPU())
+	for i := 0; i < runtime.NumCPU(); i++ {
+		go func() {
+			for track := range trackStream {
 				if res, ok := filter.Filter(track); ok {
-					matchedStream <- &res
+					matchStream <- res
 				}
 			}
-			matchedStream <- nil
-		}(part)
+			wg.Done()
+		}()
 	}
+	go func() {
+		defer close(matchStream)
+		wg.Wait()
+	}()
 
-	for remaining > 0 {
-		res := <-matchedStream
-		if res == nil {
-			remaining--
-			continue
-		}
-		results = append(results, *res)
+	results := make([]SearchResult, 0, len(tracks))
+	for match := range matchStream {
+		results = append(results, match)
 	}
-	close(matchedStream)
 	return results
 }
