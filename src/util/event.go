@@ -84,6 +84,7 @@ func (emitter *Emitter) Listen() <-chan string {
 
 	ch := make(chan string, 1)
 	emitter.listeners[ch] = ch
+	emitter.listenerClosers[ch] = make(chan struct{})
 	return ch
 }
 
