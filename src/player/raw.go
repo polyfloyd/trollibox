@@ -19,28 +19,31 @@ type rawTrack struct {
 }
 
 type RawTrackServer struct {
-	UrlRoot string
-	TmpDir  string
-
-	tracks map[string]rawTrack
-	lock   sync.Mutex
+	urlRoot string
+	tmpDir  string
+	tracks  map[string]rawTrack
+	lock    sync.RWMutex
 }
 
-func (rp *RawTrackServer) init() {
-	if rp.tracks == nil {
-		rp.tracks = map[string]rawTrack{}
-		if rp.TmpDir == "" {
-			rp.TmpDir = path.Join(os.TempDir(), "trollibox-raw")
-		}
-		os.MkdirAll(rp.TmpDir, 0755|os.ModeTemporary)
+func NewRawTrackServer(urlRoot string) (*RawTrackServer, error) {
+	tmpDir := path.Join(os.TempDir(), "trollibox-raw")
+	if err := os.MkdirAll(tmpDir, 0755|os.ModeTemporary); err != nil {
+		return nil, fmt.Errorf("Error creating raw server: %v", err)
 	}
+	return &RawTrackServer{
+		urlRoot: urlRoot,
+		tmpDir:  tmpDir,
+		tracks:  map[string]rawTrack{},
+	}, nil
 }
 
 func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	trackId := req.FormValue("track")
-	rp.lock.Lock()
+
+	rp.lock.RLock()
 	track, ok := rp.tracks[trackId]
-	rp.lock.Unlock()
+	rp.lock.RUnlock()
+
 	if !ok {
 		http.NotFound(res, req)
 		return
@@ -50,16 +53,16 @@ func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 }
 
 func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
-	rp.lock.Lock()
-	rp.init()
-	rp.lock.Unlock()
-
-	file, err := ioutil.TempFile(rp.TmpDir, "")
+	file, err := ioutil.TempFile(rp.tmpDir, "")
 	if err != nil {
-		return Track{}, err
+		return Track{}, fmt.Errorf("Error adding raw track: %v", err)
 	}
 	trackId := path.Base(file.Name())
-	io.Copy(file, r)
+	if _, err := io.Copy(file, r); err != nil {
+		file.Close()
+		os.Remove(file.Name())
+		return Track{}, fmt.Errorf("Error adding raw track: %v", err)
+	}
 
 	rp.lock.Lock()
 	rp.tracks[trackId] = rawTrack{
@@ -68,18 +71,17 @@ func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
 	}
 	rp.lock.Unlock()
 
-	return Track{Uri: fmt.Sprintf("%s?track=%s", rp.UrlRoot, trackId)}, nil
+	return Track{Uri: fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId)}, nil
 }
 
 func (rp *RawTrackServer) Tracks() ([]Track, error) {
-	rp.lock.Lock()
-	defer rp.lock.Unlock()
-	rp.init()
+	rp.lock.RLock()
+	defer rp.lock.RUnlock()
 
 	tracks := make([]Track, 0, len(rp.tracks))
 	for trackId, rt := range rp.tracks {
 		tracks = append(tracks, Track{
-			Uri:   fmt.Sprintf("%s?track=%s", rp.UrlRoot, trackId),
+			Uri:   fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId),
 			Title: rt.name,
 		})
 	}
@@ -87,9 +89,8 @@ func (rp *RawTrackServer) Tracks() ([]Track, error) {
 }
 
 func (rp *RawTrackServer) TrackInfo(uris ...string) ([]Track, error) {
-	rp.lock.Lock()
-	defer rp.lock.Unlock()
-	rp.init()
+	rp.lock.RLock()
+	defer rp.lock.RUnlock()
 
 	tracks := make([]Track, len(uris))
 	for i, uri := range uris {
@@ -111,14 +112,12 @@ func (rp *RawTrackServer) TrackArt(track string) (io.ReadCloser, string) {
 func (rp *RawTrackServer) Remove(track Track) error {
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
-	rp.init()
 
 	trackId := rawIdFromUrl(track.Uri)
 	rt, ok := rp.tracks[trackId]
 	if !ok {
 		return nil
 	}
-
 	rt.file.Close()
 	if err := os.Remove(rt.file.Name()); err != nil {
 		return err
@@ -128,7 +127,7 @@ func (rp *RawTrackServer) Remove(track Track) error {
 }
 
 func rawIdFromUrl(url string) string {
-	m := regexp.MustCompile("\\?track=(\\d+)").FindStringSubmatch(url)
+	m := regexp.MustCompile("\\?track=(\\w+)").FindStringSubmatch(url)
 	if m == nil {
 		return ""
 	}

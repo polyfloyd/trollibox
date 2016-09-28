@@ -183,7 +183,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rawServer := &player.RawTrackServer{UrlRoot: fmt.Sprintf("%sdata/raw", fullUrlRoot)}
+	rawServer, err := player.NewRawTrackServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	r := mux.NewRouter()
 	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))

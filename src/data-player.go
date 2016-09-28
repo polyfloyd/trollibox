@@ -523,6 +523,7 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 			go func(track player.Track) {
 				events := pl.Events().Listen()
 				defer pl.Events().Unlisten(events)
+			outer:
 				for event := range events {
 					if event != "playlist" {
 						continue
@@ -531,15 +532,12 @@ func htRawTrackAdd(pl player.Player, rawServer *player.RawTrackServer) func(res 
 					if err != nil {
 						break
 					}
-					found := false
 					for _, plTrack := range tracks {
 						if track.Uri == plTrack.Uri {
-							found = true
+							continue outer
 						}
 					}
-					if !found {
-						break
-					}
+					break
 				}
 				rawServer.Remove(track)
 			}(track)
