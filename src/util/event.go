@@ -39,8 +39,12 @@ func (emitter *Emitter) broadcast(event string) {
 	for _, listener := range emitter.listeners {
 		go func(listener chan string) {
 			select {
-			case listener <- event:
 			case <-emitter.listenerClosers[listener]:
+			default:
+				select {
+				case listener <- event:
+				case <-emitter.listenerClosers[listener]:
+				}
 			}
 		}(listener)
 	}
@@ -57,7 +61,7 @@ func (emitter *Emitter) Emit(event string) {
 		return
 	}
 
-	// Check wether the event is already scheduled.
+	// Check whether the event is already scheduled.
 	if _, ok := emitter.release[event]; ok {
 		return
 	}
