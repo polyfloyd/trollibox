@@ -165,7 +165,7 @@ func (db *DB) Streams() ([]Stream, error) {
 }
 
 func (db *DB) StreamByFilename(filename string) (*Stream, error) {
-	return LoadM3U(path.Join(db.directory, filename))
+	return LoadM3U(path.Join(db.directory, path.Clean(filename)))
 }
 
 func (db *DB) RemoveStream(stream *Stream) error {
@@ -173,7 +173,7 @@ func (db *DB) RemoveStream(stream *Stream) error {
 		return fmt.Errorf("Stream filenames must have the .m3u suffix")
 	}
 	defer db.Emit("update")
-	return os.Remove(path.Join(db.directory, stream.Filename))
+	return os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
 }
 
 func (db *DB) StoreStream(stream *Stream) error {
@@ -196,7 +196,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 		stream.ArtURI = artURI
 	}
 
-	fd, err := os.Create(path.Join(db.directory, stream.Filename))
+	fd, err := os.Create(path.Join(db.directory, path.Clean(stream.Filename)))
 	if err != nil {
 		return err
 	}
