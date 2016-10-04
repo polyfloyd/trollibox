@@ -60,20 +60,19 @@ var Player = NetModel.extend({
 	},
 
 	reloadProgressUpdater: function() {
-		var self = this;
-
 		clearInterval(this.timeUpdater);
 		clearTimeout(this.timeTimeout);
 
 		var cur = this.getCurrentTrack();
 		if (cur && this.get('state') === 'playing') {
+			this.setInternal('time', this.get('time') + 1);
 			this.timeUpdater = setInterval(function() {
-				self.setInternal('time', self.get('time') + 1);
-			}, 1000);
+				this.setInternal('time', this.get('time') + 1);
+			}.bind(this), 1000);
 			if (cur.duration) {
 				this.timeTimeout = setTimeout(function() {
-					self.reload('server-event:player');
-				}, 1000 * (cur.duration - this.get('time')));
+					this.reload('server-event:player');
+				}.bind(this), 1000 * (cur.duration - this.get('time')));
 			}
 		}
 	},
