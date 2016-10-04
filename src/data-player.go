@@ -20,37 +20,11 @@ import (
 
 var httpCacheSince = time.Now()
 
-func trackJson(tr *player.Track) interface{} {
+func trackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
 	if tr == nil {
 		return nil
 	}
-	return &struct {
-		Uri         string `json:"uri"`
-		Artist      string `json:"artist,omitempty"`
-		Title       string `json:"title,omitempty"`
-		Genre       string `json:"genre,omitempty"`
-		Album       string `json:"album,omitempty"`
-		AlbumArtist string `json:"albumartist,omitempty"`
-		AlbumTrack  string `json:"albumtrack,omitempty"`
-		AlbumDisc   string `json:"albumdisc,omitempty"`
-		Duration    int    `json:"duration"`
-		HasArt      bool   `json:"hasart"`
-	}{
-		Uri:         tr.Uri,
-		Artist:      tr.Artist,
-		Title:       tr.Title,
-		Genre:       tr.Genre,
-		Album:       tr.Album,
-		AlbumArtist: tr.AlbumArtist,
-		AlbumTrack:  tr.AlbumTrack,
-		AlbumDisc:   tr.AlbumDisc,
-		Duration:    int(tr.Duration / time.Second),
-		HasArt:      tr.HasArt,
-	}
-}
-
-func plTrackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
-	return &struct {
+	var struc struct {
 		Uri         string `json:"uri"`
 		Artist      string `json:"artist,omitempty"`
 		Title       string `json:"title,omitempty"`
@@ -62,27 +36,28 @@ func plTrackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
 		Duration    int    `json:"duration"`
 		HasArt      bool   `json:"hasart"`
 
-		QueuedBy string `json:"queuedby"`
-	}{
-		Uri:         tr.Uri,
-		Artist:      tr.Artist,
-		Title:       tr.Title,
-		Genre:       tr.Genre,
-		Album:       tr.Album,
-		AlbumArtist: tr.AlbumArtist,
-		AlbumTrack:  tr.AlbumTrack,
-		AlbumDisc:   tr.AlbumDisc,
-		Duration:    int(tr.Duration / time.Second),
-		HasArt:      tr.HasArt,
-
-		QueuedBy: meta.QueuedBy,
+		QueuedBy string `json:"queuedby,omitempty"`
 	}
+	struc.Uri = tr.Uri
+	struc.Artist = tr.Artist
+	struc.Title = tr.Title
+	struc.Genre = tr.Genre
+	struc.Album = tr.Album
+	struc.AlbumArtist = tr.AlbumArtist
+	struc.AlbumTrack = tr.AlbumTrack
+	struc.AlbumDisc = tr.AlbumDisc
+	struc.Duration = int(tr.Duration / time.Second)
+	struc.HasArt = tr.HasArt
+	if meta != nil {
+		struc.QueuedBy = meta.QueuedBy
+	}
+	return struc
 }
 
 func trackJsonList(inList []player.Track) (outList []interface{}) {
 	outList = make([]interface{}, len(inList))
 	for i, tr := range inList {
-		outList[i] = trackJson(&tr)
+		outList[i] = trackJson(&tr, nil)
 	}
 	return
 }
@@ -114,7 +89,7 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	}
 
 	for i, tr := range tracks {
-		outList[i] = plTrackJson(&tr, &meta[i])
+		outList[i] = trackJson(&tr, &meta[i])
 	}
 	return outList, nil
 }
@@ -414,7 +389,7 @@ func htPlayerStoredPlaylistTracks(pl player.Player) func(res http.ResponseWriter
 
 		outList := make([]interface{}, len(tracks))
 		for i, tr := range tracks {
-			outList[i] = trackJson(&tr)
+			outList[i] = trackJson(&tr, nil)
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"tracks": outList,
@@ -483,7 +458,7 @@ func htTrackSearch(pl player.Player) func(res http.ResponseWriter, req *http.Req
 		for i, res := range results {
 			mappedResults[i] = map[string]interface{}{
 				"matches": res.Matches,
-				"track":   trackJson(&res.Track),
+				"track":   trackJson(&res.Track, nil),
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
