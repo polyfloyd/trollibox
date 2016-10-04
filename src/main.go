@@ -91,6 +91,32 @@ func (h AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
 }
 
+type PlayerList interface {
+	ActivePlayers() []string
+
+	ActivePlayerByName(name string) player.Player
+}
+
+type TODOPlayerList map[string]player.Player
+
+func (list TODOPlayerList) ActivePlayers() []string {
+	names := make([]string, 0, len(list))
+	for name, pl := range list {
+		if pl.Available() {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (list TODOPlayerList) ActivePlayerByName(name string) player.Player {
+	if pl, ok := list[name]; ok && pl.Available() {
+		return pl
+	}
+	return nil
+}
+
 func main() {
 	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
 	printVersion := flag.Bool("version", false, "Print the version string")
@@ -131,55 +157,43 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(players) == 0 {
-		log.Fatal("No players configured")
-	}
-	defaultPlayer := config.DefaultPlayer
-	if defaultPlayer == "" {
-		for name := range players {
-			defaultPlayer = name
-			break
-		}
-	}
-	if _, ok := players[defaultPlayer]; !ok {
-		log.Fatalf("The configured default player is unknown: %q", defaultPlayer)
-	}
-
-	for name, pl := range players {
-		log.Printf("Attached player %v", pl)
-		cache := &player.TrackCache{Player: pl}
-		players[name] = cache
-		go cache.Run()
+	if len(players.ActivePlayers()) == 0 {
+		log.Fatal("No players configured or available")
 	}
 
 	if config.AutoQueue {
-		for name, pl := range players {
+		// TODO: Currently, only players which are active at startup attached
+		// to a queuer.
+		for _, name := range players.ActivePlayers() {
+			pl := players.ActivePlayerByName(name)
 			go func(pl player.Player, name string) {
-				ev := filterdb.Listen()
-				defer filterdb.Unlisten(ev)
+				filterEvents := filterdb.Listen()
+				defer filterdb.Unlisten(filterEvents)
 				for {
 					ft, err := filterdb.Get("queuer")
 					if err != nil {
+						// Load the default filter.
 						ft, _ = ruled.BuildFilter([]ruled.Rule{})
 						if err := filterdb.Store("queuer", ft); err != nil {
 							log.Printf("Error while autoqueueing for %q: %v", name, err)
 						}
 					}
-					com := player.AutoAppend(pl, filter.RandomIterator(ft))
+					cancel := make(chan struct{})
+					com := player.AutoAppend(pl, filter.RandomIterator(ft), cancel)
 					select {
 					case err := <-com:
 						if err != nil {
 							log.Printf("Error while autoqueueing for %q: %v", name, err)
 						}
-					case <-ev:
-						com <- nil
+					case <-filterEvents:
 					}
+					close(cancel)
 				}
 			}(pl, name)
 		}
 	}
 
-	fullUrlRoot, err := determineFullURLRoot(config.URLRoot, config.Address)
+	fullUrlRoot, err := util.DetermineFullURLRoot(config.URLRoot, config.Address)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -188,31 +202,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	r := mux.NewRouter()
-	r.Handle("/", http.RedirectHandler("/player/"+defaultPlayer, http.StatusTemporaryRedirect))
-	for name, pl := range players {
-		func(name string, pl player.Player) {
-			playerOnline := func(r *http.Request, rm *mux.RouteMatch) bool {
-				return pl.Available()
-			}
-			r.Path(fmt.Sprintf("/player/%s", name)).MatcherFunc(playerOnline).HandlerFunc(htBrowserPage(&config, players, name))
-			htPlayerDataAttach(r.PathPrefix(fmt.Sprintf("/data/player/%s/", name)).MatcherFunc(playerOnline).Subrouter(), pl, streamdb, rawServer)
-		}(name, pl)
-	}
-
+	service := mux.NewRouter()
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, PUBLIC_DIR) {
 			continue
 		}
 		urlPath := strings.TrimPrefix(file, PUBLIC_DIR)
-		r.Path(urlPath).Handler(AssetServeHandler(file))
+		service.Path(urlPath).Handler(AssetServeHandler(file))
 	}
-	htDataAttach(r.PathPrefix("/data/").Subrouter(), filterdb, streamdb, rawServer)
+
+	service.HandleFunc("/", htRedirectToDefaultPlayer(&config, players))
+	service.Path("/player/{player}").HandlerFunc(htBrowserPage(&config, players))
+	dataService := service.PathPrefix("/data/").Subrouter()
+	htDataAttach(dataService, filterdb, streamdb, rawServer)
+	htPlayerDataAttach(dataService.PathPrefix("/player/{player}/").Subrouter(), players, streamdb, rawServer)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
-		Handler:        util.Gzip(r),
+		Handler:        util.Gzip(service),
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
@@ -220,7 +228,7 @@ func main() {
 	log.Fatalf("Error running webserver: %v", server.ListenAndServe())
 }
 
-func connectToPlayers(config *Config) (map[string]player.Player, error) {
+func connectToPlayers(config *Config) (PlayerList, error) {
 	players := map[string]player.Player{}
 	addPlayer := func(pl player.Player, name string) error {
 		if match, _ := regexp.MatchString("^\\w+$", name); !match {
@@ -263,7 +271,14 @@ func connectToPlayers(config *Config) (map[string]player.Player, error) {
 			}
 		}
 	}
-	return players, nil
+
+	for name, pl := range players {
+		log.Printf("Attached player %v", pl)
+		cache := &player.TrackCache{Player: pl}
+		players[name] = cache
+		go cache.Run()
+	}
+	return TODOPlayerList(players), nil
 }
 
 func getStaticAssets(files []string) map[string][]string {
@@ -289,38 +304,8 @@ func getStaticAssets(files []string) map[string][]string {
 	return static
 }
 
-func determineFullURLRoot(root, address string) (string, error) {
-	// Handle "http://host:port/"
-	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
-		return root, nil
-	}
-	// Handle "//host:port/"
-	if regexp.MustCompile("^\\/\\/.").MatchString(root) {
-		// Assume plain HTTP. If you are smart enough to set up HTTPS you are
-		// also smart enough to configure the URLRoot.
-		return "http:" + root, nil
-	}
-	// Handle "/"
-	if root == "/" {
-		i := strings.LastIndex(address, ":")
-		host, port := address[:i], address[i+1:]
-		if host == "" || host == "0.0.0.0" {
-			host = "127.0.0.1"
-		} else if host == "[::]" {
-			host = "[::1]"
-		}
-		return fmt.Sprintf("http://%s:%s/", host, port), nil
-	}
-	// Give up
-	return "", fmt.Errorf("Unsupported URL Root format: %q", root)
-}
-
-func baseParamMap(config *Config, players map[string]player.Player) map[string]interface{} {
-	playerNames := make([]string, 0, len(players))
-	for name := range players {
-		playerNames = append(playerNames, name)
-	}
-	sort.Strings(playerNames)
+func baseParamMap(config *Config, players PlayerList) map[string]interface{} {
+	playerNames := players.ActivePlayers()
 	return map[string]interface{}{
 		"urlroot": config.URLRoot,
 		"version": VERSION,

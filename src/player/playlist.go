@@ -44,13 +44,12 @@ type TrackIterator interface {
 // Sending a value over the returned channel interrupts the operation.
 // Receiving from the channel blocks until no more tracks are available from
 // the iterator or an error is encountered.
-func AutoAppend(pl Player, iter TrackIterator) chan error {
-	com := make(chan error, 1)
-
+func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan error {
+	errc := make(chan error, 1)
 	go func() {
 		events := pl.Events().Listen()
 		defer pl.Events().Unlisten(events)
-		defer close(com)
+		defer close(errc)
 	outer:
 		for {
 			select {
@@ -61,12 +60,12 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 				plist := pl.Playlist()
 				trackIndex, err := pl.TrackIndex()
 				if err != nil {
-					com <- err
+					errc <- err
 					return
 				}
 				state, err := pl.State()
 				if err != nil {
-					com <- err
+					errc <- err
 					return
 				}
 				if state != PlayStateStopped && trackIndex != -1 {
@@ -78,23 +77,21 @@ func AutoAppend(pl Player, iter TrackIterator) chan error {
 					break outer
 				}
 				if err := plist.InsertWithMeta(-1, []Track{track}, []TrackMeta{meta}); err != nil {
-					com <- err
+					errc <- err
 					return
 				}
 				plistLen, err := plist.Len()
 				if err != nil {
-					com <- err
+					errc <- err
 					return
 				}
 				pl.SetState(PlayStatePlaying)
 				pl.SetTrackIndex(plistLen - 1)
 
-			case <-com:
+			case <-cancel:
 				break outer
 			}
 		}
-		com <- nil
 	}()
-
-	return com
+	return errc
 }
