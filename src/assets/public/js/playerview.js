@@ -19,6 +19,7 @@ var PlayerView = Backbone.View.extend({
 	initialize: function() {
 		this.listenTo(this.model, 'change:current',  this.renderCurrent);
 		this.listenTo(this.model, 'change:current',  this.renderPlaylist);
+		this.listenTo(this.model, 'change:current',  this.renderProgress);
 		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
 		this.listenTo(this.model, 'change:time',     this.renderProgress);
 		this.listenTo(this.model, 'change:state',    this.renderState);

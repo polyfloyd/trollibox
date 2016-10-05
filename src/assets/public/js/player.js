@@ -65,7 +65,7 @@ var Player = NetModel.extend({
 
 		var cur = this.getCurrentTrack();
 		if (cur && this.get('state') === 'playing') {
-			this.setInternal('time', this.get('time') + 1);
+			this.setInternal('time', this.get('time'));
 			this.timeUpdater = setInterval(function() {
 				this.setInternal('time', this.get('time') + 1);
 			}.bind(this), 1000);
