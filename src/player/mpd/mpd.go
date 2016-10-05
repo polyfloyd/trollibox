@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"reflect"
 	"regexp"
 	"sort"
 	"strconv"
@@ -112,18 +113,41 @@ func (pl *Player) mainLoop() {
 	listener := pl.Listen()
 	defer pl.Unlisten(listener)
 
-	for {
-		switch event := <-listener; event {
+	// Helper function to prevent emitting events when an associated value has
+	// not changed.
+	eventDedup := map[string]interface{}{}
+	dedupEmit := func(event string, newValue interface{}) {
+		prevValue, ok := eventDedup[event]
+		eventDedup[event] = newValue
+		if !ok || !reflect.DeepEqual(prevValue, newValue) {
+			pl.Emit(event)
+		}
+	}
+
+	for event := range listener {
+		switch event {
 		case "mpd-player":
-			pl.Emit("playstate")
-			pl.Emit("time")
+			if state, err := pl.State(); err != nil {
+				log.Println(err)
+			} else {
+				dedupEmit("playstate", state)
+			}
+			if time, err := pl.Time(); err != nil {
+				log.Println(err)
+			} else {
+				dedupEmit("time", time)
+			}
 			fallthrough
 
 		case "mpd-playlist":
 			pl.Emit("playlist")
 
 		case "mpd-mixer":
-			pl.Emit("volume")
+			if volume, err := pl.Volume(); err != nil {
+				log.Println(err)
+			} else {
+				dedupEmit("volume", volume)
+			}
 
 		case "mpd-update":
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
