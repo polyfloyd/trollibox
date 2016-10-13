@@ -5,10 +5,10 @@ var PlayerView = Backbone.View.extend({
 	className: 'player',
 
 	events: {
+		'click .do-previous':      'doPrevious',
 		'click .do-next':          'doNext',
 		'click .do-clear':         'doClear',
 		'click .do-toggle-state':  'doToggleState',
-		'click .do-toggle-volume': 'doToggleVolume',
 		'input .do-set-volume':    'doSetVolume',
 		'input .do-set-time':      'doSetProgress',
 		'dragover':                'doMakeDroppable',
@@ -83,10 +83,6 @@ var PlayerView = Backbone.View.extend({
 
 	renderVolume: function() {
 		var vol = this.model.get('volume');
-		this.$('.do-toggle-volume')
-			.toggleClass('glyphicon-volume-off', vol === 0)
-			.toggleClass('glyphicon-volume-up', vol > 0);
-
 		var $setVol = this.$('.do-set-volume');
 		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
 	},
@@ -121,8 +117,12 @@ var PlayerView = Backbone.View.extend({
 		this.model.set('state', this.model.get('state') !== 'playing' ? 'playing' : 'paused');
 	},
 
+	doPrevious: function() {
+		this.model.setCurrent(-1, true);
+	},
+
 	doNext: function() {
-		this.model.next();
+		this.model.setCurrent(1, true);
 	},
 
 	doClear: function() {
@@ -134,14 +134,6 @@ var PlayerView = Backbone.View.extend({
 			}
 			this.model.removeFromPlaylist(rem);
 		}
-	},
-
-	doToggleVolume: function() {
-		var vol = this.model.get('volume');
-		if (vol !== 0) {
-			this.oldVolume = vol;
-		}
-		this.model.set('volume', vol === 0 ? this.oldVolume || 0.01 : 0);
 	},
 
 	doSetProgress: function() {
@@ -187,6 +179,9 @@ var PlayerView = Backbone.View.extend({
 			'</div>'+
 			'<div class="input-group">'+
 				'<span class="input-group-btn">'+
+					'<button class="btn btn-default glyphicon glyphicon-step-backward do-previous" title="Go back to the previous track"></button>'+
+				'</span>'+
+				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
 				'</span>'+
 				'<span class="input-group-btn">'+
@@ -194,9 +189,6 @@ var PlayerView = Backbone.View.extend({
 				'</span>'+
 				'<span class="input-group-btn">'+
 					'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
-				'</span>'+
-				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-volume-off do-toggle-volume" title="Toggle mute"></button>'+
 				'</span>'+
 				'<input class="do-set-volume" type="range" min="0" max="100" value="0" title="Set volume level" />'+
 			'</div>'+

@@ -77,8 +77,11 @@ var Player = NetModel.extend({
 		}
 	},
 
-	next: function() {
-		this.callServer('/player/'+this.name+'/next', 'POST');
+	setCurrent: function(position, relative) {
+		this.callServer('/player/'+this.name+'/current', 'POST', {
+			current:  position,
+			relative: !!relative,
+		});
 	},
 
 	fillMissingTrackFields: function(track) {

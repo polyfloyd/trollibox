@@ -120,7 +120,8 @@ func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, 
 	r.Path("/playlist").Methods("PATCH").HandlerFunc(mid(htPlayerPlaylistMove()))
 	r.Path("/playlist").Methods("DELETE").HandlerFunc(mid(htPlayerPlaylistRemove()))
 	r.Path("/playlist/appendraw").Methods("POST").HandlerFunc(mid(htRawTrackAdd(rawServer)))
-	r.Path("/next").Methods("POST").HandlerFunc(mid(htPlayerNext()))
+	r.Path("/current").Methods("POST").HandlerFunc(mid(htPlayerSetCurrent()))
+	r.Path("/next").Methods("POST").HandlerFunc(mid(htPlayerNext())) // Deprecated
 	r.Path("/time").Methods("GET").HandlerFunc(mid(htPlayerGetTime()))
 	r.Path("/time").Methods("POST").HandlerFunc(mid(htPlayerSetTime()))
 	r.Path("/playstate").Methods("GET").HandlerFunc(mid(htPlayerGetPlaystate()))
@@ -135,6 +136,7 @@ func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, 
 	r.Path("/listen").HandlerFunc(mid(htPlayerListen()))
 }
 
+// Deprecated, use htPlayerSetCurrent instead.
 func htPlayerNext() func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
@@ -144,6 +146,36 @@ func htPlayerNext() func(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		if err := pl.SetTrackIndex(trackIndex + 1); err != nil {
+			writeError(req, res, err)
+			return
+		}
+		res.Write([]byte("{}"))
+	}
+}
+
+func htPlayerSetCurrent() func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		pl := req.Context().Value(playerContextKey).(player.Player)
+		var data struct {
+			Current  int  `json:"current"`
+			Relative bool `json:"relative"`
+		}
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			writeError(req, res, err)
+			return
+		}
+
+		trackIndex := data.Current
+		if data.Relative {
+			currentTrackIndex, err := pl.TrackIndex()
+			if err != nil {
+				writeError(req, res, err)
+				return
+			}
+			trackIndex += currentTrackIndex
+		}
+		if err := pl.SetTrackIndex(trackIndex); err != nil {
 			writeError(req, res, err)
 			return
 		}

@@ -21,7 +21,7 @@ var Hotkeys = {
 		});
 
 		$scope.bind('keydown', 'esc', function() {
-			player.next();
+			player.setCurrent(1, true);
 		});
 
 		var SEEK_STEP = 4;
