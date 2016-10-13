@@ -170,8 +170,8 @@ func main() {
 				filterEvents := filterdb.Listen()
 				defer filterdb.Unlisten(filterEvents)
 				for {
-					ft, err := filterdb.Get("queuer")
-					if err != nil {
+					ft, _ := filterdb.Get("queuer")
+					if ft == nil {
 						// Load the default filter.
 						ft, _ = ruled.BuildFilter([]ruled.Rule{})
 						if err := filterdb.Store("queuer", ft); err != nil {
