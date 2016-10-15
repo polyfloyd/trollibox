@@ -91,8 +91,11 @@
 }
 
 .player-playlist li {
-	padding-left: 30px;
 	cursor: move;
+}
+
+.player-playlist li:not(:last-child) {
+	border-bottom: 2px solid #333;
 }
 
 .player-playlist li .track-artist:empty:before {
@@ -108,8 +111,7 @@
 }
 
 .player-playlist li .do-remove {
-	width: 30px;
-	margin-left: -30px;
+	padding: 0 0.4em 0 0;
 	border: none;
 	color: #f60;
 	background: none;
