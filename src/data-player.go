@@ -15,8 +15,8 @@ import (
 	"./filter"
 	"./filter/keyed"
 	raw "./library/raw"
+	"./library/stream"
 	"./player"
-	"./stream"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )

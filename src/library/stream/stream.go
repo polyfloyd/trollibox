@@ -16,8 +16,8 @@ import (
 	"text/template"
 	"time"
 
-	"../player"
-	"../util"
+	"../../player"
+	"../../util"
 )
 
 var dataUriRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")

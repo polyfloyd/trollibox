@@ -21,10 +21,10 @@ import (
 	"./filter/keyed"
 	"./filter/ruled"
 	raw "./library/raw"
+	"./library/stream"
 	"./player"
 	"./player/mpd"
 	"./player/slimserver"
-	"./stream"
 	"./util"
 	"github.com/gorilla/mux"
 )
