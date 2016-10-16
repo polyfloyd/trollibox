@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os/exec"
 
 	"../../player"
@@ -62,7 +64,17 @@ func (sv *Server) Download(url string) (player.Track, error) {
 	}
 	go conversion.Wait()
 
-	track, err := sv.rawServer.Add(convOut, info.Title)
+	var image io.Reader
+	var imageMime string
+	if info.Thumbnail != "" {
+		if resp, err := http.Get(info.Thumbnail); err == nil {
+			defer resp.Body.Close()
+			image = resp.Body
+			imageMime = resp.Header.Get("Content-Type")
+		}
+	}
+
+	track, err := sv.rawServer.Add(convOut, info.Title, image, imageMime)
 	if err != nil {
 		cancel()
 		return player.Track{}, err

@@ -558,7 +558,7 @@ func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *htt
 				return
 			}
 			// Make the file available through the server.
-			track, err := rawServer.Add(part, part.FileName())
+			track, err := rawServer.Add(part, part.FileName(), nil, "")
 			if err != nil {
 				writeError(req, res, err)
 				return

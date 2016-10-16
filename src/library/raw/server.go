@@ -1,6 +1,7 @@
 package player
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,6 +19,9 @@ import (
 type rawTrack struct {
 	file *os.File
 	name string
+
+	image     bytes.Buffer
+	imageMime string
 }
 
 type Server struct {
@@ -54,7 +58,7 @@ func (rp *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	http.ServeContent(res, req, trackId, time.Now(), track.file)
 }
 
-func (rp *Server) Add(r io.Reader, title string) (player.Track, error) {
+func (rp *Server) Add(r io.Reader, title string, image io.Reader, imageMime string) (player.Track, error) {
 	file, err := ioutil.TempFile(rp.tmpDir, "")
 	if err != nil {
 		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
@@ -66,13 +70,20 @@ func (rp *Server) Add(r io.Reader, title string) (player.Track, error) {
 		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
 	}
 
-	rp.lock.Lock()
-	rp.tracks[trackId] = rawTrack{
-		file: file,
-		name: title,
+	track := rawTrack{
+		file:      file,
+		name:      title,
+		imageMime: imageMime,
 	}
-	rp.lock.Unlock()
+	if image != nil && imageMime != "" {
+		if _, err := io.Copy(&track.image, image); err != nil {
+			return player.Track{}, err
+		}
+	}
 
+	rp.lock.Lock()
+	rp.tracks[trackId] = track
+	rp.lock.Unlock()
 	return player.Track{Uri: fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId)}, nil
 }
 
@@ -107,8 +118,14 @@ func (rp *Server) TrackInfo(uris ...string) ([]player.Track, error) {
 	return tracks, nil
 }
 
-func (rp *Server) TrackArt(track string) (io.ReadCloser, string) {
-	return nil, ""
+func (rp *Server) TrackArt(uri string) (io.ReadCloser, string) {
+	rp.lock.RLock()
+	defer rp.lock.RUnlock()
+	track := rp.tracks[rawIdFromUrl(uri)]
+	if track.imageMime == "" {
+		return nil, ""
+	}
+	return ioutil.NopCloser(bytes.NewReader(track.image.Bytes())), track.imageMime
 }
 
 func (rp *Server) Remove(track player.Track) error {
