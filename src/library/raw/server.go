@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	"../../player"
 )
 
 type rawTrack struct {
@@ -18,26 +20,26 @@ type rawTrack struct {
 	name string
 }
 
-type RawTrackServer struct {
+type Server struct {
 	urlRoot string
 	tmpDir  string
 	tracks  map[string]rawTrack
 	lock    sync.RWMutex
 }
 
-func NewRawTrackServer(urlRoot string) (*RawTrackServer, error) {
+func NewServer(urlRoot string) (*Server, error) {
 	tmpDir := path.Join(os.TempDir(), "trollibox-raw")
 	if err := os.MkdirAll(tmpDir, 0755|os.ModeTemporary); err != nil {
 		return nil, fmt.Errorf("Error creating raw server: %v", err)
 	}
-	return &RawTrackServer{
+	return &Server{
 		urlRoot: urlRoot,
 		tmpDir:  tmpDir,
 		tracks:  map[string]rawTrack{},
 	}, nil
 }
 
-func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (rp *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	trackId := req.FormValue("track")
 
 	rp.lock.RLock()
@@ -52,16 +54,16 @@ func (rp *RawTrackServer) ServeHTTP(res http.ResponseWriter, req *http.Request) 
 	http.ServeContent(res, req, trackId, time.Now(), track.file)
 }
 
-func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
+func (rp *Server) Add(r io.Reader, title string) (player.Track, error) {
 	file, err := ioutil.TempFile(rp.tmpDir, "")
 	if err != nil {
-		return Track{}, fmt.Errorf("Error adding raw track: %v", err)
+		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
 	}
 	trackId := path.Base(file.Name())
 	if _, err := io.Copy(file, r); err != nil {
 		file.Close()
 		os.Remove(file.Name())
-		return Track{}, fmt.Errorf("Error adding raw track: %v", err)
+		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
 	}
 
 	rp.lock.Lock()
@@ -71,16 +73,16 @@ func (rp *RawTrackServer) Add(r io.Reader, title string) (Track, error) {
 	}
 	rp.lock.Unlock()
 
-	return Track{Uri: fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId)}, nil
+	return player.Track{Uri: fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId)}, nil
 }
 
-func (rp *RawTrackServer) Tracks() ([]Track, error) {
+func (rp *Server) Tracks() ([]player.Track, error) {
 	rp.lock.RLock()
 	defer rp.lock.RUnlock()
 
-	tracks := make([]Track, 0, len(rp.tracks))
+	tracks := make([]player.Track, 0, len(rp.tracks))
 	for trackId, rt := range rp.tracks {
-		tracks = append(tracks, Track{
+		tracks = append(tracks, player.Track{
 			Uri:   fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId),
 			Title: rt.name,
 		})
@@ -88,15 +90,15 @@ func (rp *RawTrackServer) Tracks() ([]Track, error) {
 	return tracks, nil
 }
 
-func (rp *RawTrackServer) TrackInfo(uris ...string) ([]Track, error) {
+func (rp *Server) TrackInfo(uris ...string) ([]player.Track, error) {
 	rp.lock.RLock()
 	defer rp.lock.RUnlock()
 
-	tracks := make([]Track, len(uris))
+	tracks := make([]player.Track, len(uris))
 	for i, uri := range uris {
 		trackId := rawIdFromUrl(uri)
 		if tr, ok := rp.tracks[trackId]; ok {
-			tracks[i] = Track{
+			tracks[i] = player.Track{
 				Uri:   uri,
 				Title: tr.name,
 			}
@@ -105,11 +107,11 @@ func (rp *RawTrackServer) TrackInfo(uris ...string) ([]Track, error) {
 	return tracks, nil
 }
 
-func (rp *RawTrackServer) TrackArt(track string) (io.ReadCloser, string) {
+func (rp *Server) TrackArt(track string) (io.ReadCloser, string) {
 	return nil, ""
 }
 
-func (rp *RawTrackServer) Remove(track Track) error {
+func (rp *Server) Remove(track player.Track) error {
 	rp.lock.Lock()
 	defer rp.lock.Unlock()
 

@@ -14,6 +14,7 @@ import (
 
 	"./filter"
 	"./filter/keyed"
+	raw "./library/raw"
 	"./player"
 	"./stream"
 	"github.com/gorilla/mux"
@@ -97,7 +98,7 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, rawServer *player.RawTrackServer) {
+func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, rawServer *raw.Server) {
 	mid := func(handleFunc func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
 		return func(res http.ResponseWriter, req *http.Request) {
 			hmJsonContent(res, req)
@@ -515,7 +516,7 @@ func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func htRawTrackAdd(rawServer *player.RawTrackServer) func(res http.ResponseWriter, req *http.Request) {
+func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
 		mpReader, err := req.MultipartReader()

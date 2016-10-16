@@ -20,6 +20,7 @@ import (
 	"./filter"
 	"./filter/keyed"
 	"./filter/ruled"
+	raw "./library/raw"
 	"./player"
 	"./player/mpd"
 	"./player/slimserver"
@@ -197,7 +198,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rawServer, err := player.NewRawTrackServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
+	rawServer, err := raw.NewServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
 	if err != nil {
 		log.Fatal(err)
 	}

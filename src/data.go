@@ -10,14 +10,14 @@ import (
 	"./filter"
 	"./filter/keyed"
 	"./filter/ruled"
-	"./player"
+	raw "./library/raw"
 	"./stream"
 	"./util"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
 )
 
-func htDataAttach(r *mux.Router, filterdb *filter.DB, streamdb *stream.DB, rawServer *player.RawTrackServer) {
+func htDataAttach(r *mux.Router, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) {
 	r.Path("/filters/").Methods("GET").HandlerFunc(htFilterList(filterdb))
 	r.Path("/filters/{name}/").Methods("GET").HandlerFunc(htFilterGet(filterdb))
 	r.Path("/filters/{name}/").Methods("DELETE").HandlerFunc(htFilterRemove(filterdb))
