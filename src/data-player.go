@@ -14,6 +14,7 @@ import (
 
 	"./filter"
 	"./filter/keyed"
+	netmedia "./library/netmedia"
 	raw "./library/raw"
 	"./library/stream"
 	"./player"
@@ -98,7 +99,7 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, rawServer *raw.Server) {
+func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
 	mid := func(handleFunc func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
 		return func(res http.ResponseWriter, req *http.Request) {
 			hmJsonContent(res, req)
@@ -121,6 +122,7 @@ func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, 
 	r.Path("/playlist").Methods("PATCH").HandlerFunc(mid(htPlayerPlaylistMove()))
 	r.Path("/playlist").Methods("DELETE").HandlerFunc(mid(htPlayerPlaylistRemove()))
 	r.Path("/playlist/appendraw").Methods("POST").HandlerFunc(mid(htRawTrackAdd(rawServer)))
+	r.Path("/playlist/appendnet").Methods("POST").HandlerFunc(mid(htNetTrackAdd(netServer)))
 	r.Path("/current").Methods("POST").HandlerFunc(mid(htPlayerSetCurrent()))
 	r.Path("/next").Methods("POST").HandlerFunc(mid(htPlayerNext())) // Deprecated
 	r.Path("/time").Methods("GET").HandlerFunc(mid(htPlayerGetTime()))
@@ -516,6 +518,28 @@ func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func removeRawTrack(pl player.Player, track player.Track, rawServer *raw.Server) {
+	events := pl.Events().Listen()
+	defer pl.Events().Unlisten(events)
+outer:
+	for event := range events {
+		if event != "playlist" {
+			continue
+		}
+		tracks, err := pl.Playlist().Tracks()
+		if err != nil {
+			break
+		}
+		for _, plTrack := range tracks {
+			if track.Uri == plTrack.Uri {
+				continue outer
+			}
+		}
+		break
+	}
+	rawServer.Remove(track)
+}
+
 func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
@@ -543,27 +567,7 @@ func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *htt
 			// Launch a goroutine that will check whether the track is still in
 			// the player's playlist. If it is not, the track is removed from
 			// the server.
-			go func(track player.Track) {
-				events := pl.Events().Listen()
-				defer pl.Events().Unlisten(events)
-			outer:
-				for event := range events {
-					if event != "playlist" {
-						continue
-					}
-					tracks, err := pl.Playlist().Tracks()
-					if err != nil {
-						break
-					}
-					for _, plTrack := range tracks {
-						if track.Uri == plTrack.Uri {
-							continue outer
-						}
-					}
-					break
-				}
-				rawServer.Remove(track)
-			}(track)
+			go removeRawTrack(pl, track, rawServer)
 
 			err = pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
 				{QueuedBy: "user"},
@@ -573,6 +577,41 @@ func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *htt
 				return
 			}
 		}
+		res.Write([]byte("{}"))
+	}
+}
+
+func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req *http.Request) {
+	return func(res http.ResponseWriter, req *http.Request) {
+		pl := req.Context().Value(playerContextKey).(player.Player)
+		var data struct {
+			Url string `json:"url"`
+		}
+		defer req.Body.Close()
+		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
+			writeError(req, res, err)
+			return
+		}
+
+		track, err := netServer.Download(data.Url)
+		if err != nil {
+			writeError(req, res, err)
+			return
+		}
+
+		// Launch a goroutine that will check whether the track is still in
+		// the player's playlist. If it is not, the track is removed from
+		// the server.
+		go removeRawTrack(pl, track, netServer.RawServer())
+
+		err = pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
+			{QueuedBy: "user"},
+		})
+		if err != nil {
+			writeError(req, res, err)
+			return
+		}
+
 		res.Write([]byte("{}"))
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"./filter"
 	"./filter/keyed"
 	"./filter/ruled"
+	netmedia "./library/netmedia"
 	raw "./library/raw"
 	"./library/stream"
 	"./player"
@@ -202,6 +203,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	netServer, err := netmedia.NewServer(rawServer)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	service := mux.NewRouter()
 	for _, file := range assets.AssetNames() {
@@ -216,7 +221,7 @@ func main() {
 	service.Path("/player/{player}").HandlerFunc(htBrowserPage(&config, players))
 	dataService := service.PathPrefix("/data/").Subrouter()
 	htDataAttach(dataService, filterdb, streamdb, rawServer)
-	htPlayerDataAttach(dataService.PathPrefix("/player/{player}/").Subrouter(), players, streamdb, rawServer)
+	htPlayerDataAttach(dataService.PathPrefix("/player/{player}/").Subrouter(), players, streamdb, rawServer, netServer)
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
