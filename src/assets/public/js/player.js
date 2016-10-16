@@ -198,4 +198,10 @@ var Player = NetModel.extend({
 			this.trigger('error', err);
 		}.bind(this));
 	},
+
+	playFromNetwork: function(url) {
+		this.callServer('/player/'+this.name+'/playlist/appendnet', 'POST', {
+			url: url,
+		});
+	},
 });
