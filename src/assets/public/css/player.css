@@ -57,31 +57,69 @@
 	background: none;
 }
 
-.track-duration-current:empty:before {
+.player .track-time {
+	margin-bottom: 0.3em;
+	display: flex;
+	font-size: 0.8em;
+}
+
+.player .track-time > * {
+	font-size: 0.8em;
+}
+
+.player .track-time > span {
+	width: 32px;
+	flex-shrink: 0;
+	text-align: center;
+}
+
+.player .track-time-current:empty:before {
 	content: "0:00";
 	opacity: 0.7;
 }
 
-.track-duration-current:not(:empty) + .track-duration-total:before {
-	content: " / ";
+.player .track-time-current:empty:before {
+	content: "0:00";
+	opacity: 0.7;
+}
+
+.player-current .do-set-time {
+	width: calc(100% - 0.3em);
+	margin: 0.3em 0;
+	height: 0.7em;
 }
 
 .player-current.track-infinite .do-set-time {
 	opacity: 0;
 }
 
-.player-current.track-infinite .track-duration-current:not(:empty) + .track-duration-total:after {
+.player-current.track-infinite .track-time-current:not(:empty) ~ .track-time-total:after {
 	content: "∞";
 	font-size: 1.6em;
+}
+
+.player-volume {
+	margin-bottom: 0.3em;
+	display: flex;
+}
+
+.player-volume > span {
+	width: 32px;
+	text-align: center;
+	flex-shrink: 0;
+}
+
+.player-controls {
+	display: flex;
+}
+
+.player-controls > * {
+	flex-grow: 1;
 }
 
 .player.player-playing .do-play,
 .player.player-paused .do-pause {
 	display: none;
-}
-
-.player .do-set-volume {
-	display: inline-block;
 }
 
 .player-playlist {

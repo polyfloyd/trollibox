@@ -28,9 +28,10 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	render: function() {
-		var self = this;
-
 		this.$el.html(this.template());
+		this.$('input[type="range"]').on('input', function() {
+			updateRangeInput($(this));
+		});
 		this.renderCurrent();
 		this.renderPlaylist();
 		this.renderProgress();
@@ -42,8 +43,8 @@ var PlayerView = Backbone.View.extend({
 			items:                'li',
 		});
 		sortable.bind('sortupdate', function(event, update) {
-			self.doReorderPlaylist(event, update);
-		});
+			this.doReorderPlaylist(event, update);
+		}.bind(this));
 	},
 
 	renderCurrent: function() {
@@ -57,17 +58,20 @@ var PlayerView = Backbone.View.extend({
 			.removeClass('queuedby-system queuedby-user')
 			.addClass('queuedby-'+cur.queuedby)
 			.toggleClass('track-infinite', cur.duration == 0);
-		this.$('.track-duration-total')
+		this.$('.track-time-total')
 			.text(cur.duration ? durationToString(cur.duration) : '');
-		this.$('.do-set-time')
-			.attr('max', cur.duration || 0);
+		var $setTime = this.$('.do-set-time');
+		$setTime.attr('max', cur.duration || 0);
+		updateRangeInput($setTime);
 	},
 
 	renderProgress: function() {
 		var pr = this.model.get('time') || 0;
 		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
-		this.$('.track-duration-current').text(text);
-		this.$('.do-set-time').val(pr);
+		this.$('.track-time-current').text(text);
+		var $setTime = this.$('.do-set-time');
+		$setTime.val(pr);
+		updateRangeInput($setTime);
 	},
 
 	renderState: function() {
@@ -84,6 +88,7 @@ var PlayerView = Backbone.View.extend({
 	renderVolume: function() {
 		var vol = this.model.get('volume');
 		var $setVol = this.$('.do-set-volume');
+		updateRangeInput($setVol);
 		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
 	},
 
@@ -170,27 +175,23 @@ var PlayerView = Backbone.View.extend({
 			'<p class="track-title"></p>'+
 			'<p class="track-artist"></p>'+
 
-			'<div class="input-group">'+
-				'<p class="input-group-addon">'+
-					'<span class="track-duration-current"></span>'+
-					'<span class="track-duration-total"></span>'+
-				'</p>'+
+			'<div class="track-time">'+
+				'<span class="track-time-current"></span>'+
 				'<input class="do-set-time" type="range" min="0" max="100" title="Seek in the current track" />'+
+				'<span class="track-time-total"></span>'+
 			'</div>'+
-			'<div class="input-group">'+
-				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-step-backward do-previous" title="Go back to the previous track"></button>'+
-				'</span>'+
-				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
-				'</span>'+
-				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>'+
-				'</span>'+
-				'<span class="input-group-btn">'+
-					'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
-				'</span>'+
+
+			'<div class="player-volume">'+
+				'<span class="glyphicon glyphicon-volume-down"></span>'+
 				'<input class="do-set-volume" type="range" min="0" max="100" value="0" title="Set volume level" />'+
+				'<span class="glyphicon glyphicon-volume-up"></span>'+
+			'</div>'+
+
+			'<div class="player-controls">'+
+				'<button class="btn btn-default glyphicon glyphicon-step-backward do-previous" title="Go back to the previous track"></button>'+
+				'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
+				'<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>'+
+				'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
 			'</div>'+
 		'</div>'+
 
