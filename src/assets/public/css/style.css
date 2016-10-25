@@ -127,6 +127,10 @@ h2:first-child {
 	font-size: 1.4em;
 }
 
+.error-message {
+	color: #f00;
+}
+
 input[type='range'] {
 	-webkit-appearance: none;
 	        appearance: none;

@@ -175,13 +175,13 @@ var QueuerView = Backbone.View.extend({
 				trigger:  'manual',
 			}).tooltip('show');
 		} else {
-			this.$('.queuer-error').text(err.message);
+			this.$('.error-message').text(err.message);
 		}
 	},
 
 	removeRuleErrors: function() {
 		this.$('.queuer-rules > li .queuer-value').tooltip('destroy');
-		this.$('.queuer-error').empty();
+		this.$('.error-message').empty();
 	},
 
 	stringToInt: function(str) {
@@ -239,7 +239,7 @@ var QueuerView = Backbone.View.extend({
 	template: _.template(
 		'<div>'+
 			'<h2>Queue Rules</h2>'+
-			'<p class="queuer-error"></p>'+
+			'<p class="error-message"></p>'+
 			'<ul class="queuer-rules"></ul>'+
 			'<button class="glyphicon glyphicon-plus do-add-rule"></ul>'+
 		'</div>'
