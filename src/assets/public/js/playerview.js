@@ -7,8 +7,9 @@ var PlayerView = Backbone.View.extend({
 	events: {
 		'click .do-previous':      'doPrevious',
 		'click .do-next':          'doNext',
-		'click .do-clear':         'doClear',
 		'click .do-toggle-state':  'doToggleState',
+		'click .do-clear':         'doClear',
+		'click .do-add-netmedia':  'showNetmediaDialog',
 		'input .do-set-volume':    'doSetVolume',
 		'input .do-set-time':      'doSetProgress',
 		'dragover':                'doMakeDroppable',
@@ -141,6 +142,10 @@ var PlayerView = Backbone.View.extend({
 		}
 	},
 
+	showNetmediaDialog: function() {
+		var dialog = new AddMediaDialog({ model: this.model });
+	},
+
 	doSetProgress: function() {
 		this.model.set('time', parseInt(this.$('.do-set-time').val(), 10));
 	},
@@ -192,6 +197,7 @@ var PlayerView = Backbone.View.extend({
 				'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
 				'<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>'+
 				'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
+				'<button class="btn btn-default glyphicon glyphicon-cloud do-add-netmedia"></button>'+
 			'</div>'+
 		'</div>'+
 

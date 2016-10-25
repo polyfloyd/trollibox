@@ -101,7 +101,7 @@ h2:first-child {
 }
 
 .input-group > .input-group-btn {
-	padding: 0 2px;
+	border: 1px solid #f60;
 }
 
 .form-control {

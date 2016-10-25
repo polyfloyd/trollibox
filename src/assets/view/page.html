@@ -150,13 +150,6 @@
 			var streamdb = new StreamDB({ player: player });
 			var filterdb = new FilterDB();
 
-			document.addEventListener('paste', function(event) {
-				var data = event.clipboardData.getData('text/plain');
-				if (data.match(/^https?:\/\//)) {
-					player.playFromNetwork(data);
-				}
-			});
-
 			filterdb.on('error', function(err) {
 				console.error(err);
 			});

@@ -179,7 +179,9 @@ var Player = NetModel.extend({
 			return file.type.match('^audio.+$');
 		});
 		if (!files.length) {
-			return;
+			return new Promise(function(resolve, reject) {
+				reject(new Error('No files specified'));
+			});
 		}
 
 		var form = new FormData();
@@ -187,20 +189,22 @@ var Player = NetModel.extend({
 			form.append('files', file, file.name);
 		});
 
-		promiseAjax({
+		return promiseAjax({
 			url:         URLROOT+'data/player/'+this.name+'/playlist/appendraw',
 			method:      'POST',
-			context:     this,
 			data:        form,
 			processData: false,
 			contentType: false,
-		}).catch(function(err) {
-			this.trigger('error', err);
-		}.bind(this));
+		});
 	},
 
 	playFromNetwork: function(url) {
-		this.callServer('/player/'+this.name+'/playlist/appendnet', 'POST', {
+		if (!url.match(/^https?:\/\/.+/)) {
+			return new Promise(function(resolve, reject) {
+				reject(new Error('Invalid URL'));
+			});
+		}
+		return this.callServer('/player/'+this.name+'/playlist/appendnet', 'POST', {
 			url: url,
 		});
 	},
