@@ -7,148 +7,153 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"os"
 	"path"
 	"regexp"
+	"strconv"
 	"sync"
-	"time"
 
 	"../../player"
+	"../../util"
 )
 
 type rawTrack struct {
-	file *os.File
-	name string
+	server *Server
+	id     uint64
+	name   string
+	buffer *util.BlockingBuffer
 
-	image     bytes.Buffer
+	image     []byte
 	imageMime string
 }
 
-type Server struct {
-	urlRoot string
-	tmpDir  string
-	tracks  map[string]rawTrack
-	lock    sync.RWMutex
+func (rt *rawTrack) track() player.Track {
+	return player.Track{
+		Uri:    fmt.Sprintf("%s?track=%d", rt.server.urlRoot, rt.id),
+		Title:  rt.name,
+		HasArt: rt.image != nil,
+	}
 }
 
-func NewServer(urlRoot string) (*Server, error) {
-	tmpDir := path.Join(os.TempDir(), "trollibox-raw")
-	if err := os.MkdirAll(tmpDir, 0755|os.ModeTemporary); err != nil {
-		return nil, fmt.Errorf("Error creating raw server: %v", err)
-	}
+type Server struct {
+	urlRoot    string
+	tmpDir     string
+	idEnum     uint64
+	tracks     map[uint64]rawTrack
+	tracksLock sync.RWMutex
+}
+
+func NewServer(urlRoot string) *Server {
 	return &Server{
 		urlRoot: urlRoot,
-		tmpDir:  tmpDir,
-		tracks:  map[string]rawTrack{},
-	}, nil
+		tracks:  map[uint64]rawTrack{},
+	}
 }
 
-func (rp *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	trackId := req.FormValue("track")
-
-	rp.lock.RLock()
-	track, ok := rp.tracks[trackId]
-	rp.lock.RUnlock()
+func (sv *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+	sv.tracksLock.RLock()
+	id, _ := strconv.ParseUint(req.FormValue("track"), 10, 64)
+	track, ok := sv.tracks[id]
+	sv.tracksLock.RUnlock()
 
 	if !ok {
 		http.NotFound(res, req)
 		return
 	}
 	res.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(track.name)))
-	http.ServeContent(res, req, trackId, time.Now(), track.file)
+	r := track.buffer.Reader()
+	defer r.Close()
+	io.Copy(res, r)
 }
 
-func (rp *Server) Add(r io.Reader, title string, image io.Reader, imageMime string) (player.Track, error) {
-	file, err := ioutil.TempFile(rp.tmpDir, "")
+func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, imageMime string) (player.Track, <-chan error) {
+	bbuf, err := util.NewBlockingBuffer()
 	if err != nil {
-		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
+		inputFile.Close()
+		return player.Track{}, util.ErrorAsChannel(fmt.Errorf("Error adding raw track: %v", err))
 	}
-	trackId := path.Base(file.Name())
-	if _, err := io.Copy(file, r); err != nil {
-		file.Close()
-		os.Remove(file.Name())
-		return player.Track{}, fmt.Errorf("Error adding raw track: %v", err)
-	}
-
 	track := rawTrack{
-		file:      file,
+		server:    sv,
 		name:      title,
+		buffer:    bbuf,
+		image:     image,
 		imageMime: imageMime,
 	}
-	if image != nil && imageMime != "" {
-		if _, err := io.Copy(&track.image, image); err != nil {
-			return player.Track{}, err
-		}
-	}
+	sv.tracksLock.Lock()
+	sv.idEnum++
+	track.id = sv.idEnum
+	sv.tracks[track.id] = track
+	sv.tracksLock.Unlock()
 
-	rp.lock.Lock()
-	rp.tracks[trackId] = track
-	rp.lock.Unlock()
-	return player.Track{Uri: fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId)}, nil
+	errc := make(chan error, 1)
+	go func() {
+		defer inputFile.Close()
+		defer close(errc)
+		if _, err := io.Copy(track.buffer, inputFile); err != nil {
+			track.buffer.Destroy()
+			sv.tracksLock.Lock()
+			delete(sv.tracks, track.id)
+			sv.tracksLock.Unlock()
+			errc <- fmt.Errorf("Error adding raw track: %v", err)
+			return
+		}
+	}()
+	return track.track(), errc
 }
 
-func (rp *Server) Tracks() ([]player.Track, error) {
-	rp.lock.RLock()
-	defer rp.lock.RUnlock()
+func (sv *Server) Tracks() ([]player.Track, error) {
+	sv.tracksLock.RLock()
+	defer sv.tracksLock.RUnlock()
 
-	tracks := make([]player.Track, 0, len(rp.tracks))
-	for trackId, rt := range rp.tracks {
-		tracks = append(tracks, player.Track{
-			Uri:   fmt.Sprintf("%s?track=%s", rp.urlRoot, trackId),
-			Title: rt.name,
-		})
+	tracks := make([]player.Track, 0, len(sv.tracks))
+	for _, rt := range sv.tracks {
+		tracks = append(tracks, rt.track())
 	}
 	return tracks, nil
 }
 
-func (rp *Server) TrackInfo(uris ...string) ([]player.Track, error) {
-	rp.lock.RLock()
-	defer rp.lock.RUnlock()
+func (sv *Server) TrackInfo(uris ...string) ([]player.Track, error) {
+	sv.tracksLock.RLock()
+	defer sv.tracksLock.RUnlock()
 
 	tracks := make([]player.Track, len(uris))
 	for i, uri := range uris {
-		trackId := rawIdFromUrl(uri)
-		if tr, ok := rp.tracks[trackId]; ok {
-			tracks[i] = player.Track{
-				Uri:   uri,
-				Title: tr.name,
-			}
+		if rt, ok := sv.tracks[idFromUrl(uri)]; ok {
+			tracks[i] = rt.track()
 		}
 	}
 	return tracks, nil
 }
 
-func (rp *Server) TrackArt(uri string) (io.ReadCloser, string) {
-	rp.lock.RLock()
-	defer rp.lock.RUnlock()
-	track := rp.tracks[rawIdFromUrl(uri)]
-	if track.imageMime == "" {
+func (sv *Server) TrackArt(uri string) (io.ReadCloser, string) {
+	sv.tracksLock.RLock()
+	defer sv.tracksLock.RUnlock()
+
+	track := sv.tracks[idFromUrl(uri)]
+	if track.image == nil {
 		return nil, ""
 	}
-	return ioutil.NopCloser(bytes.NewReader(track.image.Bytes())), track.imageMime
+	return ioutil.NopCloser(bytes.NewReader(track.image)), track.imageMime
 }
 
-func (rp *Server) Remove(track player.Track) error {
-	rp.lock.Lock()
-	defer rp.lock.Unlock()
+func (sv *Server) Remove(uri string) error {
+	sv.tracksLock.Lock()
+	defer sv.tracksLock.Unlock()
 
-	trackId := rawIdFromUrl(track.Uri)
-	rt, ok := rp.tracks[trackId]
+	trackId := idFromUrl(uri)
+	rt, ok := sv.tracks[trackId]
 	if !ok {
 		return nil
 	}
-	rt.file.Close()
-	if err := os.Remove(rt.file.Name()); err != nil {
-		return err
-	}
-	delete(rp.tracks, trackId)
+	rt.buffer.Destroy()
+	delete(sv.tracks, trackId)
 	return nil
 }
 
-func rawIdFromUrl(url string) string {
-	m := regexp.MustCompile("\\?track=(\\w+)").FindStringSubmatch(url)
+func idFromUrl(url string) uint64 {
+	m := regexp.MustCompile("\\?track=(\\d+)$").FindStringSubmatch(url)
 	if m == nil {
-		return ""
+		return 0
 	}
-	return m[1]
+	id, _ := strconv.ParseUint(m[1], 10, 64)
+	return id
 }

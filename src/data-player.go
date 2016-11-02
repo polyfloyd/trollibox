@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path"
 	"sort"
@@ -537,7 +538,7 @@ outer:
 		}
 		break
 	}
-	rawServer.Remove(track)
+	rawServer.Remove(track.Uri)
 }
 
 func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *http.Request) {
@@ -558,8 +559,8 @@ func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *htt
 				return
 			}
 			// Make the file available through the server.
-			track, err := rawServer.Add(part, part.FileName(), nil, "")
-			if err != nil {
+			track, errs := rawServer.Add(part, part.FileName(), nil, "")
+			if err := <-errs; err != nil {
 				writeError(req, res, err)
 				return
 			}
@@ -593,18 +594,19 @@ func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req
 			return
 		}
 
-		track, err := netServer.Download(data.Url)
-		if err != nil {
-			writeError(req, res, err)
-			return
-		}
+		track, errc := netServer.Download(data.Url)
+		go func() {
+			if err := <-errc; err != nil {
+				log.Println(err)
+			}
+		}()
 
 		// Launch a goroutine that will check whether the track is still in
 		// the player's playlist. If it is not, the track is removed from
 		// the server.
 		go removeRawTrack(pl, track, netServer.RawServer())
 
-		err = pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
+		err := pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
 			{QueuedBy: "user"},
 		})
 		if err != nil {

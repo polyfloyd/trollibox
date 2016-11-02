@@ -1,7 +1,11 @@
 package util
 
 import (
+	"crypto/rand"
 	"fmt"
+	"io"
+	"os"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -30,4 +34,24 @@ func DetermineFullURLRoot(root, address string) (string, error) {
 	}
 	// Give up
 	return "", fmt.Errorf("Unsupported URL Root format: %q", root)
+}
+
+func TempName(prefix string) string {
+	for {
+		var buf [32]byte
+		if _, err := io.ReadFull(rand.Reader, buf[:]); err != nil {
+			panic(err)
+		}
+		file := path.Join(os.TempDir(), fmt.Sprintf("%s-%x", prefix, buf))
+		if _, err := os.Stat(file); os.IsNotExist(err) {
+			return file
+		}
+	}
+}
+
+func ErrorAsChannel(err error) <-chan error {
+	errs := make(chan error, 1)
+	errs <- err
+	close(errs)
+	return errs
 }

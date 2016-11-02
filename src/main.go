@@ -199,10 +199,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	rawServer, err := raw.NewServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
-	if err != nil {
-		log.Fatal(err)
-	}
+	rawServer := raw.NewServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
 	netServer, err := netmedia.NewServer(rawServer)
 	if err != nil {
 		log.Fatal(err)

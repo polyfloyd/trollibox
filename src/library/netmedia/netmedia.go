@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	"os/exec"
 
 	"../../player"
+	"../../util"
 	raw "../raw"
 )
 
@@ -18,23 +19,23 @@ type Server struct {
 
 func NewServer(rawServer *raw.Server) (*Server, error) {
 	if _, err := exec.LookPath("youtube-dl"); err != nil {
-		return nil, fmt.Errorf("Youtube server not available: %v", err)
+		return nil, fmt.Errorf("Netmedia server not available: %v", err)
 	}
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return nil, fmt.Errorf("Youtube server not available: %v", err)
+		return nil, fmt.Errorf("Netmedia server not available: %v", err)
 	}
 	return &Server{
 		rawServer: rawServer,
 	}, nil
 }
 
-func (sv *Server) Download(url string) (player.Track, error) {
+func (sv *Server) Download(url string) (player.Track, <-chan error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	info, err := readMediaInfo(ctx, url)
 	if err != nil {
 		cancel()
-		return player.Track{}, err
+		return player.Track{}, util.ErrorAsChannel(err)
 	}
 
 	download := exec.CommandContext(ctx,
@@ -55,31 +56,25 @@ func (sv *Server) Download(url string) (player.Track, error) {
 
 	if err := download.Start(); err != nil {
 		cancel()
-		return player.Track{}, err
+		return player.Track{}, util.ErrorAsChannel(err)
 	}
 	go download.Wait()
 	if err := conversion.Start(); err != nil {
 		cancel()
-		return player.Track{}, err
+		return player.Track{}, util.ErrorAsChannel(err)
 	}
 	go conversion.Wait()
 
-	var image io.Reader
+	var image []byte
 	var imageMime string
 	if info.Thumbnail != "" {
 		if resp, err := http.Get(info.Thumbnail); err == nil {
 			defer resp.Body.Close()
-			image = resp.Body
+			image, _ = ioutil.ReadAll(resp.Body)
 			imageMime = resp.Header.Get("Content-Type")
 		}
 	}
-
-	track, err := sv.rawServer.Add(convOut, info.Title, image, imageMime)
-	if err != nil {
-		cancel()
-		return player.Track{}, err
-	}
-	return track, nil
+	return sv.rawServer.Add(convOut, info.Title, image, imageMime)
 }
 
 func (sv *Server) RawServer() *raw.Server {
