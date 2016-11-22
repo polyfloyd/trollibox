@@ -122,16 +122,3 @@ function stringCompareCaseInsensitive(a, b) {
 		: a < b ? -1
 		: 0;
 }
-
-function updateRangeInput($elems) {
-	_.defer(function() {
-		$elems.each(function(i, el) {
-			var $el = $(el);
-			var min = parseInt($el.attr('min'), 10);
-			var max = parseInt($el.attr('max'), 10);
-			var v = $el.val();
-			var ratio = (v - min) / (max - min);
-			$el.css('box-shadow', 'inset '+(ratio * $el.width())+'px 0 #f60');
-		});
-	});
-}

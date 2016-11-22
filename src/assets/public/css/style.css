@@ -136,6 +136,7 @@ input[type='range'] {
 	        appearance: none;
 	background: #333;
 	border: none;
+	overflow: hidden;
 }
 
 input[type="range"]::-moz-range-track {
@@ -148,7 +149,9 @@ input[type="range"]::-moz-range-track {
 input[type='range']::-moz-range-thumb {
 	-moz-appearance: none;
 	     appearance: none;
-	opacity: 0;
+	width: 0;
+	border: 0;
+	box-shadow: -100vw 0 0 100vw #f60;
 }
 
 input[type='range'][disabled]::-moz-range-thumb {
@@ -160,6 +163,7 @@ input[type='range']::-webkit-slider-thumb {
 	        appearance: none;
 	width: 0;
 	height: 1.0em;
+	box-shadow: -100vw 0 0 100vw #f60;
 }
 
 input[type='range'][disabled]::-webkit-slider-thumb {

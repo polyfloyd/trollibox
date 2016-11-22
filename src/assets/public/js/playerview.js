@@ -30,9 +30,6 @@ var PlayerView = Backbone.View.extend({
 
 	render: function() {
 		this.$el.html(this.template());
-		this.$('input[type="range"]').on('input', function() {
-			updateRangeInput($(this));
-		});
 		this.renderCurrent();
 		this.renderPlaylist();
 		this.renderProgress();
@@ -61,18 +58,14 @@ var PlayerView = Backbone.View.extend({
 			.toggleClass('track-infinite', cur.duration == 0);
 		this.$('.track-time-total')
 			.text(cur.duration ? durationToString(cur.duration) : '');
-		var $setTime = this.$('.do-set-time');
-		$setTime.attr('max', cur.duration || 0);
-		updateRangeInput($setTime);
+		this.$('.do-set-time').attr('max', cur.duration || 0);
 	},
 
 	renderProgress: function() {
 		var pr = this.model.get('time') || 0;
 		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
 		this.$('.track-time-current').text(text);
-		var $setTime = this.$('.do-set-time');
-		$setTime.val(pr);
-		updateRangeInput($setTime);
+		this.$('.do-set-time').val(pr);
 	},
 
 	renderState: function() {
@@ -89,7 +82,6 @@ var PlayerView = Backbone.View.extend({
 	renderVolume: function() {
 		var vol = this.model.get('volume');
 		var $setVol = this.$('.do-set-volume');
-		updateRangeInput($setVol);
 		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
 	},
 
