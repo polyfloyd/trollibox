@@ -19,6 +19,40 @@ import (
 
 const trackTags = "uAglitdc"
 
+var eventTranslations = []struct {
+	Exp   *regexp.Regexp
+	Event string
+	// If the global bit is not set, the expression is ignored if the event
+	// line does not start with the player's ID.
+	Global bool
+}{
+	{
+		Exp:    regexp.MustCompile("^rescan done"),
+		Event:  "tracks",
+		Global: true,
+	},
+	{
+		Exp:   regexp.MustCompile("^\\S+ mixer (?:volume|muting)"),
+		Event: "volume",
+	},
+	{
+		Exp:   regexp.MustCompile("^\\S+ playlist (:?newsong|load_done|move|delete)"),
+		Event: "playlist",
+	},
+	{
+		Exp:   regexp.MustCompile("^\\S+ (?:play|stop|pause)"),
+		Event: "playstate",
+	},
+	{
+		Exp:   regexp.MustCompile("^\\S+ time"),
+		Event: "time",
+	},
+	{
+		Exp:   regexp.MustCompile("^\\S+ client"),
+		Event: "availability",
+	},
+}
+
 type Player struct {
 	ID    string
 	Name  string
@@ -42,52 +76,26 @@ func (pl *Player) eventLoop() {
 
 		scanner := bufio.NewScanner(conn)
 		for scanner.Scan() {
-			line := strings.Split(scanner.Text(), " ")
-			for i, txt := range line {
-				line[i], _ = url.QueryUnescape(txt)
-			}
-			if len(line) == 0 {
+			line, err := url.QueryUnescape(scanner.Text())
+			if err != nil {
+				log.Println(err)
 				continue
-			}
-			// Server global events.
-			if len(line) >= 2 && line[0] == "rescan" && line[1] == "done" {
-				pl.Emit("tracks")
+			} else if len(line) == 0 {
 				continue
 			}
 
-			if line[0] != pl.ID || len(line) < 2 {
-				continue
-			}
-			// Events local to the player.
-			switch {
-			case line[1] == "playlist":
-				if len(line) >= 3 && line[2] == "newsong" {
-					// It takes a while to get the metainformation from HTTP
-					// streams. Emit another change event to inform that the
-					// loading has been completed.
-					pl.Emit("playlist")
+			for _, evtr := range eventTranslations {
+				if !evtr.Global && !strings.HasPrefix(line, pl.ID) {
+					continue
 				}
-				if len(line) >= 3 && (line[2] == "load_done" || line[2] == "move" || line[2] == "delete") {
-					pl.Emit("playlist")
+				if evtr.Exp.MatchString(line) {
+					pl.Emit(evtr.Event)
 				}
-
-			case (line[1] == "play" || line[1] == "stop" || line[1] == "pause"):
-				pl.Emit("playstate")
-
-			case line[1] == "time":
-				pl.Emit("time")
-
-			case line[1] == "mixer" && line[2] == "volume":
-				pl.Emit("volume")
-
-			case line[1] == "client":
-				pl.Emit("availability")
 			}
 		}
 		if err := scanner.Err(); err != nil {
 			log.Println(err)
 		}
-		time.Sleep(time.Second)
 	}
 }
 
@@ -379,35 +387,4 @@ func (plist slimPlaylist) Len() (int, error) {
 		return -1, err
 	}
 	return strconv.Atoi(res[3])
-}
-
-func setSlimAttr(serv *Server, track *player.Track, key, value string) {
-	switch key {
-	case "url":
-		uri, _ := url.QueryUnescape(value)
-		track.Uri = uri
-	case "artist":
-		fallthrough
-	case "trackartist":
-		track.Artist = value
-	case "title":
-		track.Title = value
-	case "genre":
-		track.Genre = value
-	case "album":
-		if a := value; a != "No Album" {
-			track.Album = a
-		}
-	case "albumartist":
-		track.AlbumArtist = value
-	case "tracknum":
-		track.AlbumTrack = value
-	case "disc":
-		track.AlbumDisc = value
-	case "duration":
-		d, _ := strconv.ParseFloat(value, 64)
-		track.Duration = time.Duration(d) * time.Second
-	case "coverid":
-		track.HasArt = serv.webUrl != "" && value != ""
-	}
 }

@@ -79,7 +79,7 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 		return nil, err
 	}
 
-	if trackIndex >= 0 {
+	if trackIndex >= 0 && trackIndex < len(inList) {
 		// Because players are allowed to overide the metadata of other sources
 		// like the stream database, artwork contained by these secondary
 		// sources will be overridden.

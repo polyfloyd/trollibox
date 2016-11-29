@@ -146,10 +146,9 @@ func (serv *Server) Players() ([]*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	numPlayers, _ := strconv.ParseInt(res[2], 10, 32)
-	if numPlayers == 0 {
-		return []*Player{}, nil
+	numPlayers, err := strconv.Atoi(res[2])
+	if err != nil {
+		return nil, err
 	}
 
 	players := make([]*Player, 0, numPlayers)
@@ -158,26 +157,20 @@ func (serv *Server) Players() ([]*Player, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		if attrs["isplayer"] != "1" {
 			continue
 		}
 
-		players = append(players, &Player{
+		pl := &Player{
 			ID:      attrs["playerid"],
 			Name:    attrs["name"],
 			Model:   attrs["model"],
 			Serv:    serv,
 			Emitter: util.Emitter{Release: time.Millisecond * 100},
-		})
-	}
-
-	for _, pl := range players {
+		}
 		pl.playlist.Playlist = slimPlaylist{player: pl}
-		// Add a way to halt the eventLoop?
-		go func(pl *Player) {
-			pl.eventLoop()
-		}(pl)
+		go pl.eventLoop() // Add a way to halt the eventLoop?
+		players = append(players, pl)
 	}
 	return players, nil
 }
@@ -226,7 +219,9 @@ func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn
 			}
 			*track = &player.Track{}
 		}
-		setSlimAttr(serv, *track, split[0], split[1])
+		if track != nil {
+			setSlimAttr(serv, *track, split[0], split[1])
+		}
 	}
 
 	tracks := make([]player.Track, 0, numTracks)
@@ -235,11 +230,44 @@ func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn
 	for scanner.Scan() {
 		setAttr(&tracks, &track, scanner.Text())
 	}
-	tracks = append(tracks, *track)
+	if track != nil {
+		tracks = append(tracks, *track)
+	}
 	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 	return tracks, nil
+}
+
+func setSlimAttr(serv *Server, track *player.Track, key, value string) {
+	switch key {
+	case "url":
+		uri, _ := url.QueryUnescape(value)
+		track.Uri = uri
+	case "artist":
+		fallthrough
+	case "trackartist":
+		track.Artist = value
+	case "title":
+		track.Title = value
+	case "genre":
+		track.Genre = value
+	case "album":
+		if a := value; a != "No Album" {
+			track.Album = a
+		}
+	case "albumartist":
+		track.AlbumArtist = value
+	case "tracknum":
+		track.AlbumTrack = value
+	case "disc":
+		track.AlbumDisc = value
+	case "duration":
+		d, _ := strconv.ParseFloat(value, 64)
+		track.Duration = time.Duration(d) * time.Second
+	case "coverid":
+		track.HasArt = serv.webUrl != "" && value != ""
+	}
 }
 
 func queryEscape(str string) string {
