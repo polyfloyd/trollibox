@@ -36,7 +36,7 @@ var eventTranslations = []struct {
 		Event: "volume",
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ playlist (:?index|newsong|load_done|move|delete)"),
+		Exp:   regexp.MustCompile("^\\S+ playlist"),
 		Event: "playlist",
 	},
 	{
