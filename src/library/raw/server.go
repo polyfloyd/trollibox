@@ -36,7 +36,6 @@ func (rt *rawTrack) track() player.Track {
 
 type Server struct {
 	urlRoot    string
-	tmpDir     string
 	idEnum     uint64
 	tracks     map[uint64]rawTrack
 	tracksLock sync.RWMutex
