@@ -47,7 +47,7 @@ func (sv *Server) Download(url string) (player.Track, <-chan error) {
 		"ffmpeg",
 		"-i", "-",
 		"-vn",
-		"-acodec", "libvorbis",
+		"-acodec", "copy",
 		"-f", "ogg",
 		"-",
 	)
