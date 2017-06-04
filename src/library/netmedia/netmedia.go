@@ -47,8 +47,8 @@ func (sv *Server) Download(url string) (player.Track, <-chan error) {
 		"ffmpeg",
 		"-i", "-",
 		"-vn",
-		"-acodec", "copy",
-		"-f", "ogg",
+		"-acodec", "libmp3lame",
+		"-f", "mp3",
 		"-",
 	)
 	conversion.Stdin, _ = download.StdoutPipe()
