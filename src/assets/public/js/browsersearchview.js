@@ -59,15 +59,30 @@ var BrowserSearchView = BrowserView.extend({
 
 	renderResult: function(result) {
 		function highlight(result, property) {
-			var m = result.matches[property];
-			if (!m) {
-				return _.escape(result.track[property]);
-			}
-			var value = m.sort(function(a, b) {
-				return a.start > b.start;
-			}).reduceRight(function(value, match) {
-				return value.substring(0, match.start)+'<em>'+value.substring(match.start, match.end)+'</em>'+value.substring(match.end);
-			}, result.track[property]);
+			var value = (result.matches[property] || [])
+				.sort(function(a, b) {
+					return a.start - b.end;
+				})
+				.reduce(function(state, match) {
+					// Ensure that matches don't overlap each other.
+					var newStart = [state.prevEnd, match.start, match.end].sort(function(a, b) {
+						// Use a custom comparator because Javascript is retarded.
+						return a - b;
+					})[1];
+					state.prevEnd = match.end;
+					if (newStart == match.end) {
+						return state;
+					}
+					state.noOverlap.push({
+						start: newStart,
+						end: match.end,
+					});
+					return state;
+				}, { noOverlap: [], prevEnd: 0 })
+				.noOverlap
+				.reduceRight(function(value, match) {
+					return value.substring(0, match.start)+'<em>'+value.substring(match.start, match.end)+'</em>'+value.substring(match.end);
+				}, result.track[property]);
 			return _.escape(value).replace(/&lt;(\/)?em&gt;/g, '<$1em>');
 		}
 
