@@ -51,7 +51,7 @@ var BrowserAlbumsView = BrowserView.extend({
 		}, []);
 
 		var $list = $tab.find('ul');
-		$list.lazyLoad(albums, function(album) {
+		$list.append(albums.map(function(album) {
 			var $el = $(this.albumPreviewTemplate({
 				artist:   album.artist,
 				title:    album.title,
@@ -66,7 +66,7 @@ var BrowserAlbumsView = BrowserView.extend({
 				this.renderAlbum(album.tracks);
 			}.bind(this));
 			return $el;
-		}, this);
+		}.bind(this)));
 	},
 
 	renderAlbum: function(album) {
