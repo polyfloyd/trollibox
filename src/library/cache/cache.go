@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"sync"
 
-	"../util"
+	"../../player"
+	"../../util"
 )
 
-type TrackCache struct {
-	Player
+type Cache struct {
+	player.Player
 	util.Emitter
 
 	lock   sync.RWMutex
-	tracks []Track
-	index  map[string]*Track
+	tracks []player.Track
+	index  map[string]*player.Track
 	err    error
 }
 
-func (cache *TrackCache) Tracks() ([]Track, error) {
+func (cache *Cache) Tracks() ([]player.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -33,7 +34,7 @@ func (cache *TrackCache) Tracks() ([]Track, error) {
 	return cache.tracks, cache.err
 }
 
-func (cache *TrackCache) TrackInfo(uris ...string) ([]Track, error) {
+func (cache *Cache) TrackInfo(uris ...string) ([]player.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -50,7 +51,7 @@ func (cache *TrackCache) TrackInfo(uris ...string) ([]Track, error) {
 		return nil, cache.err
 	}
 
-	results := make([]Track, len(uris))
+	results := make([]player.Track, len(uris))
 	for i, uri := range uris {
 		if track, ok := cache.index[uri]; ok {
 			results[i] = *track
@@ -65,11 +66,11 @@ func (cache *TrackCache) TrackInfo(uris ...string) ([]Track, error) {
 	return results, nil
 }
 
-func (cache *TrackCache) Events() *util.Emitter {
+func (cache *Cache) Events() *util.Emitter {
 	return &cache.Emitter
 }
 
-func (cache *TrackCache) Run() {
+func (cache *Cache) Run() {
 	listener := cache.Player.Events().Listen()
 	defer cache.Player.Events().Unlisten(listener)
 
@@ -89,7 +90,7 @@ func (cache *TrackCache) Run() {
 	}
 }
 
-func (cache *TrackCache) reloadTracks() {
+func (cache *Cache) reloadTracks() {
 	tracks, err := cache.Player.Tracks()
 	if err != nil {
 		cache.err = err
@@ -97,12 +98,12 @@ func (cache *TrackCache) reloadTracks() {
 		return
 	}
 
-	cache.tracks, cache.index = tracks, map[string]*Track{}
+	cache.tracks, cache.index = tracks, map[string]*player.Track{}
 	for i, track := range cache.tracks {
 		cache.index[track.Uri] = &cache.tracks[i]
 	}
 }
 
-func (cache *TrackCache) String() string {
+func (cache *Cache) String() string {
 	return fmt.Sprintf("Cache{%v}", cache.Player)
 }

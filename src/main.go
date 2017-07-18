@@ -20,6 +20,7 @@ import (
 	"./filter"
 	"./filter/keyed"
 	"./filter/ruled"
+	cache "./library/cache"
 	netmedia "./library/netmedia"
 	raw "./library/raw"
 	"./library/stream"
@@ -277,7 +278,7 @@ func connectToPlayers(config *Config) (PlayerList, error) {
 
 	for name, pl := range players {
 		log.Printf("Attached player %v", pl)
-		cache := &player.TrackCache{Player: pl}
+		cache := &cache.Cache{Player: pl}
 		players[name] = cache
 		go cache.Run()
 	}
