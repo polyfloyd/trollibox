@@ -3,7 +3,7 @@ package mpd
 import (
 	"fmt"
 
-	player "../"
+	player ".."
 	"github.com/polyfloyd/gompd/mpd"
 )
 

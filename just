@@ -91,6 +91,12 @@ case ${1:-} in
 		cd "$WORKSPACE"
 	;;
 
+	"test")
+		find src -name '*_test.go' -exec dirname {} \; | \
+			sort -u | \
+			xargs -I{} sh -c "cd {}; GOPATH="$GOPATH" go test"
+	;;
+
 	"run")
 		"$BIN/$NAME"
 	;;
