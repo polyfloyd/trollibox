@@ -1,0 +1,14 @@
+language: go
+go:
+    - stable
+
+before_install:
+    - sudo apt-get update -qq
+    - sudo apt-get install -qq mpd
+install:
+    - ./just install
+
+script:
+    - ./just test
+    - ./just build
+    - RELEASE=1 ./just build
