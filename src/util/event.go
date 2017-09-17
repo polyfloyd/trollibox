@@ -50,23 +50,23 @@ func (emitter *Emitter) Emit(event string) {
 	emitter.init()
 
 	emitter.lock.RLock()
-	defer emitter.lock.RUnlock()
-
 	if emitter.Release == 0 {
+		emitter.lock.RUnlock()
 		emitter.broadcast(event)
 		return
 	}
 
 	// Check whether the event is already scheduled.
 	if _, ok := emitter.release[event]; ok {
+		emitter.lock.RUnlock()
 		return
 	}
+	emitter.lock.RUnlock()
+	emitter.lock.Lock()
+	emitter.release[event] = struct{}{}
+	emitter.lock.Unlock()
 
 	go func() {
-		emitter.lock.Lock()
-		emitter.release[event] = struct{}{}
-		emitter.lock.Unlock()
-
 		time.Sleep(emitter.Release)
 		emitter.broadcast(event)
 
