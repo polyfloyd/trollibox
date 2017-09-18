@@ -4,10 +4,21 @@ go:
 
 before_install:
     - sudo apt-get update -qq
-    - sudo apt-get install -qq mpd
+    - sudo apt-get install -qq mpd mpc
 install:
     - ./just install
 
+before_script:
+    - sudo cp -r $TRAVIS_BUILD_DIR/testdata $(sudo sed -n 's/^music_directory\s\+"\(.\+\)"/\1/p' /etc/mpd.conf)
+    - echo -e '\n
+        max_connections "100"\n
+        audio_output {\n
+            type "null"\n
+            name "My Null Output"\n
+            mixer_type "software"\n
+        }' | sudo tee -a /etc/mpd.conf
+    - sudo service mpd restart
+    - mpc update --wait
 script:
     - ./just test
     - ./just build
