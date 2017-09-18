@@ -77,7 +77,7 @@ func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
 		var err error
 		client, err = mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 		if err != nil {
-			return err
+			return fmt.Errorf("Error connecting to MPD: %v", err)
 		}
 	}
 
@@ -172,7 +172,7 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.ListAllInfo("/")
 		if err != nil {
-			return err
+			return fmt.Errorf("Error getting MPD songs: %v", err)
 		}
 
 		numDirs := 0
@@ -181,7 +181,7 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
-				return err
+				return fmt.Errorf("Error mapping MPD song to track: %v", err)
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -352,7 +352,7 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 		return mpdc.Pause(true)
 	case player.PlayStatePlaying:
 		if plistLen, err := pl.Playlist().Len(); err != nil {
-			return err
+			return fmt.Errorf("Error getting playlist length: %v", err)
 		} else if plistLen == 0 {
 			pl.Emit("playstate")
 			return nil
@@ -360,18 +360,25 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 
 		status, err := mpdc.Status()
 		if err != nil {
-			return err
+			return fmt.Errorf("Error getting status: %v", err)
 		}
 		if status["state"] == "stop" {
-			return mpdc.Play(0)
+			if err := mpdc.Play(0); err != nil {
+				return fmt.Errorf("Error starting playback: %v", err)
+			}
 		} else {
-			return mpdc.Pause(false)
+			if err := mpdc.Pause(false); err != nil {
+				return fmt.Errorf("Error unpausing: %v", err)
+			}
 		}
 	case player.PlayStateStopped:
-		return mpdc.Stop()
+		if err := mpdc.Stop(); err != nil {
+			return fmt.Errorf("Error stopping: %v", err)
+		}
 	default:
 		return fmt.Errorf("Unknown play state %v", state)
 	}
+	return nil
 }
 
 func (pl *Player) SetState(state player.PlayState) error {
@@ -474,13 +481,13 @@ func (plist mpdPlaylist) Insert(pos int, tracks ...player.Track) error {
 		if pos == -1 {
 			for _, track := range tracks {
 				if _, err := mpdc.AddID(uriToMpd(track.Uri), -1); err != nil {
-					return err
+					return fmt.Errorf("Error appending %q: %v", track.Uri, err)
 				}
 			}
 		} else {
 			for i, track := range tracks {
 				if _, err := mpdc.AddID(uriToMpd(track.Uri), pos+i); err != nil {
-					return err
+					return fmt.Errorf("Error inserting %q: %v", track.Uri, err)
 				}
 			}
 		}
