@@ -279,11 +279,20 @@ func (pl *Player) Time() (time.Duration, error) {
 }
 
 func (pl *Player) setTimeWith(mpdc *mpd.Client, offset time.Duration) error {
+	if offset < 0 {
+		return fmt.Errorf("Error setting time: negative offset")
+	}
 	index, err := pl.trackIndexWith(mpdc)
 	if err != nil {
-		return err
+		return fmt.Errorf("Error getting index for setting time: %v", err)
 	}
-	return mpdc.Seek(index, int(offset/time.Second))
+	if index < 0 {
+		return fmt.Errorf("Error setting time: negative track index (is any playback happening?)")
+	}
+	if err := mpdc.Seek(index, int(offset/time.Second)); err != nil {
+		return fmt.Errorf("Error setting time: %v", err)
+	}
+	return nil
 }
 
 func (pl *Player) SetTime(offset time.Duration) error {

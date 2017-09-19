@@ -10,6 +10,30 @@ func connectForTesting() (*Player, error) {
 	return Connect("tcp", "127.0.0.1:6600", nil)
 }
 
+func TestTime(t *testing.T) {
+	pl, err := connectForTesting()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := player.TestTime(pl); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
+func TestTimeEvent(t *testing.T) {
+	pl, err := connectForTesting()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	if err := player.TestTimeEvent(pl); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestTrackIndex(t *testing.T) {
 	pl, err := connectForTesting()
 	if err != nil {

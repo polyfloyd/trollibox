@@ -48,6 +48,41 @@ func testEvent(pl Player, event string, cb func() error) error {
 	}
 }
 
+func TestTime(pl Player) error {
+	const TIME_A = time.Second * 2
+	if err := fillPlaylist(pl, 1); err != nil {
+		return err
+	}
+
+	if err := pl.SetState(PlayStatePlaying); err != nil {
+		return err
+	}
+	if err := pl.SetState(PlayStatePaused); err != nil {
+		return err
+	}
+	if err := pl.SetTime(TIME_A); err != nil {
+		return err
+	}
+	if curTime, err := pl.Time(); err != nil {
+		return err
+	} else if curTime != TIME_A {
+		return fmt.Errorf("Unexpected time: %v != %v", TIME_A, curTime)
+	}
+	return nil
+}
+
+func TestTimeEvent(pl Player) error {
+	if err := fillPlaylist(pl, 1); err != nil {
+		return err
+	}
+	return testEvent(pl, "time", func() error {
+		if err := pl.SetState(PlayStatePlaying); err != nil {
+			return err
+		}
+		return pl.SetTime(time.Second * 2)
+	})
+}
+
 func TestTrackIndex(pl Player) error {
 	if err := fillPlaylist(pl, 2); err != nil {
 		return err
