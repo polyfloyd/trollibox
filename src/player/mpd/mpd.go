@@ -77,6 +77,7 @@ func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
 		var err error
 		client, err = mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 		if err != nil {
+			pl.clientPool <- nil
 			return fmt.Errorf("Error connecting to MPD: %v", err)
 		}
 	}
