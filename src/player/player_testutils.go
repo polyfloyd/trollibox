@@ -27,6 +27,27 @@ func fillPlaylist(pl Player, numTracks int) error {
 	return pl.Playlist().Insert(0, tracks[0:numTracks]...)
 }
 
+func testEvent(pl Player, event string, cb func() error) error {
+	if err := fillPlaylist(pl, 2); err != nil {
+		return err
+	}
+	l := pl.Events().Listen()
+	defer pl.Events().Unlisten(l)
+	if err := cb(); err != nil {
+		return err
+	}
+	for {
+		select {
+		case msg := <-l:
+			if msg == event {
+				return nil
+			}
+		case <-time.After(time.Second):
+			return fmt.Errorf("Event %q was not emitted", event)
+		}
+	}
+}
+
 func TestTrackIndex(pl Player) error {
 	if err := fillPlaylist(pl, 2); err != nil {
 		return err
@@ -60,24 +81,9 @@ func TestTrackIndexEvent(pl Player) error {
 	if err := fillPlaylist(pl, 2); err != nil {
 		return err
 	}
-
-	l := pl.Events().Listen()
-	defer pl.Events().Unlisten(l)
-
-	if err := pl.SetTrackIndex(1); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case msg := <-l:
-			if msg == "playlist" {
-				return nil
-			}
-		case <-time.After(time.Second):
-			return fmt.Errorf("Event was not emitted")
-		}
-	}
+	return testEvent(pl, "playlist", func() error {
+		return pl.SetTrackIndex(1)
+	})
 }
 
 func TestPlaystate(pl Player) error {
@@ -118,27 +124,12 @@ func TestPlaystateEvent(pl Player) error {
 	if err := fillPlaylist(pl, 1); err != nil {
 		return err
 	}
-
-	l := pl.Events().Listen()
-	defer pl.Events().Unlisten(l)
-
-	if err := pl.SetState(PlayStatePlaying); err != nil {
-		return err
-	}
-	if err := pl.SetState(PlayStateStopped); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case msg := <-l:
-			if msg == "playstate" {
-				return nil
-			}
-		case <-time.After(time.Second):
-			return fmt.Errorf("Event was not emitted")
+	return testEvent(pl, "playstate", func() error {
+		if err := pl.SetState(PlayStatePlaying); err != nil {
+			return err
 		}
-	}
+		return pl.SetState(PlayStateStopped)
+	})
 }
 
 func TestVolume(pl Player) error {
@@ -178,22 +169,7 @@ func TestVolumeEvent(pl Player) error {
 	if err := fillPlaylist(pl, 1); err != nil {
 		return err
 	}
-
-	l := pl.Events().Listen()
-	defer pl.Events().Unlisten(l)
-
-	if err := pl.SetVolume(0.2); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case msg := <-l:
-			if msg == "volume" {
-				return nil
-			}
-		case <-time.After(time.Second):
-			return fmt.Errorf("Event was not emitted")
-		}
-	}
+	return testEvent(pl, "volume", func() error {
+		return pl.SetVolume(0.2)
+	})
 }
