@@ -2,6 +2,7 @@ package player
 
 import (
 	"fmt"
+	"testing"
 	"time"
 )
 
@@ -27,184 +28,186 @@ func fillPlaylist(pl Player, numTracks int) error {
 	return pl.Playlist().Insert(0, tracks[0:numTracks]...)
 }
 
-func testEvent(pl Player, event string, cb func() error) error {
-	if err := fillPlaylist(pl, 2); err != nil {
-		return err
-	}
+func testEvent(t *testing.T, pl Player, event string, cb func()) {
 	l := pl.Events().Listen()
 	defer pl.Events().Unlisten(l)
-	if err := cb(); err != nil {
-		return err
-	}
+	cb()
 	for {
 		select {
 		case msg := <-l:
 			if msg == event {
-				return nil
+				return
 			}
 		case <-time.After(time.Second):
-			return fmt.Errorf("Event %q was not emitted", event)
+			t.Fatalf("Event %q was not emitted", event)
 		}
 	}
 }
 
-func TestTime(pl Player) error {
-	const TIME_A = time.Second * 2
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
+func TestPlayerImplementation(t *testing.T, pl Player) {
+	if err := fillPlaylist(pl, 3); err != nil {
+		t.Fatal(err)
 	}
-
-	if err := pl.SetState(PlayStatePlaying); err != nil {
-		return err
-	}
-	if err := pl.SetState(PlayStatePaused); err != nil {
-		return err
-	}
-	if err := pl.SetTime(TIME_A); err != nil {
-		return err
-	}
-	if curTime, err := pl.Time(); err != nil {
-		return err
-	} else if curTime != TIME_A {
-		return fmt.Errorf("Unexpected time: %v != %v", TIME_A, curTime)
-	}
-	return nil
-}
-
-func TestTimeEvent(pl Player) error {
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
-	}
-	return testEvent(pl, "time", func() error {
-		if err := pl.SetState(PlayStatePlaying); err != nil {
-			return err
-		}
-		return pl.SetTime(time.Second * 2)
+	t.Run("time", func(t *testing.T) {
+		testTime(t, pl)
+	})
+	t.Run("time_event", func(t *testing.T) {
+		testTimeEvent(t, pl)
+	})
+	t.Run("trackindex", func(t *testing.T) {
+		testTrackIndex(t, pl)
+	})
+	t.Run("trackindex_event", func(t *testing.T) {
+		testTrackIndexEvent(t, pl)
+	})
+	t.Run("playstate", func(t *testing.T) {
+		testPlaystate(t, pl)
+	})
+	t.Run("playstate_event", func(t *testing.T) {
+		testPlaystateEvent(t, pl)
+	})
+	t.Run("volume", func(t *testing.T) {
+		testVolume(t, pl)
+	})
+	t.Run("volume_event", func(t *testing.T) {
+		testVolume(t, pl)
 	})
 }
 
-func TestTrackIndex(pl Player) error {
-	if err := fillPlaylist(pl, 2); err != nil {
-		return err
+func testTime(t *testing.T, pl Player) {
+	const TIME_A = time.Second * 2
+	if err := pl.SetState(PlayStatePlaying); err != nil {
+		t.Fatal(err)
 	}
+	if err := pl.SetState(PlayStatePaused); err != nil {
+		t.Fatal(err)
+	}
+	if err := pl.SetTime(TIME_A); err != nil {
+		t.Fatal(err)
+	}
+	if curTime, err := pl.Time(); err != nil {
+		t.Fatal(err)
+	} else if curTime != TIME_A {
+		t.Fatalf("Unexpected time: %v != %v", TIME_A, curTime)
+	}
+}
+
+func testTimeEvent(t *testing.T, pl Player) {
+	testEvent(t, pl, "time", func() {
+		if err := pl.SetState(PlayStatePlaying); err != nil {
+			t.Fatal(err)
+		}
+		if err := pl.SetTime(time.Second * 2); err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
+func testTrackIndex(t *testing.T, pl Player) {
 	if err := pl.SetTrackIndex(0); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if index, err := pl.TrackIndex(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if index != 0 {
-		return fmt.Errorf("Unexpected track index: %v != %v", 0, index)
+		t.Fatalf("Unexpected track index: %v != %v", 0, index)
 	}
 	if state, err := pl.State(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if state != PlayStatePlaying {
-		return fmt.Errorf("Unexpected state: %v", state)
+		t.Fatalf("Unexpected state: %v", state)
 	}
 
 	if err := pl.SetTrackIndex(1); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if index, err := pl.TrackIndex(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if index != 1 {
-		return fmt.Errorf("Unexpected track index: %v != %v", 1, index)
+		t.Fatalf("Unexpected track index: %v != %v", 1, index)
 	}
-	return nil
 }
 
-func TestTrackIndexEvent(pl Player) error {
-	if err := fillPlaylist(pl, 2); err != nil {
-		return err
-	}
-	return testEvent(pl, "playlist", func() error {
-		return pl.SetTrackIndex(1)
+func testTrackIndexEvent(t *testing.T, pl Player) {
+	testEvent(t, pl, "playlist", func() {
+		if err := pl.SetTrackIndex(1); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
-func TestPlaystate(pl Player) error {
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
-	}
-
+func testPlaystate(t *testing.T, pl Player) {
 	if err := pl.SetState(PlayStatePlaying); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if state, err := pl.State(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if state != PlayStatePlaying {
-		return fmt.Errorf("Unexpected state: %v", state)
+		t.Fatalf("Unexpected state: %v", state)
 	}
 
 	if err := pl.SetState(PlayStatePaused); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if state, err := pl.State(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if state != PlayStatePaused {
-		return fmt.Errorf("Unexpected state: %v", state)
+		t.Fatalf("Unexpected state: %v", state)
 	}
 
 	if err := pl.SetState(PlayStateStopped); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if state, err := pl.State(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if state != PlayStateStopped {
-		return fmt.Errorf("Unexpected state: %v", state)
+		t.Fatalf("Unexpected state: %v", state)
 	}
-	return nil
 }
 
-func TestPlaystateEvent(pl Player) error {
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
-	}
-	return testEvent(pl, "playstate", func() error {
+func testPlaystateEvent(t *testing.T, pl Player) {
+	testEvent(t, pl, "playstate", func() {
 		if err := pl.SetState(PlayStatePlaying); err != nil {
-			return err
+			t.Fatal(err)
 		}
-		return pl.SetState(PlayStateStopped)
+		if err := pl.SetState(PlayStateStopped); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
 
-func TestVolume(pl Player) error {
+func testVolume(t *testing.T, pl Player) {
 	const VOL_A = 0.2
 	const VOL_B = 0.4
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
-	}
-
 	if err := pl.SetState(PlayStatePlaying); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if err := pl.SetVolume(VOL_A); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if vol != VOL_A {
-		return fmt.Errorf("Volume does not match expected value, %v != %v", VOL_A, vol)
+		t.Fatalf("Volume does not match expected value, %v != %v", VOL_A, vol)
 	}
 
 	if err := pl.SetState(PlayStateStopped); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if err := pl.SetVolume(VOL_B); err != nil {
-		return err
+		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
-		return err
+		t.Fatal(err)
 	} else if vol != VOL_B {
-		return fmt.Errorf("Volume does not match expected value, %v != %v", VOL_B, vol)
+		t.Fatalf("Volume does not match expected value, %v != %v", VOL_B, vol)
 	}
-	return nil
 }
 
-func TestVolumeEvent(pl Player) error {
-	if err := fillPlaylist(pl, 1); err != nil {
-		return err
-	}
-	return testEvent(pl, "volume", func() error {
-		return pl.SetVolume(0.2)
+func testVolumeEvent(t *testing.T, pl Player) {
+	testEvent(t, pl, "volume", func() {
+		if err := pl.SetVolume(0.2); err != nil {
+			t.Fatal(err)
+		}
 	})
 }
