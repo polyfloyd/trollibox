@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	filter "../"
+	filter ".."
 	"../../player"
 )
 

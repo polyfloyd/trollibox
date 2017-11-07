@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	player "../"
+	player ".."
 	"../../util"
 	"github.com/polyfloyd/gompd/mpd"
 )

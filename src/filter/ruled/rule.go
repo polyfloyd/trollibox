@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	filter "../"
+	filter ".."
 	"../../player"
 )
 

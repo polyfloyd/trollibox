@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	player "../"
+	player ".."
 )
 
 type userPlaylist struct {
