@@ -15,7 +15,7 @@ func TestEmission(t *testing.T) {
 	select {
 	case msg := <-l:
 		if msg != "test" {
-			t.Error("Event malformed: %v", msg)
+			t.Errorf("Event malformed: %v", msg)
 			return
 		}
 	case <-time.After(time.Millisecond * 100):

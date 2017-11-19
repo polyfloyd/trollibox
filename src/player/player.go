@@ -18,7 +18,7 @@ const (
 type PlayState string
 
 type Library interface {
-	// Returns all available tracks in the libary.
+	// Returns all available tracks in the library.
 	Tracks() ([]Track, error)
 
 	// Gets information about the specified tracks. If a track is not found, a

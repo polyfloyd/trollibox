@@ -51,7 +51,7 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 		return nil, fmt.Errorf("Rule's Value is unset (%v)", rule)
 	}
 
-	// We'll use rule function to invert the output if nessecary.
+	// We'll use rule function to invert the output if necessary.
 	var inv func(bool) bool
 	if rule.Invert {
 		inv = func(val bool) bool { return !val }

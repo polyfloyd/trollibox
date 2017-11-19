@@ -26,7 +26,7 @@ type nojsonQuery struct {
 	Query    string   `json:"query"`
 	Untagged []string `json:"untagged"`
 
-	patterns map[string][]*regexp.Regexp `json:"-"`
+	patterns map[string][]*regexp.Regexp
 }
 
 type Query nojsonQuery

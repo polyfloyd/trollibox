@@ -287,8 +287,8 @@ func connectToPlayers(config *Config) (PlayerList, error) {
 
 func getStaticAssets(files []string) map[string][]string {
 	static := map[string][]string{
-		"js":  []string{},
-		"css": []string{},
+		"js":  {},
+		"css": {},
 	}
 	for _, file := range files {
 		if !strings.HasPrefix(file, PUBLIC_DIR) {

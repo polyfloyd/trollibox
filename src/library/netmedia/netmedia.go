@@ -31,10 +31,10 @@ func NewServer(rawServer *raw.Server) (*Server, error) {
 
 func (sv *Server) Download(url string) (player.Track, <-chan error) {
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	info, err := readMediaInfo(ctx, url)
 	if err != nil {
-		cancel()
 		return player.Track{}, util.ErrorAsChannel(err)
 	}
 
@@ -55,12 +55,10 @@ func (sv *Server) Download(url string) (player.Track, <-chan error) {
 	convOut, _ := conversion.StdoutPipe()
 
 	if err := download.Start(); err != nil {
-		cancel()
 		return player.Track{}, util.ErrorAsChannel(err)
 	}
 	go download.Wait()
 	if err := conversion.Start(); err != nil {
-		cancel()
 		return player.Track{}, util.ErrorAsChannel(err)
 	}
 	go conversion.Wait()
