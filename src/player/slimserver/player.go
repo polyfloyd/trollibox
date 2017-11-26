@@ -222,7 +222,33 @@ func (pl *Player) State() (player.PlayState, error) {
 	}
 }
 
-func (pl *Player) SetState(state player.PlayState) (err error) {
+func (pl *Player) SetState(state player.PlayState) error {
+	ack := make(chan error, 1)
+	defer close(ack)
+	// SlimServer may have acknowledged the command, but has not processed it.
+	// This could result in State() returning the wrong value, if it were to be
+	// called immediately after SetState. Wait for the playstate event to be
+	// emitted before continuing.
+	go func() {
+		events := pl.Listen()
+		defer pl.Unlisten(events)
+		timeout := time.After(time.Second * 8)
+	outer:
+		for {
+			select {
+			case e := <-events:
+				if e == "playstate" {
+					ack <- nil
+					break outer
+				}
+			case <-timeout:
+				ack <- fmt.Errorf("Timeout waiting for playstate update")
+				break outer
+			}
+		}
+	}()
+
+	var err error
 	switch state {
 	case player.PlayStatePlaying:
 		_, err = pl.Serv.request(pl.ID, "mode", "play")
@@ -236,7 +262,7 @@ func (pl *Player) SetState(state player.PlayState) (err error) {
 	if err != nil {
 		return err
 	}
-	return err
+	return <-ack
 }
 
 func (pl *Player) Volume() (float32, error) {
