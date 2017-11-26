@@ -213,28 +213,30 @@ func (pl *Player) State() (player.PlayState, error) {
 	switch res[2] {
 	case "play":
 		return player.PlayStatePlaying, nil
-	case "paused":
+	case "pause":
 		return player.PlayStatePaused, nil
 	case "stop":
 		return player.PlayStateStopped, nil
 	default:
-		return player.PlayStateInvalid, nil
+		return player.PlayStateInvalid, fmt.Errorf("Server returned an invalid playstate: %q", res[2])
 	}
 }
 
-func (pl *Player) SetState(state player.PlayState) error {
+func (pl *Player) SetState(state player.PlayState) (err error) {
 	switch state {
 	case player.PlayStatePlaying:
-		_, err := pl.Serv.request(pl.ID, "play")
-		return err
+		_, err = pl.Serv.request(pl.ID, "mode", "play")
 	case player.PlayStatePaused:
-		_, err := pl.Serv.request(pl.ID, "pause", "1")
-		return err
+		_, err = pl.Serv.request(pl.ID, "mode", "pause")
 	case player.PlayStateStopped:
-		_, err := pl.Serv.request(pl.ID, "stop")
+		_, err = pl.Serv.request(pl.ID, "mode", "stop")
+	default:
+		err = fmt.Errorf("Attempted to set an invalid playstate: %q", state)
+	}
+	if err != nil {
 		return err
 	}
-	return fmt.Errorf("Invalid playstate")
+	return err
 }
 
 func (pl *Player) Volume() (float32, error) {
@@ -328,27 +330,26 @@ type slimPlaylist struct {
 }
 
 func (plist slimPlaylist) Insert(pos int, tracks ...player.Track) error {
-	if pos == -1 {
-		for _, track := range tracks {
-			if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeUri(track.Uri)); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-
-	currentTrackIndex, err := plist.player.TrackIndex()
+	originalLength, err := plist.Len()
 	if err != nil {
 		return err
 	}
-	for i := len(tracks) - 1; i >= 0; i-- {
-		if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "insert", encodeUri(tracks[i].Uri)); err != nil {
+
+	// Append to the end.
+	for _, track := range tracks {
+		_, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeUri(track.Uri))
+		if err != nil {
 			return err
 		}
-		if pos-1 != currentTrackIndex {
-			// SlimServer does not support inserting at a specific position, so
-			// We'll just have to move it ourselves.
-			return plist.Move(currentTrackIndex+1, pos)
+	}
+	if pos == -1 || originalLength == 0 {
+		return nil
+	}
+	// SlimServer does not support inserting at a specific position, so
+	// We'll just have to move it ourselves.
+	for i := range tracks {
+		if err := plist.Move(originalLength+i, pos+i); err != nil {
+			return err
 		}
 	}
 	return nil

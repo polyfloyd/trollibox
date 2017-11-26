@@ -41,7 +41,12 @@ func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []Track) {
 }
 
 func testPlaylistLen(t *testing.T, ls Playlist, testTracks []Track) {
-	if err := ls.Insert(0, testTracks...); err != nil {
+	if l, err := ls.Len(); err != nil {
+		t.Fatal(err)
+	} else if l != 0 {
+		t.Fatalf("Initial length is not 0, got %d", l)
+	}
+	if err := ls.Insert(-1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
 	if l, err := ls.Len(); err != nil {
@@ -60,8 +65,10 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i := 1; i < len(testTracks); i++ {
-		if testTracks[i].Uri != tracks[i-1].Uri {
+	for i, testTrack := range testTracks[1:] {
+		if testTrack.Uri != tracks[i].Uri {
+			t.Logf("expected: %v", testTracks[1:])
+			t.Logf("got: %v", tracks)
 			t.Fatalf("Mismatched tracks at index %d", i)
 		}
 	}
@@ -69,12 +76,11 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 	if err := ls.Insert(0, testTracks[0]); err != nil {
 		t.Fatal(err)
 	}
-	tracks, err = ls.Tracks()
-	if err != nil {
+	if tracks, err = ls.Tracks(); err != nil {
 		t.Fatal(err)
-	}
-	if tracks[0].Uri != testTracks[0].Uri {
-		t.Fatalf("Insert error: track not inserted at position 0")
+	} else if tracks[0].Uri != testTracks[0].Uri {
+		t.Logf("got: %v", tracks)
+		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].Uri)
 	}
 }
 
@@ -95,21 +101,30 @@ func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []Track) {
 }
 
 func testPlaylistMove(t *testing.T, ls Playlist, testTracks []Track) {
-	if err := ls.Insert(0, testTracks...); err != nil {
+	if err := ls.Insert(-1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
+	tracksBefore, _ := ls.Tracks()
 	if err := ls.Move(0, 1); err != nil {
 		t.Fatal(err)
 	}
 	if tracks, err := ls.Tracks(); err != nil {
 		t.Fatal(err)
 	} else if tracks[1].Uri != testTracks[0].Uri {
-		t.Fatalf("Track was not moved")
+		t.Logf("Tracks before:")
+		for _, track := range tracksBefore {
+			t.Logf("  %s", track.Uri)
+		}
+		t.Logf("Tracks after:")
+		for _, track := range tracks {
+			t.Logf("  %s", track.Uri)
+		}
+		t.Fatalf("Track was not moved or moved to the wrong index")
 	}
 }
 
 func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []Track) {
-	if err := ls.Insert(0, testTracks...); err != nil {
+	if err := ls.Insert(-1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
 	indices := make([]int, len(testTracks))

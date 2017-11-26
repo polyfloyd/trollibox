@@ -65,11 +65,12 @@ func Connect(network, address string, username, password *string, webUrl string)
 }
 
 func (serv *Server) conn() (net.Conn, func(), error) {
-	conn := serv.connPool.Get()
-	if err, ok := conn.(error); ok {
+	maybeConn := serv.connPool.Get()
+	if err, ok := maybeConn.(error); ok {
 		return nil, nil, err
 	}
-	return conn.(net.Conn), func() {
+	conn := maybeConn.(net.Conn)
+	return conn, func() {
 		serv.connPool.Put(conn)
 	}, nil
 }
