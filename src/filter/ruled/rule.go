@@ -137,7 +137,7 @@ func (err RuleError) Error() string {
 type nojsonRuleFilter struct {
 	Rules []Rule `json:"rules"`
 
-	funcs []func(player.Track) bool `json:"-"`
+	funcs []func(player.Track) bool
 }
 
 type RuleFilter nojsonRuleFilter
