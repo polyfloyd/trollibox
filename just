@@ -4,7 +4,6 @@ set -eu
 cd `dirname $0`
 
 NAME="trollibox"
-VERSION="$(git describe --always --dirty) ($(date --date="@$(git show -s --format='%ct' HEAD)" '+%Y-%m-%d'))"
 WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
@@ -51,14 +50,12 @@ case ${1:-} in
 			rsync -rL --exclude="*.css" --exclude="*.js" --exclude="/public/00-dep" "$ASSETS/" "$TEMP/"
 			rsync -rL --exclude="*.css" --exclude="*.js" "$ASSETS/public/00-dep/" "$TEMP/public"
 
-			echo 'release'  > "$TEMP/_BUILD"
-			echo "$VERSION" > "$TEMP/_VERSION"
+			BUILD="release"
 
 		else
 			INCLUDE_DIR="$ASSETS"
 			INCLUDE_FLAGS="-debug"
-			echo 'debug'    > "$ASSETS/_BUILD"
-			echo "$VERSION" > "$ASSETS/_VERSION"
+			BUILD="debug"
 		fi
 
 		ASSETS_OUT="$WORKSPACE/src/assets-go"
@@ -72,8 +69,19 @@ case ${1:-} in
 			-o="$ASSETS_OUT/static.go" \
 			`find "$INCLUDE_DIR" -type d`
 
+		VERSION="$(git describe --always --dirty)"
+		VERSION_DATE="$(date --date="@$(git show -s --format='%ct' HEAD)" '+%F')"
+		BUILD_DATE="$(date '+%F_%T_%z')"
+
 		cd "$WORKSPACE/src"
-		go build -o "$WORKSPACE/bin/$NAME"
+		go build \
+			-ldflags "
+				-X main.BUILD=$BUILD
+				-X main.VERSION=$VERSION
+				-X main.VERSION_DATE=$VERSION_DATE
+				-X main.BUILD_DATE=$BUILD_DATE
+			" \
+			-o "$WORKSPACE/bin/$NAME"
 		cd "$WORKSPACE"
 	;;
 

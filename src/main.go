@@ -38,8 +38,10 @@ const (
 )
 
 var (
-	BUILD   = strings.Trim(string(assets.MustAsset("_BUILD")), "\n ")
-	VERSION = strings.Trim(string(assets.MustAsset("_VERSION")), "\n ")
+	BUILD        = "%BUILD%"
+	VERSION      = "%VERSION%"
+	VERSION_DATE = "%VERSION_DATE%"
+	BUILD_DATE   = "%BUILD_DATE%"
 )
 
 var static = getStaticAssets(assets.AssetNames())
@@ -123,11 +125,13 @@ func (list TODOPlayerList) ActivePlayerByName(name string) player.Player {
 
 func main() {
 	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
-	printVersion := flag.Bool("version", false, "Print the version string")
+	printVersion := flag.Bool("version", false, "Print version information and exit")
 	flag.Parse()
 
 	if *printVersion {
-		fmt.Printf("Version: %v (%v)\n", VERSION, BUILD)
+		fmt.Printf("Version: %v (%v)\n", VERSION, VERSION_DATE)
+		fmt.Printf("Build: %v\n", BUILD)
+		fmt.Printf("Build TIme: %v\n", BUILD_DATE)
 		return
 	}
 

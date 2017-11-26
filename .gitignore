@@ -5,6 +5,5 @@
 /bin
 /config.json
 /src/assets-go/
-/src/assets/_*
 
 /vendor
