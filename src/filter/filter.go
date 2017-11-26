@@ -4,7 +4,7 @@ import (
 	"runtime"
 	"sync"
 
-	"../player"
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 // The Filter interface implements a method for filtering tracks.

@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"time"
 
-	"./filter"
-	"./filter/keyed"
-	"./filter/ruled"
-	raw "./library/raw"
-	"./library/stream"
-	"./util"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
+
+	"github.com/polyfloyd/trollibox/src/filter"
+	"github.com/polyfloyd/trollibox/src/filter/keyed"
+	"github.com/polyfloyd/trollibox/src/filter/ruled"
+	"github.com/polyfloyd/trollibox/src/library/raw"
+	"github.com/polyfloyd/trollibox/src/library/stream"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 func htDataAttach(r *mux.Router, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) {

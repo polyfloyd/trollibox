@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	player ".."
-	"../../util"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 const trackTags = "uAglitdc"

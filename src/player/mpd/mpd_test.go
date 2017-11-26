@@ -3,7 +3,7 @@ package mpd
 import (
 	"testing"
 
-	player ".."
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 func connectForTesting() (*Player, error) {

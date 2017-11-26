@@ -13,9 +13,10 @@ import (
 	"strings"
 	"time"
 
-	player ".."
-	"../../util"
-	"github.com/polyfloyd/gompd/mpd"
+	"github.com/fhs/gompd/mpd"
+
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 const URI_SCHEMA = "mpd://"

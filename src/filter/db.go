@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strings"
 
-	"../util"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 type storageFormat struct {

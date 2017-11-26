@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"../util"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 const (

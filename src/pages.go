@@ -4,8 +4,9 @@ import (
 	"html/template"
 	"net/http"
 
-	assets "./assets-go"
 	"github.com/gorilla/mux"
+
+	assets "github.com/polyfloyd/trollibox/src/assets-go"
 )
 
 var pageTemplate = mkTemplate()

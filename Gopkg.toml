@@ -1,0 +1,17 @@
+required = [
+  "github.com/jteeuwen/go-bindata",
+  "github.com/tdewolff/minify",
+]
+
+[[constraint]]
+  name = "github.com/fhs/gompd"
+  branch = "master"
+  source = "github.com/polyfloyd/gompd"
+
+[[constraint]]
+  name = "github.com/gorilla/mux"
+  branch = "master"
+
+[[constraint]]
+  branch = "release-branch.go1.8"
+  name = "golang.org/x/net"

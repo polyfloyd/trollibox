@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	player ".."
-	"../../util"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 type Server struct {

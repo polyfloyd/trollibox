@@ -20,6 +20,6 @@ before_script:
     - sudo service mpd restart
     - mpc update --wait
 script:
-    - ./just test
     - ./just build
     - RELEASE=1 ./just build
+    - go test ./src/... -test.v

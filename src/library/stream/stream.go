@@ -16,8 +16,8 @@ import (
 	"text/template"
 	"time"
 
-	"../../player"
-	"../../util"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 var dataUriRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")

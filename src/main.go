@@ -16,19 +16,20 @@ import (
 	"strings"
 	"time"
 
-	assets "./assets-go"
-	"./filter"
-	"./filter/keyed"
-	"./filter/ruled"
-	cache "./library/cache"
-	netmedia "./library/netmedia"
-	raw "./library/raw"
-	"./library/stream"
-	"./player"
-	"./player/mpd"
-	"./player/slimserver"
-	"./util"
 	"github.com/gorilla/mux"
+
+	assets "github.com/polyfloyd/trollibox/src/assets-go"
+	"github.com/polyfloyd/trollibox/src/filter"
+	"github.com/polyfloyd/trollibox/src/filter/keyed"
+	"github.com/polyfloyd/trollibox/src/filter/ruled"
+	"github.com/polyfloyd/trollibox/src/library/cache"
+	"github.com/polyfloyd/trollibox/src/library/netmedia"
+	"github.com/polyfloyd/trollibox/src/library/raw"
+	"github.com/polyfloyd/trollibox/src/library/stream"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/player/mpd"
+	"github.com/polyfloyd/trollibox/src/player/slimserver"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 const (

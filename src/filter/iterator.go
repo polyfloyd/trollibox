@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"../player"
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 type randFilterIterator struct {

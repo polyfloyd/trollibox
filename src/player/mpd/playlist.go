@@ -3,8 +3,9 @@ package mpd
 import (
 	"fmt"
 
-	player ".."
-	"github.com/polyfloyd/gompd/mpd"
+	"github.com/fhs/gompd/mpd"
+
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 type userPlaylist struct {

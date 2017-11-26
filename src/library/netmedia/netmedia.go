@@ -1,4 +1,4 @@
-package youtube
+package netmedia
 
 import (
 	"context"
@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os/exec"
 
-	"../../player"
-	"../../util"
-	raw "../raw"
+	raw "github.com/polyfloyd/trollibox/src/library/raw"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 type Server struct {

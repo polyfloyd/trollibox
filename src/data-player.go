@@ -13,14 +13,15 @@ import (
 	"strings"
 	"time"
 
-	"./filter"
-	"./filter/keyed"
-	netmedia "./library/netmedia"
-	raw "./library/raw"
-	"./library/stream"
-	"./player"
 	"github.com/gorilla/mux"
 	"golang.org/x/net/websocket"
+
+	"github.com/polyfloyd/trollibox/src/filter"
+	"github.com/polyfloyd/trollibox/src/filter/keyed"
+	"github.com/polyfloyd/trollibox/src/library/netmedia"
+	"github.com/polyfloyd/trollibox/src/library/raw"
+	"github.com/polyfloyd/trollibox/src/library/stream"
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 var httpCacheSince = time.Now()

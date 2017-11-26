@@ -1,7 +1,10 @@
+~*
 *~
 *.sw*
+
 /bin
-/lib/gopath
 /config.json
 /src/assets-go/
 /src/assets/_*
+
+/vendor

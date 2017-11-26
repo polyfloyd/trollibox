@@ -1,4 +1,4 @@
-package player
+package raw
 
 import (
 	"bytes"
@@ -12,8 +12,8 @@ import (
 	"strconv"
 	"sync"
 
-	"../../player"
-	"../../util"
+	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 type rawTrack struct {

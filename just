@@ -8,7 +8,6 @@ VERSION="$(git describe --always --dirty) ($(date --date="@$(git show -s --forma
 WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
-GOPATH="$LIB/gopath"
 ASSETS="$WORKSPACE/src/assets"
 
 mkdir -p "$BIN"
@@ -16,34 +15,21 @@ mkdir -p "$LIB"
 
 usage() {
 cat << EOF
-SYNOPSIS
-
-    This is a very handy tool to manage this Go project.
-
 USAGE
       $ $0 install    # Install dependencies
       $ $0 build      # Build a binary
-      $ $0 run        # Run the currently built binary
 EOF
 }
 
 case ${1:-} in
 	"install")
-		echo "*** Installing minifier ***"
-		GOPATH="$GOPATH" go get -u github.com/tdewolff/minify/...
-
-		echo "*** Installing go-bindata ***"
-		GOPATH="$GOPATH" go get -u github.com/jteeuwen/go-bindata/...
-
 		echo "*** Installing dependencies ***"
-		cat "$WORKSPACE/src/Godeps" | \
-		while read dep; do
-			pkg=`echo $dep | cut -f1 -d' '`
-			rev=`echo $dep | cut -f2 -d' '`
-			echo "  Installing $pkg"
-			GOPATH="$GOPATH" go get "$pkg"
-			pushd "$GOPATH/src/$pkg" > /dev/null; git checkout $rev --quiet; popd > /dev/null
-		done
+		go get -u github.com/golang/dep/cmd/dep
+		dep ensure
+		echo "*** Building minifier ***"
+		go get -u github.com/tdewolff/minify/...
+		echo "*** Building go-bindata ***"
+		go get -u github.com/jteeuwen/go-bindata/...
 	;;
 
 	"build")
@@ -87,18 +73,8 @@ case ${1:-} in
 			`find "$INCLUDE_DIR" -type d`
 
 		cd "$WORKSPACE/src"
-		GOPATH="$GOPATH" go build -o "$WORKSPACE/bin/$NAME"
+		go build -o "$WORKSPACE/bin/$NAME"
 		cd "$WORKSPACE"
-	;;
-
-	"test")
-		find src -name '*_test.go' -exec dirname {} \; | \
-			sort -u | \
-			xargs -I{} sh -c "cd {}; GOPATH="$GOPATH" go test"
-	;;
-
-	"run")
-		"$BIN/$NAME"
 	;;
 
 	*)

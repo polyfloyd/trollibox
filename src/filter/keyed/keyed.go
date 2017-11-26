@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	filter ".."
-	"../../player"
+	"github.com/polyfloyd/trollibox/src/filter"
+	"github.com/polyfloyd/trollibox/src/player"
 )
 
 // Track attributes available for searching.
