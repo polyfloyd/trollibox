@@ -13,7 +13,7 @@ func connectForTesting() (*Player, error) {
 func TestPlayerImplementation(t *testing.T) {
 	pl, err := connectForTesting()
 	if err != nil {
-		t.Fatal(err)
+		t.Skipf("%v", err)
 	}
 	player.TestPlayerImplementation(t, pl)
 }
@@ -21,7 +21,7 @@ func TestPlayerImplementation(t *testing.T) {
 func TestPlaylistImplementation(t *testing.T) {
 	pl, err := connectForTesting()
 	if err != nil {
-		t.Fatal(err)
+		t.Skipf("%v", err)
 	}
 	tracks, err := pl.Tracks()
 	if err != nil {
