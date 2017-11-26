@@ -20,6 +20,12 @@ USAGE
 EOF
 }
 
+if [[ ! -v GOPATH ]]; then
+	echo GOPATH is not set.
+	echo See the readme for instructions.
+	exit
+fi
+
 case ${1:-} in
 	"install")
 		echo "*** Installing dependencies ***"

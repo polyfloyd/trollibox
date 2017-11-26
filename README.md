@@ -22,18 +22,31 @@ master branch. Altough this also means that some things (like the stored stream
 database) may break if you update it.
 
 ### Building
-Clone the repository.
-
 The following tools are required to build Trollibox:
 * [Golang](https://golang.org/)
 
-Once you got that sorted out, its time to build Trollibox. Build it by simply running:
+To build:
 ```sh
+# Set up a GOPATH if you haven't already
+export GOPATH="$PWD/gopath"
+mkdir -p $GOPATH/src/github.com/polyfloyd
+
+# Download Trollibox
+git clone https://github.com/polyfloyd/trollibox.git $GOPATH/src/github.com/polyfloyd/trollibox
+cd $GOPATH/src/github.com/polyfloyd/trollibox
+
 # Install dependencies
 ./just install
 
 # Build a release version of Trollibox containing all of its assets.
 RELEASE=1 ./just build
+
+# Copy and edit the configuration
+cp config.example.json config.json
+vim config.json
+
+# Let's go!
+./bin/trollibox -conf config.json
 ```
 
 ### Configuring
