@@ -22,7 +22,7 @@ func getTemplate() *template.Template {
 	return pageTemplate
 }
 
-func htBrowserPage(config *Config, players PlayerList) func(res http.ResponseWriter, req *http.Request) {
+func htBrowserPage(config *config, players playerList) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		params := baseParamMap(config, players)
 		params["player"] = mux.Vars(req)["player"]
@@ -34,7 +34,7 @@ func htBrowserPage(config *Config, players PlayerList) func(res http.ResponseWri
 	}
 }
 
-func htRedirectToDefaultPlayer(config *Config, players PlayerList) func(res http.ResponseWriter, req *http.Request) {
+func htRedirectToDefaultPlayer(config *config, players playerList) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		defaultPlayer := ""
 		if pl := players.ActivePlayerByName(config.DefaultPlayer); pl != nil {
@@ -46,6 +46,6 @@ func htRedirectToDefaultPlayer(config *Config, players PlayerList) func(res http
 	}
 }
 
-func hmJsonContent(res http.ResponseWriter, req *http.Request) {
+func htJSONContent(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json")
 }

@@ -16,12 +16,17 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// Server handles connectivity to a Logitech SlimServer.
 type Server struct {
 	connPool sync.Pool
-	webUrl   string
+	webURL   string
 }
 
-func Connect(network, address string, username, password *string, webUrl string) (*Server, error) {
+// Connect connects to Logitech SlimServer with an optional username and password.
+//
+// webURL is used for album art and should be the location at which the regular
+// webinterface of SlimServer can be reached.
+func Connect(network, address string, username, password *string, webURL string) (*Server, error) {
 	connect := func() (net.Conn, error) {
 		conn, err := net.Dial(network, address)
 		if err != nil {
@@ -42,7 +47,7 @@ func Connect(network, address string, username, password *string, webUrl string)
 	}
 
 	serv := &Server{
-		webUrl: webUrl,
+		webURL: webURL,
 		connPool: sync.Pool{
 			New: func() interface{} {
 				conn, err := connect()
@@ -141,7 +146,7 @@ func (serv *Server) requestAttrs(p0 string, pn ...string) (map[string]string, er
 	return attrs, nil
 }
 
-// Retrieves a list of all players this server controls.
+// Players retrieves a list of all players this server controls.
 func (serv *Server) Players() ([]*Player, error) {
 	res, err := serv.request("player", "count", "?")
 	if err != nil {
@@ -244,7 +249,7 @@ func setSlimAttr(serv *Server, track *player.Track, key, value string) {
 	switch key {
 	case "url":
 		uri, _ := url.QueryUnescape(value)
-		track.Uri = uri
+		track.URI = uri
 	case "artist":
 		fallthrough
 	case "trackartist":
@@ -267,7 +272,7 @@ func setSlimAttr(serv *Server, track *player.Track, key, value string) {
 		d, _ := strconv.ParseFloat(value, 64)
 		track.Duration = time.Duration(d) * time.Second
 	case "coverid":
-		track.HasArt = serv.webUrl != "" && value != ""
+		track.HasArt = serv.webURL != "" && value != ""
 	}
 }
 
@@ -296,7 +301,7 @@ func queryEscape(str string) string {
 	return str
 }
 
-func encodeUri(uri string) string {
+func encodeURI(uri string) string {
 	if uri == "" {
 		return ""
 	}

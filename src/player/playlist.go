@@ -31,6 +31,9 @@ type MetaPlaylist interface {
 	Meta() ([]TrackMeta, error)
 }
 
+// A TrackIterator is a type that produces a finite or infinite stream of tracks.
+//
+// Used by AutoAppend.
 type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end. The player that is requesting the next
@@ -38,8 +41,8 @@ type TrackIterator interface {
 	NextTrack(pl Player) (Track, TrackMeta, bool)
 }
 
-// Attaches a listener to the specified player. The iterator is used to get
-// tracks which are played when the playlist of the player runs out.
+// AutoAppend attaches a listener to the specified player. The iterator is used
+// to get tracks which are played when the playlist of the player runs out.
 //
 // Sending a value over the returned channel interrupts the operation.
 // Receiving from the channel blocks until no more tracks are available from

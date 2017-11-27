@@ -53,6 +53,7 @@ var eventTranslations = []struct {
 	},
 }
 
+// A Player that is part of a Server.
 type Player struct {
 	ID    string
 	Name  string
@@ -107,6 +108,7 @@ func (pl *Player) playlistLength() (int, error) {
 	return strconv.Atoi(res[3])
 }
 
+// Tracks implements the player.Library interface.
 func (pl *Player) Tracks() ([]player.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
 	if err != nil {
@@ -116,22 +118,23 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	return pl.Serv.decodeTracks("id", numTracks, "songs", "0", strconv.Itoa(numTracks), "tags:"+trackTags)
 }
 
+// TrackInfo implements the player.Library interface.
 func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 	res, err := pl.Serv.request(pl.ID, "path", "?")
 	if err != nil {
 		return nil, err
 	}
-	var currentTrackUri string
+	var currentTrackURI string
 	if len(res) >= 3 {
-		currentTrackUri, _ = url.QueryUnescape(res[2])
+		currentTrackURI, _ = url.QueryUnescape(res[2])
 	}
 
 	tracks := make([]player.Track, len(uris))
 	for i, uri := range uris {
-		isHttp, _ := regexp.MatchString("https?:\\/\\/", uri)
-		if isHttp && currentTrackUri == uri {
+		isHTTP, _ := regexp.MatchString("https?:\\/\\/", uri)
+		if isHTTP && currentTrackURI == uri {
 			tr := &tracks[i]
-			tr.Uri = uri
+			tr.URI = uri
 			tr.Album = uri
 			artistRes, err := pl.Serv.request(pl.ID, "artist", "?")
 			if err == nil && len(artistRes) >= 3 {
@@ -143,8 +146,8 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 			}
 			player.InterpolateMissingFields(tr)
 
-		} else if !isHttp {
-			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:"+trackTags, "url:"+encodeUri(uri))
+		} else if !isHTTP {
+			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:"+trackTags, "url:"+encodeURI(uri))
 			if err != nil {
 				return nil, err
 			}
@@ -162,6 +165,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 	return tracks, nil
 }
 
+// Time implements the player.Player interface.
 func (pl *Player) Time() (time.Duration, error) {
 	res, err := pl.Serv.request(pl.ID, "time", "?")
 	if err != nil {
@@ -174,11 +178,13 @@ func (pl *Player) Time() (time.Duration, error) {
 	return time.Duration(d) * time.Second, nil
 }
 
+// SetTime implements the player.Player interface.
 func (pl *Player) SetTime(offset time.Duration) error {
 	_, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second)))
 	return err
 }
 
+// TrackIndex implements the player.Player interface.
 func (pl *Player) TrackIndex() (int, error) {
 	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
 	if err != nil || numTrackRes[3] == "0" {
@@ -195,6 +201,7 @@ func (pl *Player) TrackIndex() (int, error) {
 	return strconv.Atoi(res[3])
 }
 
+// SetTrackIndex implements the player.Player interface.
 func (pl *Player) SetTrackIndex(trackIndex int) error {
 	if plistLen, err := pl.Playlist().Len(); err != nil {
 		return err
@@ -205,6 +212,7 @@ func (pl *Player) SetTrackIndex(trackIndex int) error {
 	return err
 }
 
+// State implements the player.Player interface.
 func (pl *Player) State() (player.PlayState, error) {
 	res, err := pl.Serv.request(pl.ID, "mode", "?")
 	if err != nil {
@@ -222,6 +230,7 @@ func (pl *Player) State() (player.PlayState, error) {
 	}
 }
 
+// SetState implements the player.Player interface.
 func (pl *Player) SetState(state player.PlayState) error {
 	ack := make(chan error, 1)
 	defer close(ack)
@@ -265,6 +274,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 	return <-ack
 }
 
+// Volume implements the player.Player interface.
 func (pl *Player) Volume() (float32, error) {
 	res, err := pl.Serv.request(pl.ID, "mixer", "volume", "?")
 	if err != nil {
@@ -278,6 +288,7 @@ func (pl *Player) Volume() (float32, error) {
 	return float32(vol) / 100, nil
 }
 
+// SetVolume implements the player.Player interface.
 func (pl *Player) SetVolume(vol float32) error {
 	// Also unmute the in case the player was muted.
 	_, err := pl.Serv.request(pl.ID, "mixer", "muting", "0")
@@ -288,6 +299,7 @@ func (pl *Player) SetVolume(vol float32) error {
 	return err
 }
 
+// Lists implements the player.Player interface.
 func (pl *Player) Lists() (map[string]player.Playlist, error) {
 	countRes, err := pl.Serv.requestAttrs("playlists")
 	if err != nil {
@@ -312,6 +324,7 @@ func (pl *Player) Lists() (map[string]player.Playlist, error) {
 	return playlists, nil
 }
 
+// Available implements the player.Player interface.
 func (pl *Player) Available() bool {
 	powerRes, err := pl.Serv.request(pl.ID, "power", "?")
 	if err != nil {
@@ -324,25 +337,28 @@ func (pl *Player) Available() bool {
 	return powerRes[2] == "1" && connectedRes[2] == "1"
 }
 
+// Playlist implements the player.Player interface.
 func (pl *Player) Playlist() player.MetaPlaylist {
 	return &pl.playlist
 }
 
+// TrackArt implements the player.Library interface.
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
-	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeUri(track))
+	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeURI(track))
 	if err != nil {
 		return nil, ""
 	}
-	if pl.Serv.webUrl == "" || attrs["coverid"] == "" {
+	if pl.Serv.webURL == "" || attrs["coverid"] == "" {
 		return nil, ""
 	}
-	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", pl.Serv.webUrl, attrs["coverid"]))
+	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", pl.Serv.webURL, attrs["coverid"]))
 	if err != nil {
 		return nil, ""
 	}
 	return res.Body, res.Header.Get("Content-Type")
 }
 
+// Events implements the player.Player interface.
 func (pl *Player) Events() *util.Emitter {
 	return &pl.Emitter
 }
@@ -363,7 +379,7 @@ func (plist slimPlaylist) Insert(pos int, tracks ...player.Track) error {
 
 	// Append to the end.
 	for _, track := range tracks {
-		_, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeUri(track.Uri))
+		_, err := plist.player.Serv.request(plist.player.ID, "playlist", "add", encodeURI(track.URI))
 		if err != nil {
 			return err
 		}

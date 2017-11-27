@@ -107,7 +107,7 @@ func (stream *Stream) EncodeM3U(out io.Writer) error {
 
 func (stream *Stream) PlayerTrack() player.Track {
 	return player.Track{
-		Uri:    stream.URL,
+		URI:    stream.URL,
 		Title:  stream.Title,
 		HasArt: stream.ArtURI != "",
 	}

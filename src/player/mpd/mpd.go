@@ -19,8 +19,9 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
-const URI_SCHEMA = "mpd://"
+const uriSchema = "mpd://"
 
+// Player handles the connection to a single MPD instance.
 type Player struct {
 	util.Emitter
 
@@ -36,6 +37,7 @@ type Player struct {
 	lastVolume float32
 }
 
+// Connect connects to MPD with an optional username and password.
 func Connect(network, address string, mpdPassword *string) (*Player, error) {
 	var passwd string
 	if mpdPassword != nil {
@@ -169,6 +171,7 @@ func (pl *Player) mainLoop() {
 	}
 }
 
+// Tracks implements the player.Library interface.
 func (pl *Player) Tracks() ([]player.Track, error) {
 	var tracks []player.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
@@ -192,15 +195,16 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	return tracks, err
 }
 
+// TrackInfo implements the player.Library interface.
 func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
-	currentTrackUri := ""
+	currentTrackURI := ""
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		current, err := mpdc.CurrentSong()
 		if err != nil {
 			return err
 		}
 		if file, ok := current["file"]; ok {
-			currentTrackUri = mpdToUri(file)
+			currentTrackURI = mpdToURI(file)
 		}
 		return nil
 	})
@@ -213,7 +217,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 		songs := make([]mpd.Attrs, len(identities))
 		for i, id := range identities {
 			uri := id
-			if strings.HasPrefix(uri, URI_SCHEMA) {
+			if strings.HasPrefix(uri, uriSchema) {
 				s, err := mpdc.ListAllInfo(uriToMpd(uri))
 				if err != nil {
 					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
@@ -221,7 +225,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 				if len(s) > 0 {
 					songs[i] = s[0]
 				}
-			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackUri == uri {
+			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackURI == uri {
 				song, err := mpdc.CurrentSong()
 				if err != nil {
 					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
@@ -248,6 +252,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 	return tracks, err
 }
 
+// Lists implements the player.Player interface.
 func (pl *Player) Lists() (map[string]player.Playlist, error) {
 	playlists := map[string]player.Playlist{}
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
@@ -266,6 +271,7 @@ func (pl *Player) Lists() (map[string]player.Playlist, error) {
 	return playlists, err
 }
 
+// Time implements the player.Player interface.
 func (pl *Player) Time() (time.Duration, error) {
 	var offset time.Duration
 	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
@@ -297,12 +303,14 @@ func (pl *Player) setTimeWith(mpdc *mpd.Client, offset time.Duration) error {
 	return nil
 }
 
+// SetTime implements the player.Player interface.
 func (pl *Player) SetTime(offset time.Duration) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
 		return pl.setTimeWith(mpdc, offset)
 	})
 }
 
+// SetTrackIndex implements the player.Player interface.
 func (pl *Player) SetTrackIndex(trackIndex int) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
 		if plistLen, err := pl.Playlist().Len(); err != nil {
@@ -326,6 +334,7 @@ func (pl *Player) trackIndexWith(mpdc *mpd.Client) (int, error) {
 	return cur, nil
 }
 
+// TrackIndex implements the player.Player interface.
 func (pl *Player) TrackIndex() (int, error) {
 	var trackIndex int
 	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
@@ -348,6 +357,7 @@ func (pl *Player) stateWith(mpdc *mpd.Client) (player.PlayState, error) {
 	}[status["state"]], nil
 }
 
+// State implements the player.Player interface.
 func (pl *Player) State() (player.PlayState, error) {
 	var state player.PlayState
 	err := pl.withMpd(func(mpdc *mpd.Client) (err error) {
@@ -392,12 +402,14 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 	return nil
 }
 
+// SetState implements the player.Player interface.
 func (pl *Player) SetState(state player.PlayState) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
 		return pl.setStateWith(mpdc, state)
 	})
 }
 
+// Volume implements the player.Player interface.
 func (pl *Player) Volume() (float32, error) {
 	var vol float32
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
@@ -422,6 +434,7 @@ func (pl *Player) Volume() (float32, error) {
 	return vol, err
 }
 
+// SetVolume implements the player.Player interface.
 func (pl *Player) SetVolume(vol float32) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
 		if vol > 1 {
@@ -435,14 +448,17 @@ func (pl *Player) SetVolume(vol float32) error {
 	})
 }
 
+// Available implements the player.Player interface.
 func (pl *Player) Available() bool {
 	return pl.withMpd(func(mpdc *mpd.Client) error { return mpdc.Ping() }) == nil
 }
 
+// Playlist implements the player.Player interface.
 func (pl *Player) Playlist() player.MetaPlaylist {
 	return &pl.playlist
 }
 
+// TrackArt implements the player.Library interface.
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	pl.withMpd(func(mpdc *mpd.Client) error {
 		id := uriToMpd(track)
@@ -459,12 +475,12 @@ func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 		chunks := make([]io.Reader, numChunks+1)
 		totalLength := 0
 		for i := 0; i < numChunks; i++ {
-			if b64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%v", i)); err != nil {
+			b64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%v", i))
+			if err != nil {
 				return nil
-			} else {
-				chunks[i] = strings.NewReader(b64Data)
-				totalLength += len(b64Data)
 			}
+			chunks[i] = strings.NewReader(b64Data)
+			totalLength += len(b64Data)
 		}
 		// The padding seems to be getting lost somewhere along the way from MPD to here.
 		chunks[len(chunks)-1] = strings.NewReader([]string{"", "=", "==", "==="}[totalLength%4])
@@ -475,6 +491,7 @@ func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	return
 }
 
+// Events implements the player.Player interface.
 func (pl *Player) Events() *util.Emitter {
 	return &pl.Emitter
 }
@@ -491,14 +508,14 @@ func (plist mpdPlaylist) Insert(pos int, tracks ...player.Track) error {
 	return plist.player.withMpd(func(mpdc *mpd.Client) error {
 		if pos == -1 {
 			for _, track := range tracks {
-				if _, err := mpdc.AddID(uriToMpd(track.Uri), -1); err != nil {
-					return fmt.Errorf("Error appending %q: %v", track.Uri, err)
+				if _, err := mpdc.AddID(uriToMpd(track.URI), -1); err != nil {
+					return fmt.Errorf("Error appending %q: %v", track.URI, err)
 				}
 			}
 		} else {
 			for i, track := range tracks {
-				if _, err := mpdc.AddID(uriToMpd(track.Uri), pos+i); err != nil {
-					return fmt.Errorf("Error inserting %q: %v", track.Uri, err)
+				if _, err := mpdc.AddID(uriToMpd(track.URI), pos+i); err != nil {
+					return fmt.Errorf("Error inserting %q: %v", track.URI, err)
 				}
 			}
 		}
@@ -578,7 +595,7 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) er
 		return fmt.Errorf("Tried to read a directory as local file")
 	}
 
-	track.Uri = mpdToUri((*song)["file"])
+	track.URI = mpdToURI((*song)["file"])
 	track.Artist = (*song)["Artist"]
 	track.Title = (*song)["Title"]
 	track.Genre = (*song)["Genre"]
@@ -592,11 +609,11 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) er
 	track.HasArt = err == nil
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
-		if duration, err := strconv.ParseInt(timeStr, 10, 32); err != nil {
+		duration, err := strconv.ParseInt(timeStr, 10, 32)
+		if err != nil {
 			return err
-		} else {
-			track.Duration = time.Duration(duration) * time.Second
 		}
+		track.Duration = time.Duration(duration) * time.Second
 	}
 
 	player.InterpolateMissingFields(track)
@@ -614,12 +631,12 @@ func statusAttrInt(status mpd.Attrs, attr string) (int, bool) {
 }
 
 func uriToMpd(uri string) string {
-	return strings.TrimPrefix(uri, URI_SCHEMA)
+	return strings.TrimPrefix(uri, uriSchema)
 }
 
-func mpdToUri(song string) string {
+func mpdToURI(song string) string {
 	if strings.Index(song, "://") == -1 {
-		return URI_SCHEMA + song
+		return uriSchema + song
 	}
 	return song
 }

@@ -25,14 +25,16 @@ import (
 )
 
 var httpCacheSince = time.Now()
-var playerContextKey = "playerContextKey"
+var playerContextKey = playerContextType{}
 
-func trackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
+type playerContextType = struct{}
+
+func trackJSON(tr *player.Track, meta *player.TrackMeta) interface{} {
 	if tr == nil {
 		return nil
 	}
 	var struc struct {
-		Uri         string `json:"uri"`
+		URI         string `json:"uri"`
 		Artist      string `json:"artist,omitempty"`
 		Title       string `json:"title,omitempty"`
 		Genre       string `json:"genre,omitempty"`
@@ -45,7 +47,7 @@ func trackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
 
 		QueuedBy string `json:"queuedby,omitempty"`
 	}
-	struc.Uri = tr.Uri
+	struc.URI = tr.URI
 	struc.Artist = tr.Artist
 	struc.Title = tr.Title
 	struc.Genre = tr.Genre
@@ -61,19 +63,19 @@ func trackJson(tr *player.Track, meta *player.TrackMeta) interface{} {
 	return struc
 }
 
-func trackJsonList(inList []player.Track) (outList []interface{}) {
+func trackJSONList(inList []player.Track) (outList []interface{}) {
 	outList = make([]interface{}, len(inList))
 	for i, tr := range inList {
-		outList[i] = trackJson(&tr, nil)
+		outList[i] = trackJSON(&tr, nil)
 	}
 	return
 }
 
-func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []player.Library, trackIndex int) ([]interface{}, error) {
+func plTrackJSONList(inList []player.Track, meta []player.TrackMeta, libs []player.Library, trackIndex int) ([]interface{}, error) {
 	outList := make([]interface{}, len(inList))
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
-		uris[i] = tr.Uri
+		uris[i] = tr.URI
 	}
 	tracks, err := player.AllTrackInfo(libs, uris...)
 	if err != nil {
@@ -87,7 +89,7 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 		// This is a hacky way to ensure that such artwork will still be served
 		// for the current track.
 		for _, lib := range libs {
-			if image, _ := lib.TrackArt(inList[trackIndex].Uri); image != nil {
+			if image, _ := lib.TrackArt(inList[trackIndex].URI); image != nil {
 				image.Close()
 				tracks[trackIndex].HasArt = true
 				break
@@ -96,15 +98,15 @@ func plTrackJsonList(inList []player.Track, meta []player.TrackMeta, libs []play
 	}
 
 	for i, tr := range tracks {
-		outList[i] = trackJson(&tr, &meta[i])
+		outList[i] = trackJSON(&tr, &meta[i])
 	}
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, players PlayerList, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
+func htPlayerDataAttach(r *mux.Router, players playerList, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
 	mid := func(handleFunc func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
 		return func(res http.ResponseWriter, req *http.Request) {
-			hmJsonContent(res, req)
+			htJSONContent(res, req)
 
 			name := mux.Vars(req)["player"]
 			pl := players.ActivePlayerByName(name)
@@ -313,7 +315,7 @@ func htPlayerGetPlaylist(libs []player.Library) func(res http.ResponseWriter, re
 			writeError(req, res, err)
 			return
 		}
-		trJson, err := plTrackJsonList(tracks, meta, append(libs, pl), trackIndex)
+		trJSON, err := plTrackJSONList(tracks, meta, append(libs, pl), trackIndex)
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -322,7 +324,7 @@ func htPlayerGetPlaylist(libs []player.Library) func(res http.ResponseWriter, re
 		err = json.NewEncoder(res).Encode(map[string]interface{}{
 			"time":    int(tim / time.Second),
 			"current": trackIndex,
-			"tracks":  trJson,
+			"tracks":  trJSON,
 		})
 		if err != nil {
 			writeError(req, res, err)
@@ -346,7 +348,7 @@ func htPlayerPlaylistInsert() func(res http.ResponseWriter, req *http.Request) {
 
 		tracks := make([]player.Track, len(data.Tracks))
 		for i, uri := range data.Tracks {
-			tracks[i].Uri = uri
+			tracks[i].URI = uri
 		}
 		meta := make([]player.TrackMeta, len(data.Tracks))
 		for i := range data.Tracks {
@@ -442,7 +444,7 @@ func htPlayerStoredPlaylistTracks() func(res http.ResponseWriter, req *http.Requ
 
 		outList := make([]interface{}, len(tracks))
 		for i, tr := range tracks {
-			outList[i] = trackJson(&tr, nil)
+			outList[i] = trackJSON(&tr, nil)
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
 			"tracks": outList,
@@ -459,7 +461,7 @@ func htPlayerTracks() func(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
-			"tracks": trackJsonList(tracks),
+			"tracks": trackJSONList(tracks),
 		})
 	}
 }
@@ -511,7 +513,7 @@ func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 		for i, res := range results {
 			mappedResults[i] = map[string]interface{}{
 				"matches": res.Matches,
-				"track":   trackJson(&res.Track, nil),
+				"track":   trackJSON(&res.Track, nil),
 			}
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -533,13 +535,13 @@ outer:
 			break
 		}
 		for _, plTrack := range tracks {
-			if track.Uri == plTrack.Uri {
+			if track.URI == plTrack.URI {
 				continue outer
 			}
 		}
 		break
 	}
-	rawServer.Remove(track.Uri)
+	rawServer.Remove(track.URI)
 }
 
 func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *http.Request) {
@@ -587,7 +589,7 @@ func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
 		var data struct {
-			Url string `json:"url"`
+			URL string `json:"url"`
 		}
 		defer req.Body.Close()
 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
@@ -595,7 +597,7 @@ func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req
 			return
 		}
 
-		track, errc := netServer.Download(data.Url)
+		track, errc := netServer.Download(data.URL)
 		go func() {
 			if err := <-errc; err != nil {
 				log.Println(err)

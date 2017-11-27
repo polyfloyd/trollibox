@@ -44,6 +44,7 @@ func testEvent(t *testing.T, pl Player, event string, cb func()) {
 	}
 }
 
+// TestPlayerImplementation tests the implementation of the player.Player interface.
 func TestPlayerImplementation(t *testing.T, pl Player) {
 	if err := fillPlaylist(pl, 3); err != nil {
 		t.Fatal(err)
@@ -75,20 +76,20 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 }
 
 func testTime(t *testing.T, pl Player) {
-	const TIME_A = time.Second * 2
+	const timeA = time.Second * 2
 	if err := pl.SetState(PlayStatePlaying); err != nil {
 		t.Fatal(err)
 	}
 	if err := pl.SetState(PlayStatePaused); err != nil {
 		t.Fatal(err)
 	}
-	if err := pl.SetTime(TIME_A); err != nil {
+	if err := pl.SetTime(timeA); err != nil {
 		t.Fatal(err)
 	}
 	if curTime, err := pl.Time(); err != nil {
 		t.Fatal(err)
-	} else if curTime != TIME_A {
-		t.Fatalf("Unexpected time: %v != %v", TIME_A, curTime)
+	} else if curTime != timeA {
+		t.Fatalf("Unexpected time: %v != %v", timeA, curTime)
 	}
 }
 
@@ -177,30 +178,30 @@ func testPlaystateEvent(t *testing.T, pl Player) {
 }
 
 func testVolume(t *testing.T, pl Player) {
-	const VOL_A = 0.2
-	const VOL_B = 0.4
+	const volA = 0.2
+	const volB = 0.4
 	if err := pl.SetState(PlayStatePlaying); err != nil {
 		t.Fatal(err)
 	}
-	if err := pl.SetVolume(VOL_A); err != nil {
+	if err := pl.SetVolume(volA); err != nil {
 		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
 		t.Fatal(err)
-	} else if vol != VOL_A {
-		t.Fatalf("Volume does not match expected value, %v != %v", VOL_A, vol)
+	} else if vol != volA {
+		t.Fatalf("Volume does not match expected value, %v != %v", volA, vol)
 	}
 
 	if err := pl.SetState(PlayStateStopped); err != nil {
 		t.Fatal(err)
 	}
-	if err := pl.SetVolume(VOL_B); err != nil {
+	if err := pl.SetVolume(volB); err != nil {
 		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
 		t.Fatal(err)
-	} else if vol != VOL_B {
-		t.Fatalf("Volume does not match expected value, %v != %v", VOL_B, vol)
+	} else if vol != volB {
+		t.Fatalf("Volume does not match expected value, %v != %v", volB, vol)
 	}
 }
 

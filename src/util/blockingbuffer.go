@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+// BlockingBuffer is a type of buffer to which data can be written while it is being read.
+//
+// Reads will block when the current eof is reached until more data is
+// available or writing is finished with a call to Close.
 type BlockingBuffer struct {
 	filename string
 	file     *os.File
@@ -13,6 +17,7 @@ type BlockingBuffer struct {
 	events Emitter
 }
 
+// NewBlockingBuffer creates a ne BlockingBuffer.
 func NewBlockingBuffer() (*BlockingBuffer, error) {
 	filename := TempName("bbuf")
 	fd, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL|os.O_SYNC, 0600)
@@ -31,6 +36,9 @@ func (bbuf *BlockingBuffer) closed() bool {
 }
 
 func (bbuf *BlockingBuffer) Write(p []byte) (int, error) {
+	if bbuf.closed() {
+		return 0, fmt.Errorf("BBuf is closed")
+	}
 	n, err := bbuf.file.Write(p)
 	if err != nil {
 		return n, fmt.Errorf("BBuf write: %v", err)
@@ -39,22 +47,26 @@ func (bbuf *BlockingBuffer) Write(p []byte) (int, error) {
 	return n, nil
 }
 
+// Close closes the buffer for writing.
 func (bbuf *BlockingBuffer) Close() error {
+	if bbuf.closed() {
+		return fmt.Errorf("BBuf: duplicate call to Close")
+	}
 	err := bbuf.file.Close()
 	bbuf.file = nil
 	bbuf.events.Emit("write")
 	return err
 }
 
+// Destroy closes the buffer for reading and writing and frees the underlying storage.
 func (bbuf *BlockingBuffer) Destroy() error {
 	if !bbuf.closed() {
-		if err := bbuf.Close(); err != nil {
-			return err
-		}
+		bbuf.Close()
 	}
 	return os.Remove(bbuf.filename)
 }
 
+// Reader returns a reader to read data from this buffer.
 func (bbuf *BlockingBuffer) Reader() io.ReadCloser {
 	return &blockingBufferReader{
 		bbuf:     bbuf,
@@ -89,10 +101,9 @@ func (bbufr *blockingBufferReader) Read(p []byte) (int, error) {
 		bbufr.file = nil
 		if bbufr.bbuf.closed() {
 			return n, io.EOF
-		} else {
-			<-bbufr.listener
-			return n, nil
 		}
+		<-bbufr.listener
+		return n, nil
 	} else if err != nil {
 		return n, fmt.Errorf("BBuf read: %v", err)
 	}

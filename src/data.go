@@ -66,7 +66,7 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 
 func htFilterList(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		names, err := filterdb.Names()
 		if err != nil {
 			writeError(req, res, err)
@@ -80,7 +80,7 @@ func htFilterList(filterdb *filter.DB) func(res http.ResponseWriter, req *http.R
 
 func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		filter, err := filterdb.Get(mux.Vars(req)["name"])
 		if err != nil {
 			writeError(req, res, err)
@@ -113,7 +113,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 
 func htFilterRemove(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		name := mux.Vars(req)["name"]
 		if err := filterdb.Remove(name); err != nil {
 			writeError(req, res, err)
@@ -125,7 +125,7 @@ func htFilterRemove(filterdb *filter.DB) func(res http.ResponseWriter, req *http
 
 func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		var data struct {
 			Filter struct {
 				Type  string          `json:"type"`
@@ -163,7 +163,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 
 func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		streams, err := streamdb.Streams()
 		if err != nil {
 			writeError(req, res, err)
@@ -186,7 +186,7 @@ func htStreamsList(streamdb *stream.DB) func(res http.ResponseWriter, req *http.
 
 func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		var data struct {
 			Stream stream.Stream `json:"stream"`
 		}
@@ -216,7 +216,7 @@ func htStreamsAdd(streamdb *stream.DB) func(res http.ResponseWriter, req *http.R
 
 func htStreamsRemove(streamdb *stream.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		hmJsonContent(res, req)
+		htJSONContent(res, req)
 		stream := stream.Stream{Filename: req.FormValue("filename")}
 		if err := streamdb.RemoveStream(&stream); err != nil {
 			writeError(req, res, err)

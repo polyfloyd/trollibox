@@ -28,7 +28,7 @@ type rawTrack struct {
 
 func (rt *rawTrack) track() player.Track {
 	return player.Track{
-		Uri:    fmt.Sprintf("%s?track=%d", rt.server.urlRoot, rt.id),
+		URI:    fmt.Sprintf("%s?track=%d", rt.server.urlRoot, rt.id),
 		Title:  rt.name,
 		HasArt: rt.image != nil,
 	}

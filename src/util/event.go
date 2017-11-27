@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Emitter is an asynchronous single producer multiple consumer broadcasting.
 type Emitter struct {
 	// The release attribute determines how much time the event should be
 	// buffered to prevent the emission of duplicate events.
@@ -46,6 +47,10 @@ func (emitter *Emitter) broadcast(event string) {
 	}
 }
 
+// Emit emits an event to all current consumers.
+//
+// The event is guaranteed to be delivered, even if the receiving channel is
+// not being read by any goroutine.
 func (emitter *Emitter) Emit(event string) {
 	emitter.init()
 
@@ -76,6 +81,9 @@ func (emitter *Emitter) Emit(event string) {
 	}()
 }
 
+// Listen registers a new channel at this emitter.
+//
+// The returned channel should be freed with Unlisten.
 func (emitter *Emitter) Listen() <-chan string {
 	emitter.init()
 
@@ -87,6 +95,7 @@ func (emitter *Emitter) Listen() <-chan string {
 	return ch
 }
 
+// Unlisten unregisters a channel previously obtained by Listen and closes it.
 func (emitter *Emitter) Unlisten(ch <-chan string) {
 	emitter.init()
 

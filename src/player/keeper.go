@@ -46,13 +46,13 @@ func (kpr *PlaylistMetaKeeper) update() error {
 	found := map[string]int{}
 outer:
 	for i, track := range tracks {
-		needIndex := found[track.Uri] + 1
+		needIndex := found[track.URI] + 1
 		duplicateIndex := 0
 		for j, keptTrack := range kpr.tracks {
-			if keptTrack.Uri == track.Uri {
+			if keptTrack.URI == track.URI {
 				if duplicateIndex++; duplicateIndex == needIndex {
 					newPlist[i] = keptTrack
-					found[track.Uri] = needIndex
+					found[track.URI] = needIndex
 					inferDefault(&newMeta[i], &kpr.meta[j])
 					continue outer
 				}

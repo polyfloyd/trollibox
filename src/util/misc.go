@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+// DetermineFullURLRoot attempts to guess the canonical path at which the root
+// of a webservice can be found.
 func DetermineFullURLRoot(root, address string) (string, error) {
 	// Handle "http://host:port/"
 	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
@@ -36,6 +38,7 @@ func DetermineFullURLRoot(root, address string) (string, error) {
 	return "", fmt.Errorf("Unsupported URL Root format: %q", root)
 }
 
+// TempName returns a path which may be used to create a temporary file at.
 func TempName(prefix string) string {
 	for {
 		var buf [32]byte
@@ -49,6 +52,8 @@ func TempName(prefix string) string {
 	}
 }
 
+// ErrorAsChannel creates a channel from which the provided error can be
+// immediately received.
 func ErrorAsChannel(err error) <-chan error {
 	errs := make(chan error, 1)
 	errs <- err

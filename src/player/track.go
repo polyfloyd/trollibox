@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
+// Track holds all information associated with a single piece of music.
 type Track struct {
-	Uri         string        `json:"uri"`
+	URI         string        `json:"uri"`
 	Artist      string        `json:"artist,omitempty"`
 	Title       string        `json:"title,omitempty"`
 	Genre       string        `json:"genre,omitempty"`
@@ -20,7 +21,7 @@ type Track struct {
 	HasArt      bool          `json:"hasart"`
 }
 
-// Get an attribute of a track by its name. Accepted names are:
+// Attr gets an attribute of a track by its name. Accepted names are:
 //   "uri"
 //   "artist"
 //   "title"
@@ -33,7 +34,7 @@ type Track struct {
 func (track *Track) Attr(attr string) interface{} {
 	switch attr {
 	case "uri":
-		return track.Uri
+		return track.URI
 	case "artist":
 		return track.Artist
 	case "title":
@@ -60,10 +61,11 @@ func (track Track) String() string {
 	return fmt.Sprintf("%s - %s (%v)", track.Artist, track.Title, track.Duration)
 }
 
-// Players may use this function to extract the artist and title from other
-// track information if they are unavailable.
+// InterpolateMissingFields extracts the artist and title from other track
+// information if they are unavailable and applies them to the specified track.
+// Players should use this to homogenize their library.
 func InterpolateMissingFields(track *Track) {
-	if strings.HasPrefix(track.Uri, "http") {
+	if strings.HasPrefix(track.URI, "http") {
 		return
 	}
 
@@ -78,7 +80,7 @@ func InterpolateMissingFields(track *Track) {
 	// Also look for the <artist> - <title> patterin in the filename.
 	if track.Artist == "" || track.Title == "" {
 		re := regexp.MustCompile("^(?:.*\\/)?(.+)\\s+-\\s+(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(track.Uri); match != nil {
+		if match := re.FindStringSubmatch(track.URI); match != nil {
 			track.Artist, track.Title = match[1], match[2]
 		}
 	}
@@ -86,7 +88,7 @@ func InterpolateMissingFields(track *Track) {
 	// Still nothing? Just use the filename or url.
 	if track.Title == "" {
 		re := regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(track.Uri); match != nil {
+		if match := re.FindStringSubmatch(track.URI); match != nil {
 			track.Title = match[1]
 		}
 	}

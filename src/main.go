@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	PUBLIC_DIR = "public"
-	CONFFILE   = "config.json"
+	publicDir = "public"
+	confFile  = "config.json"
 )
 
 var (
@@ -46,7 +46,7 @@ var (
 
 var static = getStaticAssets(assets.AssetNames())
 
-type Config struct {
+type config struct {
 	Address string `json:"listen-address"`
 	URLRoot string `json:"url-root"`
 
@@ -67,11 +67,11 @@ type Config struct {
 		Address  string  `json:"address"`
 		Username *string `json:"username"`
 		Password *string `json:"password"`
-		WebUrl   string  `json:"weburl"`
+		WebURL   string  `json:"weburl"`
 	} `json:"slimserver"`
 }
 
-func (conf *Config) Load(filename string) error {
+func (conf *config) Load(filename string) error {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("Unable to decode config: %v", err)
@@ -88,24 +88,24 @@ func (conf *Config) Load(filename string) error {
 	return json.Unmarshal(content, conf)
 }
 
-type AssetServeHandler string
+type assetServeHandler string
 
-func (h AssetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (h assetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	name := string(h)
 	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
 	info, _ := assets.AssetInfo(name)
 	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
 }
 
-type PlayerList interface {
+type playerList interface {
 	ActivePlayers() []string
 
 	ActivePlayerByName(name string) player.Player
 }
 
-type TODOPlayerList map[string]player.Player
+type todoPlayerList map[string]player.Player
 
-func (list TODOPlayerList) ActivePlayers() []string {
+func (list todoPlayerList) ActivePlayers() []string {
 	names := make([]string, 0, len(list))
 	for name, pl := range list {
 		if pl.Available() {
@@ -116,7 +116,7 @@ func (list TODOPlayerList) ActivePlayers() []string {
 	return names
 }
 
-func (list TODOPlayerList) ActivePlayerByName(name string) player.Player {
+func (list todoPlayerList) ActivePlayerByName(name string) player.Player {
 	if pl, ok := list[name]; ok && pl.Available() {
 		return pl
 	}
@@ -124,7 +124,7 @@ func (list TODOPlayerList) ActivePlayerByName(name string) player.Player {
 }
 
 func main() {
-	configFile := flag.String("conf", CONFFILE, "Path to the configuration file")
+	configFile := flag.String("conf", confFile, "Path to the configuration file")
 	printVersion := flag.Bool("version", false, "Print version information and exit")
 	flag.Parse()
 
@@ -136,7 +136,7 @@ func main() {
 	}
 
 	log.Printf("Version: %v (%v)\n", VERSION, BUILD)
-	var config Config
+	var config config
 	if err := config.Load(*configFile); err != nil {
 		log.Fatal(err)
 	}
@@ -201,11 +201,11 @@ func main() {
 		}
 	}
 
-	fullUrlRoot, err := util.DetermineFullURLRoot(config.URLRoot, config.Address)
+	fullURLRoot, err := util.DetermineFullURLRoot(config.URLRoot, config.Address)
 	if err != nil {
 		log.Fatal(err)
 	}
-	rawServer := raw.NewServer(fmt.Sprintf("%sdata/raw", fullUrlRoot))
+	rawServer := raw.NewServer(fmt.Sprintf("%sdata/raw", fullURLRoot))
 	netServer, err := netmedia.NewServer(rawServer)
 	if err != nil {
 		log.Fatal(err)
@@ -213,11 +213,11 @@ func main() {
 
 	service := mux.NewRouter()
 	for _, file := range assets.AssetNames() {
-		if !strings.HasPrefix(file, PUBLIC_DIR) {
+		if !strings.HasPrefix(file, publicDir) {
 			continue
 		}
-		urlPath := strings.TrimPrefix(file, PUBLIC_DIR)
-		service.Path(urlPath).Handler(AssetServeHandler(file))
+		urlPath := strings.TrimPrefix(file, publicDir)
+		service.Path(urlPath).Handler(assetServeHandler(file))
 	}
 
 	service.HandleFunc("/", htRedirectToDefaultPlayer(&config, players))
@@ -237,7 +237,7 @@ func main() {
 	log.Fatalf("Error running webserver: %v", server.ListenAndServe())
 }
 
-func connectToPlayers(config *Config) (PlayerList, error) {
+func connectToPlayers(config *config) (playerList, error) {
 	players := map[string]player.Player{}
 	addPlayer := func(pl player.Player, name string) error {
 		if match, _ := regexp.MatchString("^\\w+$", name); !match {
@@ -265,7 +265,7 @@ func connectToPlayers(config *Config) (PlayerList, error) {
 			config.SlimServer.Address,
 			config.SlimServer.Username,
 			config.SlimServer.Password,
-			config.SlimServer.WebUrl,
+			config.SlimServer.WebURL,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("Unable to connect to SlimServer: %v", err)
@@ -287,7 +287,7 @@ func connectToPlayers(config *Config) (PlayerList, error) {
 		players[name] = cache
 		go cache.Run()
 	}
-	return TODOPlayerList(players), nil
+	return todoPlayerList(players), nil
 }
 
 func getStaticAssets(files []string) map[string][]string {
@@ -296,10 +296,10 @@ func getStaticAssets(files []string) map[string][]string {
 		"css": {},
 	}
 	for _, file := range files {
-		if !strings.HasPrefix(file, PUBLIC_DIR) {
+		if !strings.HasPrefix(file, publicDir) {
 			continue
 		}
-		urlPath := strings.TrimPrefix(file, PUBLIC_DIR+"/")
+		urlPath := strings.TrimPrefix(file, publicDir+"/")
 		switch path.Ext(file) {
 		case ".css":
 			static["css"] = append(static["css"], urlPath)
@@ -313,7 +313,7 @@ func getStaticAssets(files []string) map[string][]string {
 	return static
 }
 
-func baseParamMap(config *Config, players PlayerList) map[string]interface{} {
+func baseParamMap(config *config, players playerList) map[string]interface{} {
 	playerNames := players.ActivePlayers()
 	return map[string]interface{}{
 		"urlroot": config.URLRoot,

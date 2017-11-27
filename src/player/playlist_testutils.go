@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// TestPlaylistImplementation tests the implementation of the playerPlaylist interface.
 func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []Track) {
 	clear := func() {
 		if length, err := ls.Len(); err != nil {
@@ -66,7 +67,7 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 		t.Fatal(err)
 	}
 	for i, testTrack := range testTracks[1:] {
-		if testTrack.Uri != tracks[i].Uri {
+		if testTrack.URI != tracks[i].URI {
 			t.Logf("expected: %v", testTracks[1:])
 			t.Logf("got: %v", tracks)
 			t.Fatalf("Mismatched tracks at index %d", i)
@@ -78,9 +79,9 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 	if tracks, err = ls.Tracks(); err != nil {
 		t.Fatal(err)
-	} else if tracks[0].Uri != testTracks[0].Uri {
+	} else if tracks[0].URI != testTracks[0].URI {
 		t.Logf("got: %v", tracks)
-		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].Uri)
+		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].URI)
 	}
 }
 
@@ -95,7 +96,7 @@ func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []Track) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tracks[len(tracks)-1].Uri != testTracks[0].Uri {
+	if tracks[len(tracks)-1].URI != testTracks[0].URI {
 		t.Fatalf("Insert error: track not appended")
 	}
 }
@@ -110,14 +111,14 @@ func testPlaylistMove(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 	if tracks, err := ls.Tracks(); err != nil {
 		t.Fatal(err)
-	} else if tracks[1].Uri != testTracks[0].Uri {
+	} else if tracks[1].URI != testTracks[0].URI {
 		t.Logf("Tracks before:")
 		for _, track := range tracksBefore {
-			t.Logf("  %s", track.Uri)
+			t.Logf("  %s", track.URI)
 		}
 		t.Logf("Tracks after:")
 		for _, track := range tracks {
-			t.Logf("  %s", track.Uri)
+			t.Logf("  %s", track.URI)
 		}
 		t.Fatalf("Track was not moved or moved to the wrong index")
 	}

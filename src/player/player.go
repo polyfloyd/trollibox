@@ -73,7 +73,7 @@ func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
 	tracks := make([]Track, len(uris))
 	for i := range libs {
 		for j, tr := range accumTracks[i] {
-			if tr.Uri != "" && tracks[j].Uri == "" {
+			if tr.URI != "" && tracks[j].URI == "" {
 				tracks[j] = tr
 			}
 		}

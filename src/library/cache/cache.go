@@ -100,7 +100,7 @@ func (cache *Cache) reloadTracks() {
 
 	cache.tracks, cache.index = tracks, map[string]*player.Track{}
 	for i, track := range cache.tracks {
-		cache.index[track.Uri] = &cache.tracks[i]
+		cache.index[track.URI] = &cache.tracks[i]
 	}
 }
 
