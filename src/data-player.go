@@ -27,7 +27,7 @@ import (
 var httpCacheSince = time.Now()
 var playerContextKey = playerContextType{}
 
-type playerContextType = struct{}
+type playerContextType struct{}
 
 func trackJSON(tr *player.Track, meta *player.TrackMeta) interface{} {
 	if tr == nil {
