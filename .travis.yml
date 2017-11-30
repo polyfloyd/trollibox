@@ -1,6 +1,10 @@
 language: go
 go:
     - stable
+    - master
+matrix:
+  allow_failures:
+    - go: master
 
 before_install:
     - sudo apt-get update -qq
@@ -20,7 +24,8 @@ before_script:
     - sudo service mpd restart
     - mpc update --wait
 script:
+    - gofmt -s -d ./src/
     - ./just build
     - RELEASE=1 ./just build
-    - go test ./src/... -test.v
+    - go test -test.v -race ./src/...
     - go vet ./src/...
