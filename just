@@ -64,15 +64,12 @@ case ${1:-} in
 			BUILD="debug"
 		fi
 
-		ASSETS_OUT="$WORKSPACE/src/assets-go"
-		mkdir -p "$ASSETS_OUT"
-
 		"$GOPATH/bin/go-bindata" \
 			${INCLUDE_FLAGS:-} \
 			-nocompress \
-			-pkg="static" \
+			-pkg="assets" \
 			-prefix="$INCLUDE_DIR" \
-			-o="$ASSETS_OUT/static.go" \
+			-o="$ASSETS/assets.go" \
 			`find "$INCLUDE_DIR" -type d`
 
 		VERSION="$(git describe --always --dirty)"

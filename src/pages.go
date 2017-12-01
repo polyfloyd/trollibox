@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	assets "github.com/polyfloyd/trollibox/src/assets-go"
+	"github.com/polyfloyd/trollibox/src/assets"
 )
 
 var pageTemplate = mkTemplate()

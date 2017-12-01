@@ -18,7 +18,7 @@ import (
 
 	"github.com/gorilla/mux"
 
-	assets "github.com/polyfloyd/trollibox/src/assets-go"
+	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
