@@ -49,6 +49,9 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 	if err := fillPlaylist(pl, 3); err != nil {
 		t.Fatal(err)
 	}
+	t.Run("availability", func(t *testing.T) {
+		testAvailability(t, pl)
+	})
 	t.Run("time", func(t *testing.T) {
 		testTime(t, pl)
 	})
@@ -73,6 +76,12 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 	t.Run("volume_event", func(t *testing.T) {
 		testVolume(t, pl)
 	})
+}
+
+func testAvailability(t *testing.T, pl Player) {
+	if !pl.Available() {
+		t.Fatal("The player is not available")
+	}
 }
 
 func testTime(t *testing.T, pl Player) {
@@ -202,6 +211,24 @@ func testVolume(t *testing.T, pl Player) {
 		t.Fatal(err)
 	} else if vol != volB {
 		t.Fatalf("Volume does not match expected value, %v != %v", volB, vol)
+	}
+
+	if err := pl.SetVolume(2.0); err != nil {
+		t.Fatal(err)
+	}
+	if vol, err := pl.Volume(); err != nil {
+		t.Fatal(err)
+	} else if vol != 1.0 {
+		t.Fatalf("Volume was not clamped: %v", vol)
+	}
+
+	if err := pl.SetVolume(-1.0); err != nil {
+		t.Fatal(err)
+	}
+	if vol, err := pl.Volume(); err != nil {
+		t.Fatal(err)
+	} else if vol != 0.0 {
+		t.Fatalf("Volume was not clamped: %v", vol)
 	}
 }
 
