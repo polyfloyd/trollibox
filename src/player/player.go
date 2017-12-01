@@ -96,7 +96,8 @@ type Player interface {
 	TrackIndex() (int, error)
 
 	// Jumps to the specified track in the players' playlist. If the index is
-	// bigger than the length of the playlist, the playlist is ended.
+	// bigger than the length of the playlist, the playlist is ended and the
+	// state is setted to stopped.
 	SetTrackIndex(trackIndex int) error
 
 	// Returns the current playstate of the player.
@@ -110,7 +111,7 @@ type Player interface {
 	Volume() (float32, error)
 
 	// Sets the volume of the player. The volume should be updated even when
-	// nothing is playing.
+	// nothing is playing. The value is clamped between 0 and 1.
 	SetVolume(vol float32) error
 
 	// Retrieves the custom finite playlists that are stored by the player and
