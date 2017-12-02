@@ -90,7 +90,7 @@ var BrowserStreamsView = BrowserView.extend({
 
 	template: _.template(
 		'<h2>'+
-			'Streams '+
+			'Network Streams '+
 			'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
 		'</h2>'+
 		'<ul class="result-list grid-list"></ul>'

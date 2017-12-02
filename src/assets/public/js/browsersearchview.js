@@ -105,7 +105,7 @@ var BrowserSearchView = BrowserView.extend({
 				'<input '+
 					'class="form-control input-lg" '+
 					'type="text" '+
-					'placeholder="Search Everything" />'+
+					'placeholder="Search the Library" />'+
 			'</div>'+
 		'</div>'+
 		'<ul class="result-list search-results"></ul>'

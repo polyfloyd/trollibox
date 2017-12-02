@@ -39,13 +39,35 @@ h2:first-child {
 }
 
 /* Navbar */
-.nav > .nav-item > a.glyphicon {
-	font-size: 24px;
+.navbar-default .navbar-nav > li > a {
+	padding: 13px;
 	color: #f60;
 }
 
-.navbar-default .navbar-nav > .nav-item > a:hover {
-	text-decoration: underline;
+.navbar-default .navbar-nav > li > a .nav-title {
+	font-size: 14px;
+	color: inherit;
+}
+
+.navbar-default .navbar-nav > li > a .glyphicon {
+	margin-right: 4px;
+	font-size: 18px;
+	color: inherit;
+}
+
+.navbar-default .navbar-nav > li.nav-item:hover {
+	box-shadow: inset 0 -2px #f60;
+}
+
+
+@media (min-width: 768px) and (max-width: 991px) {
+	.navbar-default .navbar-nav > li > a .nav-title {
+		display: none;
+	}
+
+	.navbar-default .navbar-nav > li > a .glyphicon {
+		margin-right: 0;
+	}
 }
 
 .navbar-default .navbar-nav > .active > a,
