@@ -188,10 +188,10 @@ var BrowserFilesView = BrowserView.extend({
 	},
 
 	template: _.template(
-		'<h2>'+
+		'<div class="browser-files-header">'+
 			'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
-			'<span class="do-queue-all"><%- name %>/</span>'+
-		'</h2>'+
+			'<h2 class="do-queue-all"><%- name %>/</h2>'+
+		'</div>'+
 		'<ul class="result-list">'+
 			'<% dirs.forEach(function(file) { %>'+
 				'<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>'+
