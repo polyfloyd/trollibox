@@ -5,11 +5,13 @@ import (
 	"time"
 )
 
+const chanBufferSize = 128
+
 // Emitter is an asynchronous single producer multiple consumer broadcasting.
 type Emitter struct {
 	// The release attribute determines how much time the event should be
 	// buffered to prevent the emission of duplicate events.
-	// A zero value will disable buffering.
+	// A zero value will disable deduplication.
 	Release time.Duration
 
 	listeners map[<-chan string]chan string
@@ -36,21 +38,18 @@ func (emitter *Emitter) broadcast(event string) {
 	emitter.lock.RLock()
 	defer emitter.lock.RUnlock()
 	for _, listener := range emitter.listeners {
-		go func(listener chan string) {
-			defer func() {
-				// Catch the "send on closed channel" error. Shitty, but way
-				// simpler than alternatives.
-				recover()
-			}()
-			listener <- event
-		}(listener)
+		select {
+		case listener <- event:
+		default:
+		}
 	}
 }
 
 // Emit emits an event to all current consumers.
 //
-// The event is guaranteed to be delivered, even if the receiving channel is
-// not being read by any goroutine.
+// Listening channels are buffered, but whether the event is delivered
+// dependends on the whether the receiving channel is being actively read by
+// some goroutine.
 func (emitter *Emitter) Emit(event string) {
 	emitter.init()
 
@@ -90,7 +89,7 @@ func (emitter *Emitter) Listen() <-chan string {
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 
-	ch := make(chan string, 1)
+	ch := make(chan string, chanBufferSize)
 	emitter.listeners[ch] = ch
 	return ch
 }
