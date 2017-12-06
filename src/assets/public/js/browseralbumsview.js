@@ -111,7 +111,7 @@ var BrowserAlbumsView = BrowserView.extend({
 		$tab.find('.album-info').on('click', function() {
 			Hotkeys.playerInsert(self.model, album);
 		});
-		$tab.find('.disc-title').on('click', function() {
+		$tab.find('.album-disc-title').on('click', function() {
 			Hotkeys.playerInsert(self.model, discs[$(this).attr('data-index')].tracks);
 		});
 		$tab.find('.result-list li.track').on('click', function() {
@@ -141,27 +141,27 @@ var BrowserAlbumsView = BrowserView.extend({
 	albumTemplate:_.template(
 		'<div class="album-art"></div>'+
 		'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
-		'<div class="album-info">'+
-			'<p>'+
-				'<span class="album-title"><%- title %></span>'+
-				'<span class="album-duration track-duration"><%- durationToString(duration) %></span>'+
-				'<span class="album-artist"><%- artist %></span>'+
-			'</p>'+
-		'</div>'+
-		'<ul class="result-list">'+
+		'<p class="album-info">'+
+			'<span class="album-title"><%- title %></span>'+
+			'<span class="album-duration track-duration"><%- durationToString(duration) %></span>'+
+			'<span class="album-artist"><%- artist %></span>'+
+		'</p>'+
+		'<div class="album-content">'+
 			'<% discs.forEach(function(disc, di) { %>'+
 				'<% if (disc.title) { %>'+
-					'<li class="disc-title" data-index="<%= di %>"><%- disc.title %></li>'+
+					'<p class="album-disc-title" data-index="<%= di %>"><%- disc.title %></p>'+
 				'<% } %>'+
-				'<% disc.tracks.forEach(function(track) { %>'+
-					'<li class="track" data-index="<%= track.selectionIndex %>">'+
-						'<span class="track-num"><%- track.albumtrack %></span>'+
-						'<span class="track-artist"><%- track.artist %></span>'+
-						'<span class="track-title"><%- track.title %></span>'+
-						'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
-					'</li>'+
-				'<% }) %>'+
+				'<ul class="result-list">'+
+					'<% disc.tracks.forEach(function(track) { %>'+
+						'<li class="track" data-index="<%= track.selectionIndex %>">'+
+							'<span class="track-num"><%- track.albumtrack %></span>'+
+							'<span class="track-artist"><%- track.artist %></span>'+
+							'<span class="track-title"><%- track.title %></span>'+
+							'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
+						'</li>'+
+					'<% }) %>'+
+				'</ul>'+
 			'<% }) %>'+
-		'</ul>'
+		'</div>'
 	),
 });

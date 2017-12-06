@@ -21,27 +21,6 @@
 	line-height: 1em;
 }
 
-.browser-albums .tab-name-album {
-	display: flex;
-	flex-direction: column;
-}
-
-.browser-albums .tab-name-album .album-info {
-	cursor: pointer;
-	flex-shrink: 0;
-}
-
-.browser-albums .tab-name-album .album-info:hover,
-.browser-albums .tab-name-album .disc-title:hover {
-	background-color: #333;
-}
-
-.browser-albums .tab-name-album .disc-title {
-	margin: 0.4em 0 0 0;
-	font-size: 1.2em;
-	cursor: pointer;
-}
-
 .browser-albums li .track-art {
 	width: calc(100% - 8px);
 	height: calc(100% - 8px);
@@ -81,32 +60,50 @@
 	overflow: hidden;
 }
 
+.browser-albums .tab-name-album {
+	display: flex;
+	flex-direction: column;
+}
+
+.browser-albums .tab-name-album .album-info {
+	margin: 0;
+	flex-shrink: 0;
+	cursor: pointer;
+}
+
+.browser-albums .tab-name-album .album-content {
+	overflow-y: auto;
+}
+
+.browser-albums .tab-name-album .album-disc-title {
+	margin: 0.4em 0 0 0;
+	font-size: 1.2em;
+	cursor: pointer;
+}
+
 .browser-albums .track-art span,
 .browser-albums .tab-name-album span,
-.browser-albums .tab-name-album .disc-title {
+.browser-albums .tab-name-album .album-disc-title {
 	text-shadow: 0 0 0.2em #000;
 }
 
 .browser-albums .tab-name-album .album-info,
-.browser-albums .tab-name-album .disc-title,
+.browser-albums .tab-name-album .album-disc-title,
 .browser-albums .tab-name-album .result-list {
-	position: relative;
-	z-index: 10;
+	padding: 0.5em;
 }
 
 .browser-albums .tab-name-album .album-info:hover,
-.browser-albums .tab-name-album .disc-title:hover,
+.browser-albums .tab-name-album .album-info:hover + .album-content,
+.browser-albums .tab-name-album .album-disc-title:hover,
+.browser-albums .tab-name-album .album-disc-title:hover + .result-list,
 .browser-albums .tab-name-album .result-list li:hover {
 	background-color: rgba(0, 0, 0, 0.4);
 }
 
-.browser-albums .tab-name-album .disc-title:before {
+.browser-albums .tab-name-album .album-disc-title:before {
 	content: "Disc";
 	margin-right: 0.3em;
-}
-
-.browser-albums .tab-name-album .album-title {
-	font-size: 1.4em;
 }
 
 .browser-albums .tab-name-album .album-title {
@@ -135,4 +132,8 @@
 	-webkit-filter: blur(4px);
 	   -moz-filter: blur(4px);
 	        filter: blur(4px);
+}
+
+.browser-albums .tab-name-album .album-art ~ * {
+	z-index: 10;
 }
