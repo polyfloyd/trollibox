@@ -100,18 +100,19 @@ var PlayerView = Backbone.View.extend({
 				$pl: this.$('.player-playlist.player-future'),
 				tracks: playlist.slice(ci + 1),
 			},
-		].forEach(function(opt) {
+		].forEach(function(opt, l) {
 			opt.$pl.empty();
 			opt.$pl.append(opt.tracks.map(function(track, i) {
 				var $li = $(this.playlistTemplate(track));
+				var offset = l == 1 ? this.model.get('current') + 1 : 0;
 				$li.find('.do-remove').on('click', function(event) {
 					event.preventDefault();
-					this.model.removeFromPlaylist(this.model.get('current') + i + 1);
+					this.model.removeFromPlaylist(offset + i);
 				}.bind(this));
 				$li.on('click', function() {
 					if (Hotkeys.state.ctrl) {
 						var cur = this.model.get('current');
-						this.model.moveInPlaylist(cur + 1 + i, cur + 1);
+						this.model.moveInPlaylist(offset + i, cur);
 					}
 				}.bind(this));
 				return $li;
