@@ -202,6 +202,7 @@ var BrowserFilesView = BrowserView.extend({
 					'<span class="track-title"><%- file.track.title %></span>'+
 					'<span class="track-duration"><%- durationToString(file.track.duration) %></span>'+
 					'<span class="track-album"><%- file.track.album %></span>'+
+					'<span class="glyphicon glyphicon-plus"></span>'+
 				'</li>'+
 			'<% }) %>'+
 		'</ul>'

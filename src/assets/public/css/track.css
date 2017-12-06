@@ -68,6 +68,24 @@ ul.result-list li em {
 ul.result-list li .track-artist:after {
 	content: "-";
 	margin: 0 0.35em;
+	overflow: hidden;
+}
+
+ul.result-list li > .glyphicon {
+	opacity: 0;
+	height: 100%;
+	color: #f60;
+	font-size: 1.2em;
+	text-align: right;
+	flex-grow: 1;
+}
+
+ul.result-list li:hover > .glyphicon {
+	opacity: 1;
+}
+
+ul.result-list li > .track-album + .glyphicon {
+	flex-grow: 0;
 }
 
 ul.result-list.grid-list {

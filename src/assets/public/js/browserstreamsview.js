@@ -99,7 +99,10 @@ var BrowserStreamsView = BrowserView.extend({
 		'<li title="<%- title %>">'+
 			'<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />'+
 			'<div class="track-art">'+
-				'<span class="stream-title"><%- title %></span>'+
+				'<span class="stream-title">'+
+					'<%- title %>'+
+					'<span class="glyphicon glyphicon-plus"></span>'+
+				'</span>'+
 				'<button class="glyphicon glyphicon-remove do-remove"></button>'+
 				'<button class="glyphicon glyphicon-edit do-edit"></button>'+
 			'</div>'+

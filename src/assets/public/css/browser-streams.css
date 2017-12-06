@@ -42,6 +42,17 @@
 	top: 0;
 	left: 0;
 	right: 0;
+	font-size: 1.2em;
+}
+
+.browser-streams ul > li .track-art > .stream-title > .glyphicon {
+	opacity: 0;
+	color: #f60;
+	float: right;
+}
+
+.browser-streams ul > li:hover .track-art > .stream-title > .glyphicon {
+	opacity: 1;
 }
 
 .browser-streams ul > li .track-art > button {

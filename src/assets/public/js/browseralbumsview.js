@@ -158,6 +158,7 @@ var BrowserAlbumsView = BrowserView.extend({
 							'<span class="track-artist"><%- track.artist %></span>'+
 							'<span class="track-title"><%- track.title %></span>'+
 							'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
+							'<span class="glyphicon glyphicon-plus"></span>'+
 						'</li>'+
 					'<% }) %>'+
 				'</ul>'+

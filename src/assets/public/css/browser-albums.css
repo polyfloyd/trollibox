@@ -101,6 +101,11 @@
 	background-color: rgba(0, 0, 0, 0.4);
 }
 
+.browser-albums .tab-name-album .album-info:hover + .album-content .result-list > li > .glyphicon,
+.browser-albums .tab-name-album .album-disc-title:hover + .result-list > li > .glyphicon {
+	opacity: 1;
+}
+
 .browser-albums .tab-name-album .album-disc-title:before {
 	content: "Disc";
 	margin-right: 0.3em;

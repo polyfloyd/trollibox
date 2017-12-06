@@ -116,6 +116,7 @@ var BrowserSearchView = BrowserView.extend({
 			'<span class="track-title"><%= highlight(result, \'title\') %></span>'+
 			'<span class="track-duration"><%- durationToString(result.track.duration) %></span>'+
 			'<span class="track-album"><%= highlight(result, \'album\') %></span>'+
+			'<span class="glyphicon glyphicon-plus"></span>'+
 		'</li>'
 	),
 });
