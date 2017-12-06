@@ -36,12 +36,15 @@ var PlayerView = Backbone.View.extend({
 		this.renderState();
 		this.renderVolume();
 
-		var sortable = this.$('.player-playlist').sortable({
+		var sortables = window.sortable(this.$('.player-playlist'), {
 			forcePlaceholderSize: true,
 			items:                'li',
+			connectWith:          'connected',
 		});
-		sortable.bind('sortupdate', function(event, update) {
-			this.doReorderPlaylist(event, update);
+		sortables.forEach(function(s) {
+			s.addEventListener('sortupdate', function(event) {
+				this.doReorderPlaylist(event);
+			}.bind(this));
 		}.bind(this));
 	},
 
@@ -87,28 +90,37 @@ var PlayerView = Backbone.View.extend({
 
 	renderPlaylist: function() {
 		var playlist = this.model.get('playlist');
-		if (playlist.length > 0) {
-			// Slice off the history and currently playing track.
-			playlist = playlist.slice(this.model.get('current') + 1);
-		}
+		var ci = this.model.get('current');
+		[
+			{
+				$pl: this.$('.player-playlist.player-past'),
+				tracks: playlist.slice(0, ci),
+			},
+			{
+				$pl: this.$('.player-playlist.player-future'),
+				tracks: playlist.slice(ci + 1),
+			},
+		].forEach(function(opt) {
+			opt.$pl.empty();
+			opt.$pl.append(opt.tracks.map(function(track, i) {
+				var $li = $(this.playlistTemplate(track));
+				$li.find('.do-remove').on('click', function(event) {
+					event.preventDefault();
+					this.model.removeFromPlaylist(this.model.get('current') + i + 1);
+				}.bind(this));
+				$li.on('click', function() {
+					if (Hotkeys.state.ctrl) {
+						var cur = this.model.get('current');
+						this.model.moveInPlaylist(cur + 1 + i, cur + 1);
+					}
+				}.bind(this));
+				return $li;
+			}, this));
+			window.sortable(opt.$pl); // Reload sortable
+		}.bind(this))
 
-		var $pl = this.$('.player-playlist');
-		$pl.empty();
-		$pl.append(playlist.map(function(track, i) {
-			var $li = $(this.playlistTemplate(track));
-			$li.on('click', function() {
-				if (Hotkeys.state.ctrl) {
-					var cur = this.model.get('current');
-					this.model.moveInPlaylist(cur + 1 + i, cur + 1);
-				}
-			}.bind(this));
-			$li.find('.do-remove').on('click', function(event) {
-				event.preventDefault();
-				this.model.removeFromPlaylist(this.model.get('current') + i + 1);
-			}.bind(this));
-			return $li;
-		}, this));
-		$pl.sortable('reload');
+		// Align the player to the top of the container.
+		this.$('.player-current')[0].scrollIntoView();
 	},
 
 	doToggleState: function() {
@@ -148,10 +160,14 @@ var PlayerView = Backbone.View.extend({
 		this.model.set('volume', vol);
 	},
 
-	doReorderPlaylist: function(event, update) {
-		var pl = this.model.get('playlist');
-		var ci = this.model.get('current');
-		this.model.moveInPlaylist(update.oldindex + ci + 1, update.item.index() + ci + 1);
+	doReorderPlaylist: function(event) {
+		var offset = function($parent) {
+			var ci = this.model.get('current');
+			return $parent.classList.contains('player-future') ? ci + 1 : 0;
+		}.bind(this);
+		var from = event.detail.oldindex + offset(event.detail.startparent);
+		var to = event.detail.index + offset(event.detail.endparent);
+		this.model.moveInPlaylist(from, to);
 	},
 
 	doMakeDroppable: function(event) {
@@ -166,6 +182,8 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	template: _.template(
+		'<ul class="player-playlist player-past"></ul>'+
+
 		'<div class="player-current">'+
 			'<div class="track-art"></div>'+
 			'<p class="track-album"></p>'+
@@ -193,7 +211,7 @@ var PlayerView = Backbone.View.extend({
 			'</div>'+
 		'</div>'+
 
-		'<ul class="player-playlist"></ul>'
+		'<ul class="player-playlist player-future"></ul>'
 	),
 	playlistTemplate: _.template(
 		'<li class="queuedby-<%= queuedby %>">'+

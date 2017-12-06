@@ -6,7 +6,7 @@
 
 .player-current {
 	font-size: 1.2em;
-	margin-bottom: 15px;
+	padding: 15px 0;
 }
 
 .player-current .track-album {
@@ -123,6 +123,7 @@
 }
 
 .player-playlist {
+	margin: 0;
 	padding-left: 0;
 	font-size: 1.1em;
 	list-style-type: none;
@@ -159,4 +160,12 @@
 	content: "*";
 	margin-left: 0.3em;
 	color: #f60;
+}
+
+.player-playlist.player-past li span {
+	color: #888;
+}
+
+.player-playlist.player-future {
+	min-height: calc(100% + 16px);
 }
