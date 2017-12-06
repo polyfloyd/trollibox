@@ -19,7 +19,15 @@ ul.result-list {
 
 ul.result-list li {
 	display: flex;
-	flex-wrap: wrap;
+}
+
+ul.result-list li > * {
+	min-width: 0;
+	flex-shrink: 1;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 ul.result-list li .track-num {
@@ -33,6 +41,11 @@ ul.result-list li .track-num:after {
 
 ul.result-list li .track-num:not(:empty):after {
 	content: ".";
+}
+
+ul.result-list li .track-artist,
+ul.result-list li .track-title {
+	flex-shrink: 0.5;
 }
 
 ul.result-list li .track-album {
@@ -86,6 +99,7 @@ ul.result-list li:hover > .glyphicon {
 
 ul.result-list li > .track-album + .glyphicon {
 	flex-grow: 0;
+	flex-shrink: 0;
 }
 
 ul.result-list.grid-list {
