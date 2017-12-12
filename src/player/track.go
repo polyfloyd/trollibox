@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+var (
+	interpArtistTitleInTitle    = regexp.MustCompile("(.+)\\s+-\\s+(.+)")
+	interpArtistTitleInFilename = regexp.MustCompile("(?:(?:\\d+\\.\\s+)|(?:\\d+\\s+-\\s+))?([^/]+?)\\s+-\\s+([^/]+)\\.\\w+$")
+	interpFilename              = regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
+)
+
 // Track holds all information associated with a single piece of music.
 type Track struct {
 	URI         string        `json:"uri"`
@@ -63,32 +69,35 @@ func (track Track) String() string {
 
 // InterpolateMissingFields extracts the artist and title from other track
 // information if they are unavailable and applies them to the specified track.
+//
 // Players should use this to homogenize their library.
 func InterpolateMissingFields(track *Track) {
+	if track.Artist != "" && track.Title != "" {
+		return
+	}
 	if strings.HasPrefix(track.URI, "http") {
 		return
 	}
 
-	// First, attempt to find an "<artist> - <title>" string in the track title.
+	// Attempt to find an "<artist> - <title>" string in the track title.
 	if track.Artist == "" && track.Title != "" {
-		re := regexp.MustCompile("(.+)\\s+-\\s+(.+)")
-		if match := re.FindStringSubmatch(track.Title); match != nil {
-			track.Artist, track.Title = match[0], match[1]
+		if match := interpArtistTitleInTitle.FindStringSubmatch(track.Title); match != nil {
+			track.Artist, track.Title = match[1], match[2]
+			return
 		}
 	}
 
-	// Also look for the <artist> - <title> patterin in the filename.
+	// Look for the "<artist> - <title>" pattern in the filename.
 	if track.Artist == "" || track.Title == "" {
-		re := regexp.MustCompile("^(?:.*\\/)?(.+)\\s+-\\s+(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(track.URI); match != nil {
+		if match := interpArtistTitleInFilename.FindStringSubmatch(track.URI); match != nil {
 			track.Artist, track.Title = match[1], match[2]
+			return
 		}
 	}
 
 	// Still nothing? Just use the filename or url.
 	if track.Title == "" {
-		re := regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
-		if match := re.FindStringSubmatch(track.URI); match != nil {
+		if match := interpFilename.FindStringSubmatch(track.URI); match != nil {
 			track.Title = match[1]
 		}
 	}
