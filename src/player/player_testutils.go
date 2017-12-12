@@ -2,6 +2,7 @@ package player
 
 import (
 	"fmt"
+	"io"
 	"testing"
 	"time"
 )
@@ -238,4 +239,26 @@ func testVolumeEvent(t *testing.T, pl Player) {
 			t.Fatal(err)
 		}
 	})
+}
+
+type DummyLibrary []Track
+
+func (lib *DummyLibrary) Tracks() ([]Track, error) {
+	return *lib, nil
+}
+
+func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
+	tracks := make([]Track, len(uris))
+	for i, uri := range uris {
+		for _, track := range *lib {
+			if uri == track.URI {
+				tracks[i] = track
+			}
+		}
+	}
+	return tracks, nil
+}
+
+func (lib *DummyLibrary) TrackArt(uri string) (image io.ReadCloser, mime string) {
+	return nil, ""
 }

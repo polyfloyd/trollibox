@@ -2,7 +2,6 @@ package player
 
 import (
 	"io"
-	"sync"
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/util"
@@ -30,51 +29,41 @@ type Library interface {
 	TrackArt(uri string) (image io.ReadCloser, mime string)
 }
 
-// Looks for the track information in all the libraries supplied. If the track
-// is found in more than one library, precedence is given to the library at the
-// lowest index.
+// AllTrackInfo looks for the track information in all the libraries supplied.
+//
+// If the track is found in more than one library, precedence is given to the
+// library at the lowest index.
 func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
-	done := make(chan struct{})
-	defer close(done)
-	errs := make(chan error)
-	defer close(errs)
-	var errorred bool
-	var chanLock sync.Mutex
-
-	accumTracks := make([][]Track, len(libs))
-	for i, lib := range libs {
-		go func(tracksPtr *[]Track, lib Library) {
+	accumChannels := make([]<-chan interface{}, 0, len(libs))
+	for _, lib := range libs {
+		ch := make(chan interface{})
+		go func(lib Library) {
+			defer close(ch)
 			tracks, err := lib.TrackInfo(uris...)
-			chanLock.Lock()
-			defer chanLock.Unlock()
-			if errorred {
-				return
-			}
 			if err != nil {
-				errs <- err
-				return
+				ch <- err
+			} else {
+				ch <- tracks
 			}
-			*tracksPtr = tracks
-			done <- struct{}{}
-		}(&accumTracks[i], lib)
+		}(lib)
+		accumChannels = append(accumChannels, ch)
 	}
-
-	for range libs {
-		select {
-		case err := <-errs:
-			chanLock.Lock()
-			errorred = true
-			chanLock.Unlock()
-			return nil, err
-		case <-done:
+	accumTracks := make([][]Track, 0, len(libs))
+	for _, result := range accumChannels {
+		switch t := (<-result).(type) {
+		case error:
+			return nil, t
+		case []Track:
+			accumTracks = append(accumTracks, t)
 		}
 	}
 
 	tracks := make([]Track, len(uris))
-	for i := range libs {
-		for j, tr := range accumTracks[i] {
+	for _, accum := range accumTracks {
+		for j, tr := range accum {
 			if tr.URI != "" && tracks[j].URI == "" {
 				tracks[j] = tr
+				break
 			}
 		}
 	}
