@@ -6,16 +6,16 @@ import (
 
 func TestAllTrackInfo(t *testing.T) {
 	lib1 := DummyLibrary([]Track{
-		Track{URI: "foo", Title: "lib1"},
+		{URI: "foo", Title: "lib1"},
 	})
 	lib2 := DummyLibrary([]Track{
-		Track{URI: "foo", Title: "lib2"},
-		Track{URI: "bar", Title: "lib2"},
+		{URI: "foo", Title: "lib2"},
+		{URI: "bar", Title: "lib2"},
 	})
 	lib3 := DummyLibrary([]Track{
-		Track{URI: "foo", Title: "lib3"},
-		Track{URI: "bar", Title: "lib3"},
-		Track{URI: "baz", Title: "lib3"},
+		{URI: "foo", Title: "lib3"},
+		{URI: "bar", Title: "lib3"},
+		{URI: "baz", Title: "lib3"},
 	})
 	libs := []Library{&lib1, &lib2, &lib3}
 
@@ -45,7 +45,7 @@ func TestAllTrackInfo(t *testing.T) {
 	} else if len(tracks) != 1 {
 		t.Fatalf("Unexpected length: %v", len(tracks))
 	} else if tracks[0].Title != "lib1" {
-		t.Fatal("Unexpected library: %s", tracks[0].Title)
+		t.Fatalf("Unexpected library: %s", tracks[0].Title)
 	}
 
 	tracks, err = AllTrackInfo(libs, "bar", "x")
@@ -54,7 +54,7 @@ func TestAllTrackInfo(t *testing.T) {
 	} else if len(tracks) != 2 {
 		t.Fatalf("Unexpected length: %v", len(tracks))
 	} else if tracks[0].Title != "lib2" {
-		t.Fatal("Unexpected library: %s", tracks[0].Title)
+		t.Fatalf("Unexpected library: %s", tracks[0].Title)
 	} else if tracks[1].URI != "" {
 		t.Fatalf("The track at index %v should have been zero", 1)
 	}
@@ -65,10 +65,10 @@ func TestAllTrackInfo(t *testing.T) {
 	} else if len(tracks) != 3 {
 		t.Fatalf("Unexpected length: %v", len(tracks))
 	} else if tracks[0].Title != "lib1" {
-		t.Fatal("Unexpected library: %s", tracks[0].Title)
+		t.Fatalf("Unexpected library: %s", tracks[0].Title)
 	} else if tracks[1].Title != "lib2" {
-		t.Fatal("Unexpected library: %s", tracks[1].Title)
+		t.Fatalf("Unexpected library: %s", tracks[1].Title)
 	} else if tracks[2].Title != "lib3" {
-		t.Fatal("Unexpected library: %s", tracks[2].Title)
+		t.Fatalf("Unexpected library: %s", tracks[2].Title)
 	}
 }
