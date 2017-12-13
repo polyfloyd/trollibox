@@ -11,33 +11,39 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+var factories = map[string]func() Filter{}
+
+// RegisterFactory registers a factory function that enables DB to deserialize
+// filters of that type.
+//
+// The returned value should be the zero value of that type.
+func RegisterFactory(factory func() Filter) {
+	factories[filterType(factory())] = factory
+}
+
 type storageFormat struct {
 	Type  string           `json:"type"`
 	Value *json.RawMessage `json:"value"`
 }
 
+// A DB handles storage of filter implemementations to disk.
 type DB struct {
 	util.Emitter
 
 	directory string
-	factories map[string]func() Filter
 }
 
-func NewDB(directory string, factories ...func() Filter) (*DB, error) {
-	namedFactories := map[string]func() Filter{}
-	for _, fac := range factories {
-		namedFactories[filterType(fac())] = fac
-	}
+// NewDB constructs a new database for storing filters at the specified
+// directory.
+//
+func NewDB(directory string) (*DB, error) {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return nil, err
 	}
-	db := &DB{
-		directory: directory,
-		factories: namedFactories,
-	}
-	return db, nil
+	return &DB{directory: directory}, nil
 }
 
+// Names lists all filters that this DB has stored.
 func (db *DB) Names() ([]string, error) {
 	fd, err := os.Open(db.directory)
 	if err != nil {
@@ -59,6 +65,10 @@ func (db *DB) Names() ([]string, error) {
 	return names, nil
 }
 
+// Get retrieves a filter with the specified name or nil if no such filter exists.
+//
+// An error is returned if the database is not able to instantiate the filter,
+// which could be caused by a missing factory.
 func (db *DB) Get(name string) (Filter, error) {
 	fd, err := os.Open(db.filterFile(name))
 	if os.IsNotExist(err) {
@@ -73,7 +83,7 @@ func (db *DB) Get(name string) (Filter, error) {
 		return nil, err
 	}
 
-	fac, ok := db.factories[ft.Type]
+	fac, ok := factories[ft.Type]
 	if !ok {
 		return nil, fmt.Errorf("Unknown filter type: %s", ft.Type)
 	}
@@ -84,7 +94,13 @@ func (db *DB) Get(name string) (Filter, error) {
 	return filter, nil
 }
 
-func (db *DB) Store(name string, filter Filter) error {
+// Set stores the specified filter under the specified name overwriting any
+// pre-existing filter with the same name.
+func (db *DB) Set(name string, filter Filter) error {
+	if strings.Contains(name, "/") {
+		return fmt.Errorf("Filter names may not contain \"/\"")
+	}
+
 	ftVal, err := json.Marshal(filter)
 	if err != nil {
 		return err
@@ -105,8 +121,13 @@ func (db *DB) Store(name string, filter Filter) error {
 	return nil
 }
 
+// Remove removes the named filter from the database.
+//
+// Removing a non-existent filter is a no-op.
 func (db *DB) Remove(name string) error {
-	if err := os.Remove(db.filterFile(name)); err != nil {
+	if err := os.Remove(db.filterFile(name)); os.IsNotExist(err) {
+		return nil
+	} else if err != nil {
 		return err
 	}
 	db.Emit("update")
@@ -114,7 +135,7 @@ func (db *DB) Remove(name string) error {
 }
 
 func (db *DB) filterFile(name string) string {
-	return path.Join(db.directory, path.Clean(name)+".json")
+	return path.Join(db.directory, name+".json")
 }
 
 func filterType(filter Filter) string {

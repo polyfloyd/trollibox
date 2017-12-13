@@ -20,7 +20,6 @@ import (
 
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/filter/keyed"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
 	"github.com/polyfloyd/trollibox/src/library/cache"
 	"github.com/polyfloyd/trollibox/src/library/netmedia"
@@ -152,11 +151,7 @@ func main() {
 		log.Fatalf("Unable to create stream database: %v", err)
 	}
 
-	filterFactories := []func() filter.Filter{
-		func() filter.Filter { return &ruled.RuleFilter{} },
-		func() filter.Filter { return &keyed.Query{} },
-	}
-	filterdb, err := filter.NewDB(path.Join(storeDir, "filters"), filterFactories...)
+	filterdb, err := filter.NewDB(path.Join(storeDir, "filters"))
 	if err != nil {
 		log.Fatalf("Unable to create filterdb: %v", err)
 	}
@@ -182,7 +177,7 @@ func main() {
 					if ft == nil {
 						// Load the default filter.
 						ft, _ = ruled.BuildFilter([]ruled.Rule{})
-						if err := filterdb.Store("queuer", ft); err != nil {
+						if err := filterdb.Set("queuer", ft); err != nil {
 							log.Printf("Error while autoqueueing for %q: %v", name, err)
 						}
 					}

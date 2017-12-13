@@ -20,15 +20,22 @@ type SearchMatch struct {
 	End   int `json:"end"`
 }
 
+// A SearchResult is a track that matched some Filter's criteria along with
+// what properties were matched.
 type SearchResult struct {
 	player.Track
 	Matches map[string][]SearchMatch
 }
 
+// AddMatch marks a portion of the named property value as matched.
+//
+// Multiple possibliy overlapping matches may be added. The propertes accepted
+// are the same as Track.Attr().
 func (sr *SearchResult) AddMatch(property string, start, end int) {
 	sr.Matches[property] = append(sr.Matches[property], SearchMatch{Start: start, End: end})
 }
 
+// NumMatches returns the total number of matches across all properties.
 func (sr SearchResult) NumMatches() (n int) {
 	for _, prop := range sr.Matches {
 		n += len(prop)
@@ -44,8 +51,9 @@ func (l ByNumMatches) Len() int           { return len(l) }
 func (l ByNumMatches) Swap(a, b int)      { l[a], l[b] = l[b], l[a] }
 func (l ByNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumMatches() }
 
-// Filters the tracks by applying the filter to all tracks.
-func FilterTracks(filter Filter, tracks []player.Track) []SearchResult {
+// Tracks filters a list of tracks by applying the specified filter to all
+// tracks.
+func Tracks(filter Filter, tracks []player.Track) []SearchResult {
 	trackStream := make(chan player.Track)
 	matchStream := make(chan SearchResult)
 	go func() {

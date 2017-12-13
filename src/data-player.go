@@ -506,7 +506,7 @@ func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 			writeError(req, res, err)
 			return
 		}
-		results := filter.FilterTracks(compiledQuery, tracks)
+		results := filter.Tracks(compiledQuery, tracks)
 		sort.Sort(filter.ByNumMatches(results))
 
 		mappedResults := make([]interface{}, len(results))

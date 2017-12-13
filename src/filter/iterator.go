@@ -12,8 +12,8 @@ type randFilterIterator struct {
 	rand   *rand.Rand
 }
 
-// Creates a track iterator which will use the supplied filter to pick random
-// tracks.
+// RandomIterator creates a track iterator which will use the supplied filter
+// to pick random tracks.
 func RandomIterator(filter Filter) player.TrackIterator {
 	return &randFilterIterator{
 		filter: filter,
@@ -27,7 +27,7 @@ func (it randFilterIterator) NextTrack(pl player.Player) (player.Track, player.T
 		return player.Track{}, player.TrackMeta{}, false
 	}
 
-	results := FilterTracks(it.filter, tracks)
+	results := Tracks(it.filter, tracks)
 	if len(results) == 0 {
 		return player.Track{}, player.TrackMeta{}, false
 	}

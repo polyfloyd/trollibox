@@ -153,7 +153,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 			return
 		}
 		name := mux.Vars(req)["name"]
-		if err := filterdb.Store(name, filter); err != nil {
+		if err := filterdb.Set(name, filter); err != nil {
 			writeError(req, res, err)
 			return
 		}

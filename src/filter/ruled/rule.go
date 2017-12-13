@@ -13,23 +13,31 @@ import (
 )
 
 const (
-	OP_CONTAINS = "contains"
-	OP_EQUALS   = "equals"
-	OP_GREATER  = "greater"
-	OP_LESS     = "less"
-	OP_MATCHES  = "matches"
+	opContains = "contains"
+	opEquals   = "equals"
+	opGreater  = "greater"
+	opLess     = "less"
+	opMatches  = "matches"
 )
 
+func init() {
+	filter.RegisterFactory(func() filter.Filter {
+		return &RuleFilter{}
+	})
+}
+
+// A Rule represents an expression that compares some Track's attribute
+// according to an operation with a reference value.
 type Rule struct {
 	// Name of the track attribute to match.
 	Attribute string `json:"attribute"`
 
 	// How to interpret Value. Can be any of the following:
-	//   OP_CONTAINS
-	//   OP_EQUALS
-	//   OP_GREATER
-	//   OP_LESS
-	//   OP_REGEX
+	//   opContains
+	//   opEquals
+	//   opGreater
+	//   opLess
+	//   opRegex
 	Operation string `json:"operation"`
 
 	// Invert this rule's operation.
@@ -39,7 +47,7 @@ type Rule struct {
 	Value interface{} `json:"value"`
 }
 
-// Creates a function that matches a track based on this rules criteria.
+// MatchFunc Creates a function that matches a track based on this rules criteria.
 func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 	if rule.Attribute == "" {
 		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", rule)
@@ -70,15 +78,15 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 	if float64Val, ok := rule.Value.(float64); ok && rule.Attribute == "duration" {
 		durVal := time.Duration(float64Val) * time.Second
 		switch rule.Operation {
-		case OP_EQUALS:
+		case opEquals:
 			return func(track player.Track) bool {
 				return inv(track.Duration == durVal)
 			}, nil
-		case OP_GREATER:
+		case opGreater:
 			return func(track player.Track) bool {
 				return inv(track.Duration > durVal)
 			}, nil
-		case OP_LESS:
+		case opLess:
 			return func(track player.Track) bool {
 				return inv(track.Duration < durVal)
 			}, nil
@@ -86,30 +94,30 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
-		case OP_CONTAINS:
+		case opContains:
 			return func(track player.Track) bool {
 				return inv(strings.Contains(track.Attr(rule.Attribute).(string), strVal))
 			}, nil
-		case OP_EQUALS:
+		case opEquals:
 			return func(track player.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) == strVal)
 			}, nil
-		case OP_GREATER:
+		case opGreater:
 			return func(track player.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) > strVal)
 			}, nil
-		case OP_LESS:
+		case opLess:
 			return func(track player.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) < strVal)
 			}, nil
-		case OP_MATCHES:
-			if pat, err := regexp.Compile(strVal); err != nil {
+		case opMatches:
+			pat, err := regexp.Compile(strVal)
+			if err != nil {
 				return nil, err
-			} else {
-				return func(track player.Track) bool {
-					return inv(pat.MatchString(track.Attr(rule.Attribute).(string)))
-				}, nil
 			}
+			return func(track player.Track) bool {
+				return inv(pat.MatchString(track.Attr(rule.Attribute).(string)))
+			}, nil
 		}
 	}
 
@@ -121,9 +129,11 @@ func (rule *Rule) String() string {
 	if rule.Invert {
 		invStr = " not"
 	}
-	return fmt.Sprintf("if%s %s %s \"%v\"", invStr, rule.Attribute, rule.Operation, rule.Value)
+	return fmt.Sprintf("if%s %s %s %q", invStr, rule.Attribute, rule.Operation, rule.Value)
 }
 
+// A RuleError is an error returned when compiling a set of rules into a
+// filter.
 type RuleError struct {
 	OrigErr error `json:"-"`
 	Rule    Rule  `json:"rule"`
@@ -140,12 +150,13 @@ type nojsonRuleFilter struct {
 	funcs []func(player.Track) bool
 }
 
+// A RuleFilter is a compiled set of rules.
 type RuleFilter nojsonRuleFilter
 
+// BuildFilter builds a filter from a set of rules.
 func BuildFilter(rules []Rule) (filter.Filter, error) {
 	ft := &RuleFilter{
 		Rules: rules,
-		funcs: make([]func(player.Track) bool, len(rules)),
 	}
 	var err error
 	ft.funcs, err = compileFuncs(rules)
@@ -155,6 +166,7 @@ func BuildFilter(rules []Rule) (filter.Filter, error) {
 	return ft, nil
 }
 
+// Filter implements the filter.Filter interface.
 func (ft RuleFilter) Filter(track player.Track) (filter.SearchResult, bool) {
 	if len(ft.funcs) == 0 {
 		// No rules, match everything.
@@ -169,6 +181,7 @@ func (ft RuleFilter) Filter(track player.Track) (filter.SearchResult, bool) {
 	return filter.SearchResult{Track: track}, true
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (ft *RuleFilter) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, (*nojsonRuleFilter)(ft))
 	if err != nil {

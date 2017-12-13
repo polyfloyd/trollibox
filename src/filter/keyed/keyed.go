@@ -22,6 +22,12 @@ var trackAttrs = map[string]bool{
 	"albumdisc":   true,
 }
 
+func init() {
+	filter.RegisterFactory(func() filter.Filter {
+		return &Query{}
+	})
+}
+
 type nojsonQuery struct {
 	Query    string   `json:"query"`
 	Untagged []string `json:"untagged"`
@@ -29,9 +35,12 @@ type nojsonQuery struct {
 	patterns map[string][]*regexp.Regexp
 }
 
+// A Query is a compiled query string.
 type Query nojsonQuery
 
-// Compiles a search query so that it may be used to discriminate tracks.
+// CompileQuery compiles a search query so that it may be used to discriminate
+// tracks.
+//
 // The query is made up of keywords of the following format:
 //   [property:]<value>
 //
@@ -55,6 +64,7 @@ func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 	}, nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (sq *Query) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, (*nojsonQuery)(sq)); err != nil {
 		return err
@@ -67,6 +77,7 @@ func (sq *Query) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Filter implements the filter.Filter interface.
 func (sq *Query) Filter(track player.Track) (filter.SearchResult, bool) {
 	if sq == nil || len(sq.patterns) == 0 {
 		return filter.SearchResult{}, false
