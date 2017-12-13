@@ -38,10 +38,10 @@ const (
 )
 
 var (
-	BUILD        = "%BUILD%"
-	VERSION      = "%VERSION%"
-	VERSION_DATE = "%VERSION_DATE%"
-	BUILD_DATE   = "%BUILD_DATE%"
+	build       = "%BUILD%"
+	version     = "%VERSION%"
+	versionDate = "%VERSION_DATE%"
+	buildDate   = "%BUILD_DATE%"
 )
 
 var static = getStaticAssets(assets.AssetNames())
@@ -129,13 +129,13 @@ func main() {
 	flag.Parse()
 
 	if *printVersion {
-		fmt.Printf("Version: %v (%v)\n", VERSION, VERSION_DATE)
-		fmt.Printf("Build: %v\n", BUILD)
-		fmt.Printf("Build TIme: %v\n", BUILD_DATE)
+		fmt.Printf("Version: %v (%v)\n", version, versionDate)
+		fmt.Printf("Build: %v\n", build)
+		fmt.Printf("Build TIme: %v\n", buildDate)
 		return
 	}
 
-	log.Printf("Version: %v (%v)\n", VERSION, BUILD)
+	log.Printf("Version: %v (%v)\n", version, build)
 	var config config
 	if err := config.Load(*configFile); err != nil {
 		log.Fatal(err)
@@ -317,7 +317,7 @@ func baseParamMap(config *config, players playerList) map[string]interface{} {
 	playerNames := players.ActivePlayers()
 	return map[string]interface{}{
 		"urlroot": config.URLRoot,
-		"version": VERSION,
+		"version": version,
 		"assets":  static,
 		"time":    time.Now(),
 		"players": playerNames,

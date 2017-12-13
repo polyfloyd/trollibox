@@ -16,7 +16,7 @@ func mkTemplate() *template.Template {
 }
 
 func getTemplate() *template.Template {
-	if BUILD == "debug" {
+	if build == "debug" {
 		return mkTemplate()
 	}
 	return pageTemplate

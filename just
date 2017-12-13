@@ -79,10 +79,10 @@ case ${1:-} in
 		cd "$WORKSPACE/src"
 		go build \
 			-ldflags "
-				-X main.BUILD=$BUILD
-				-X main.VERSION=$VERSION
-				-X main.VERSION_DATE=$VERSION_DATE
-				-X main.BUILD_DATE=$BUILD_DATE
+				-X main.build=$BUILD
+				-X main.version=$VERSION
+				-X main.versionDate=$VERSION_DATE
+				-X main.buildDate=$BUILD_DATE
 			" \
 			-o "$WORKSPACE/bin/$NAME"
 		cd "$WORKSPACE"
