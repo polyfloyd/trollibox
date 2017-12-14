@@ -100,14 +100,6 @@ func (pl *Player) eventLoop() {
 	}
 }
 
-func (pl *Player) playlistLength() (int, error) {
-	res, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
-	if err != nil {
-		return -1, err
-	}
-	return strconv.Atoi(res[3])
-}
-
 // Tracks implements the player.Library interface.
 func (pl *Player) Tracks() ([]player.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
