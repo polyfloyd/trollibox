@@ -20,7 +20,7 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
-var dataUriRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")
+var dataURIRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")
 var m3uTemplate = template.Must(template.New("m3u").Parse(
 	`#EXTM3U
 
@@ -114,7 +114,7 @@ func (stream *Stream) PlayerTrack() player.Track {
 }
 
 func (stream *Stream) Art() (io.ReadCloser, string) {
-	if match := dataUriRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
+	if match := dataURIRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
 		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1]
 	}
 	return nil, ""
@@ -185,8 +185,8 @@ func (db *DB) StoreStream(stream *Stream) error {
 	}
 
 	// Download the track art and store it as a data URI.
-	if stream.ArtURI != "" && !dataUriRe.MatchString(stream.ArtURI) {
-		artURI, contentType, err := downloadToDataUri(stream.ArtURI)
+	if stream.ArtURI != "" && !dataURIRe.MatchString(stream.ArtURI) {
+		artURI, contentType, err := downloadToDataURI(stream.ArtURI)
 		if err != nil {
 			return err
 		}
@@ -204,6 +204,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 	return stream.EncodeM3U(fd)
 }
 
+// Tracks implements the player.Library interface.
 func (db *DB) Tracks() ([]player.Track, error) {
 	streams, err := db.Streams()
 	if err != nil {
@@ -216,6 +217,7 @@ func (db *DB) Tracks() ([]player.Track, error) {
 	return tracks, nil
 }
 
+// TrackInfo implements the player.Library interface.
 func (db *DB) TrackInfo(uris ...string) ([]player.Track, error) {
 	tracks := make([]player.Track, len(uris))
 	streams, err := db.Streams()
@@ -232,6 +234,7 @@ func (db *DB) TrackInfo(uris ...string) ([]player.Track, error) {
 	return tracks, nil
 }
 
+// TrackArt implements the player.Library interface.
 func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
 	stream, err := db.streamByURL(track)
 	if stream == nil || err != nil {
@@ -261,7 +264,7 @@ func filenameFromURL(url string) string {
 	return regexp.MustCompile("\\W").ReplaceAllString(url, "_")
 }
 
-func downloadToDataUri(url string) (string, string, error) {
+func downloadToDataURI(url string) (string, string, error) {
 	client := http.Client{Timeout: time.Second * 30}
 	res, err := client.Get(url)
 	if err != nil {

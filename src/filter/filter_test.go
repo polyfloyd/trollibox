@@ -27,21 +27,21 @@ func TestFilterTracks(t *testing.T) {
 		},
 	}
 
-	results := Tracks(FilterFunc(func(track player.Track) (SearchResult, bool) {
+	results := Tracks(Func(func(track player.Track) (SearchResult, bool) {
 		return SearchResult{}, true
 	}), tracks)
 	if len(results) != 3 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(FilterFunc(func(track player.Track) (SearchResult, bool) {
+	results = Tracks(Func(func(track player.Track) (SearchResult, bool) {
 		return SearchResult{}, false
 	}), tracks)
 	if len(results) != 0 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(FilterFunc(func(track player.Track) (SearchResult, bool) {
+	results = Tracks(Func(func(track player.Track) (SearchResult, bool) {
 		return SearchResult{}, strings.Contains(track.Artist, "Test")
 	}), tracks)
 	if len(results) != 1 {

@@ -278,9 +278,7 @@ func connectToPlayers(config *config) (playerList, error) {
 
 	for name, pl := range players {
 		log.Printf("Attached player %v", pl)
-		cache := &cache.Cache{Player: pl}
-		players[name] = cache
-		go cache.Run()
+		players[name] = cache.NewCache(pl)
 	}
 	return todoPlayerList(players), nil
 }

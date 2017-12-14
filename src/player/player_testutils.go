@@ -241,12 +241,15 @@ func testVolumeEvent(t *testing.T, pl Player) {
 	})
 }
 
+// DummyLibrary is used for teting.
 type DummyLibrary []Track
 
+// Tracks implements the player.Library interface.
 func (lib *DummyLibrary) Tracks() ([]Track, error) {
 	return *lib, nil
 }
 
+// TrackInfo implements the player.Library interface.
 func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
 	tracks := make([]Track, len(uris))
 	for i, uri := range uris {
@@ -259,6 +262,7 @@ func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
 	return tracks, nil
 }
 
+// TrackArt implements the player.Library interface.
 func (lib *DummyLibrary) TrackArt(uri string) (image io.ReadCloser, mime string) {
 	return nil, ""
 }

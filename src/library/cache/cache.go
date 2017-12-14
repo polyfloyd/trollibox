@@ -8,6 +8,10 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// A Cache wraps a Player and keeps a local copy of it's library.
+//
+// The copy is kept synchronized by listening for update events from the
+// player.
 type Cache struct {
 	player.Player
 	util.Emitter
@@ -18,6 +22,14 @@ type Cache struct {
 	err    error
 }
 
+// NewCache wraps the specified player and caches it's library.
+func NewCache(pl player.Player) *Cache {
+	cache := &Cache{Player: pl}
+	go cache.run()
+	return cache
+}
+
+// Tracks implements the player.Library interface.
 func (cache *Cache) Tracks() ([]player.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
@@ -34,6 +46,7 @@ func (cache *Cache) Tracks() ([]player.Track, error) {
 	return cache.tracks, cache.err
 }
 
+// TrackInfo implements the player.Library interface.
 func (cache *Cache) TrackInfo(uris ...string) ([]player.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
@@ -66,11 +79,12 @@ func (cache *Cache) TrackInfo(uris ...string) ([]player.Track, error) {
 	return results, nil
 }
 
+// Events implements the player.Player interface.
 func (cache *Cache) Events() *util.Emitter {
 	return &cache.Emitter
 }
 
-func (cache *Cache) Run() {
+func (cache *Cache) run() {
 	listener := cache.Player.Events().Listen()
 	defer cache.Player.Events().Unlisten(listener)
 

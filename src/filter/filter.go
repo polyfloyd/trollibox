@@ -13,9 +13,12 @@ type Filter interface {
 	Filter(track player.Track) (SearchResult, bool)
 }
 
-type FilterFunc func(player.Track) (SearchResult, bool)
+// Func adds an implementation of the Filter interface to a function with a
+// similar signature.
+type Func func(player.Track) (SearchResult, bool)
 
-func (ff FilterFunc) Filter(track player.Track) (SearchResult, bool) {
+// Filter implements the filter.Filter interface.
+func (ff Func) Filter(track player.Track) (SearchResult, bool) {
 	return ff(track)
 }
 
