@@ -13,6 +13,12 @@ type Filter interface {
 	Filter(track player.Track) (SearchResult, bool)
 }
 
+type FilterFunc func(player.Track) (SearchResult, bool)
+
+func (ff FilterFunc) Filter(track player.Track) (SearchResult, bool) {
+	return ff(track)
+}
+
 // A SearchMatch records the start and end offset in the matched atttributes
 // value. This information can be used for highlighting.
 type SearchMatch struct {
@@ -32,6 +38,9 @@ type SearchResult struct {
 // Multiple possibliy overlapping matches may be added. The propertes accepted
 // are the same as Track.Attr().
 func (sr *SearchResult) AddMatch(property string, start, end int) {
+	if sr.Matches == nil {
+		sr.Matches = map[string][]SearchMatch{}
+	}
 	sr.Matches[property] = append(sr.Matches[property], SearchMatch{Start: start, End: end})
 }
 

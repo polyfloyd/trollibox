@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/polyfloyd/trollibox/src/util"
@@ -62,6 +63,7 @@ func (db *DB) Names() ([]string, error) {
 			names = append(names, name)
 		}
 	}
+	sort.Strings(names)
 	return names, nil
 }
 
@@ -97,8 +99,8 @@ func (db *DB) Get(name string) (Filter, error) {
 // Set stores the specified filter under the specified name overwriting any
 // pre-existing filter with the same name.
 func (db *DB) Set(name string, filter Filter) error {
-	if strings.Contains(name, "/") {
-		return fmt.Errorf("Filter names may not contain \"/\"")
+	if name == "" || strings.Contains(name, "/") {
+		return fmt.Errorf("Invalid filter name: %q", name)
 	}
 
 	ftVal, err := json.Marshal(filter)
@@ -139,5 +141,9 @@ func (db *DB) filterFile(name string) string {
 }
 
 func filterType(filter Filter) string {
-	return reflect.TypeOf(filter).Elem().PkgPath()
+	typ := reflect.TypeOf(filter)
+	if typ.Kind() == reflect.Ptr {
+		return typ.Elem().PkgPath()
+	}
+	return typ.PkgPath()
 }
