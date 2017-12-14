@@ -10,17 +10,11 @@ import (
 	"github.com/polyfloyd/trollibox/src/player"
 )
 
-// Track attributes available for searching.
-var trackAttrs = map[string]bool{
-	"uri":         true,
-	"artist":      true,
-	"title":       true,
-	"genre":       true,
-	"album":       true,
-	"albumartist": true,
-	"albumtrack":  true,
-	"albumdisc":   true,
-}
+var (
+	regexControlRe = regexp.MustCompile("([\\.\\^\\$\\?\\+\\[\\]\\{\\}\\(\\)\\|\\\\])")
+	escapedWhite   = regexp.MustCompile("\\\\(\\s)")
+	queryRe        = regexp.MustCompile("(?:(\\w+):)?((?:(?:\\\\\\s)|[^:\\s])+)")
+)
 
 func init() {
 	filter.RegisterFactory(func() filter.Filter {
@@ -56,6 +50,9 @@ func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 	pat, err := compilePatterns(query)
 	if err != nil {
 		return nil, err
+	}
+	if len(pat[""]) > 0 && len(untaggedFields) == 0 {
+		return nil, fmt.Errorf("Keywords without property indicators require untaggedFields to be set")
 	}
 	return &Query{
 		Query:    query,
@@ -122,10 +119,6 @@ func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
 		return nil, fmt.Errorf("Query is empty")
 	}
 
-	regexControlRe := regexp.MustCompile("([\\.\\^\\$\\?\\+\\[\\]\\{\\}\\(\\)\\|\\\\])")
-	escapedWhite := regexp.MustCompile("\\\\(\\s)")
-	queryRe := regexp.MustCompile("(?:(\\w+):)?((?:(?:\\\\\\s)|[^:\\s])+)")
-
 	matches := queryRe.FindAllStringSubmatch(query, -1)
 	if matches == nil || len(matches) == 0 {
 		return nil, fmt.Errorf("Query does not match the expected format")
@@ -134,10 +127,6 @@ func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
 	patterns := map[string][]*regexp.Regexp{}
 	for _, group := range matches {
 		property := group[1]
-		if property != "" && !trackAttrs[property] {
-			continue
-		}
-
 		value := group[2]
 		value = escapedWhite.ReplaceAllString(value, "$1")
 		value = regexControlRe.ReplaceAllString(value, "\\$1")
