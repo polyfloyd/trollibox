@@ -1,6 +1,7 @@
 package player
 
 import (
+	"sort"
 	"testing"
 )
 
@@ -80,6 +81,7 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 	if tracks, err = ls.Tracks(); err != nil {
 		t.Fatal(err)
 	} else if tracks[0].URI != testTracks[0].URI {
+		t.Logf("expected %q at index 0", testTracks[0].URI)
 		t.Logf("got: %v", tracks)
 		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].URI)
 	}
@@ -140,4 +142,47 @@ func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []Track) {
 	} else if l != 0 {
 		t.Fatalf("Not all tracks were removed: %d remaining", l)
 	}
+}
+
+// DummyPlaylist is used for testing.
+type DummyPlaylist []Track
+
+// Insert implements the player.Playlist interface.
+func (pl *DummyPlaylist) Insert(pos int, tracks ...Track) error {
+	if pos == -1 {
+		pos, _ = pl.Len()
+	}
+	*pl = append(append((*pl)[:pos], tracks...), (*pl)[pos:]...)
+	return nil
+}
+
+// Move implements the player.Playlist interface.
+func (pl *DummyPlaylist) Move(fromPos, toPos int) error {
+	moved := (*pl)[fromPos]
+	cut := append((*pl)[:fromPos], (*pl)[fromPos+1:]...)
+	delta := 0
+	if fromPos > toPos {
+		delta = -1
+	}
+	*pl = append(append(cut[:toPos+delta], moved), (*pl)[toPos+1+delta:]...)
+	return nil
+}
+
+// Remove implements the player.Playlist interface.
+func (pl *DummyPlaylist) Remove(pos ...int) error {
+	sort.Ints(pos)
+	for i, p := range pos {
+		*pl = append((*pl)[:p-i], (*pl)[p+1-i:]...)
+	}
+	return nil
+}
+
+// Tracks implements the player.Playlist interface.
+func (pl *DummyPlaylist) Tracks() ([]Track, error) {
+	return *pl, nil
+}
+
+// Len implements the player.Playlist interface.
+func (pl *DummyPlaylist) Len() (int, error) {
+	return len(*pl), nil
 }

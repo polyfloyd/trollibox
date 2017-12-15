@@ -260,7 +260,7 @@ func TestLibraryImplementation(t *testing.T, lib Library) {
 	})
 }
 
-// DummyLibrary is used for teting.
+// DummyLibrary is used for testing.
 type DummyLibrary []Track
 
 // Tracks implements the player.Library interface.

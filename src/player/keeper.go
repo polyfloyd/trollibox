@@ -6,7 +6,10 @@ import (
 	"sync"
 )
 
+// TrackMeta contains metadata for a track in a playlist.
 type TrackMeta struct {
+	// QueuedBy indicates by what entity a track was added.
+	// Can be either "user" or "system".
 	QueuedBy string
 }
 
@@ -67,6 +70,7 @@ outer:
 	return nil
 }
 
+// Insert implements the player.Playlist interface.
 func (kpr *PlaylistMetaKeeper) Insert(pos int, tracks ...Track) error {
 	meta := make([]TrackMeta, len(tracks))
 	for i := range tracks {
@@ -75,6 +79,7 @@ func (kpr *PlaylistMetaKeeper) Insert(pos int, tracks ...Track) error {
 	return kpr.InsertWithMeta(pos, tracks, meta)
 }
 
+// Move implements the player.Playlist interface.
 func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
@@ -103,6 +108,7 @@ func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
 	return nil
 }
 
+// Remove implements the player.Playlist interface.
 func (kpr *PlaylistMetaKeeper) Remove(positions ...int) error {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
@@ -127,6 +133,7 @@ func (kpr *PlaylistMetaKeeper) Remove(positions ...int) error {
 	return nil
 }
 
+// Tracks implements the player.Playlist interface.
 func (kpr *PlaylistMetaKeeper) Tracks() ([]Track, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
@@ -136,7 +143,15 @@ func (kpr *PlaylistMetaKeeper) Tracks() ([]Track, error) {
 	return kpr.tracks, nil
 }
 
+// InsertWithMeta performs a regular playlist insertion but records the
+// metadata for all tracks inserted.
+//
+// The tracks and meta slices should have the same length.
 func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []Track, meta []TrackMeta) error {
+	if len(tracks) != len(meta) {
+		return fmt.Errorf("The number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
+	}
+
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if kpr.meta == nil {
@@ -158,6 +173,7 @@ func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []Track, meta []Tr
 	return nil
 }
 
+// Meta loads the metadata associated with each track in the playlist.
 func (kpr *PlaylistMetaKeeper) Meta() ([]TrackMeta, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
