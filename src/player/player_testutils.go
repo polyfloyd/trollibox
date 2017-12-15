@@ -137,6 +137,15 @@ func testTrackIndex(t *testing.T, pl Player) {
 	} else if index != 1 {
 		t.Fatalf("Unexpected track index: %v != %v", 1, index)
 	}
+
+	if err := pl.SetTrackIndex(99); err != nil {
+		t.Fatal(err)
+	}
+	if state, err := pl.State(); err != nil {
+		t.Fatal(err)
+	} else if state != PlayStateStopped {
+		t.Fatalf("Unexpected state: %v", state)
+	}
 }
 
 func testTrackIndexEvent(t *testing.T, pl Player) {
@@ -238,6 +247,16 @@ func testVolumeEvent(t *testing.T, pl Player) {
 		if err := pl.SetVolume(0.2); err != nil {
 			t.Fatal(err)
 		}
+	})
+}
+
+// TestLibraryImplementation tests the implementation of the player.Library interface.
+func TestLibraryImplementation(t *testing.T, lib Library) {
+	t.Run("tracks", func(t *testing.T) {
+	})
+	t.Run("trackinfo", func(t *testing.T) {
+	})
+	t.Run("trackart", func(t *testing.T) {
 	})
 }
 
