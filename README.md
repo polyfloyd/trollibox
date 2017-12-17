@@ -1,6 +1,7 @@
 Trollibox
 =========
 [![Build Status](https://travis-ci.org/polyfloyd/trollibox.svg)](https://travis-ci.org/polyfloyd/trollibox)
+[![Go Report Card](https://goreportcard.com/badge/github.com/polyfloyd/trollibox)](https://goreportcard.com/report/github.com/polyfloyd/trollibox)
 
 The hackerspace friendly ~~MPD~~ music player web client.
 
