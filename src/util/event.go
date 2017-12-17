@@ -48,7 +48,7 @@ func (emitter *Emitter) broadcast(event string) {
 // Emit emits an event to all current consumers.
 //
 // Listening channels are buffered, but whether the event is delivered
-// dependends on the whether the receiving channel is being actively read by
+// dependending on the whether the receiving channel is being actively read by
 // some goroutine.
 func (emitter *Emitter) Emit(event string) {
 	emitter.init()
