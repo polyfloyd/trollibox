@@ -12,14 +12,18 @@ func connectForTesting() (*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-	players, err := server.Players()
+	playerNames, err := server.PlayerNames()
 	if err != nil {
 		return nil, err
 	}
-	if len(players) == 0 {
+	if len(playerNames) == 0 {
 		return nil, fmt.Errorf("the SlimServer is not connected to any players")
 	}
-	return players[0], nil
+	player, err := server.PlayerByName(playerNames[0])
+	if err != nil {
+		return nil, err
+	}
+	return player.(*Player), nil
 }
 
 func TestPlayerImplementation(t *testing.T) {

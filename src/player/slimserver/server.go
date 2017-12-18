@@ -14,6 +14,7 @@ import (
 
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/cache"
+	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -21,6 +22,12 @@ import (
 type Server struct {
 	connPool sync.Pool
 	webURL   string
+
+	// Because each player has a goroutine to handle events, it consumes
+	// resources which should be freed manually. Since this is not possible
+	// through the player interface, we reuse players instead.
+	playerCache     map[string]*Player
+	playerCacheLock sync.Mutex
 }
 
 // Connect connects to Logitech SlimServer with an optional username and password.
@@ -58,6 +65,7 @@ func Connect(network, address string, username, password *string, webURL string)
 				return conn
 			},
 		},
+		playerCache: map[string]*Player{},
 	}
 
 	// Test connection.
@@ -147,8 +155,8 @@ func (serv *Server) requestAttrs(p0 string, pn ...string) (map[string]string, er
 	return attrs, nil
 }
 
-// Players retrieves a list of all players this server controls.
-func (serv *Server) Players() ([]*Player, error) {
+// PlayerNames implements the player.List interface.
+func (serv *Server) PlayerNames() ([]string, error) {
 	res, err := serv.request("player", "count", "?")
 	if err != nil {
 		return nil, err
@@ -157,14 +165,40 @@ func (serv *Server) Players() ([]*Player, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	players := make([]*Player, 0, numPlayers)
+	names := make([]string, 0, numPlayers)
 	for i := 0; i < int(numPlayers); i++ {
 		attrs, err := serv.requestAttrs("players", strconv.Itoa(i), "1")
 		if err != nil {
 			return nil, err
 		}
 		if attrs["isplayer"] != "1" {
+			continue
+		}
+		names = append(names, attrs["name"])
+	}
+	return names, nil
+}
+
+// PlayerByName implements the player.List interface.
+func (serv *Server) PlayerByName(name string) (player.Player, error) {
+	serv.playerCacheLock.Lock()
+	defer serv.playerCacheLock.Unlock()
+
+	pl, ok := serv.playerCache[name]
+	if ok {
+		return pl, nil
+	}
+
+	for i := 0; ; i++ {
+		attrs, err := serv.requestAttrs("players", strconv.Itoa(i), "1")
+		if err != nil {
+			return nil, err
+		}
+		curName, ok := attrs["name"]
+		if !ok {
+			break
+		}
+		if curName != name {
 			continue
 		}
 
@@ -178,9 +212,12 @@ func (serv *Server) Players() ([]*Player, error) {
 		pl.cachedLibrary = cache.NewCache(pl)
 		pl.playlist.Playlist = slimPlaylist{player: pl}
 		go pl.eventLoop() // Add a way to halt the eventLoop?
-		players = append(players, pl)
+
+		serv.playerCache[name] = pl
+		return pl, nil
 	}
-	return players, nil
+
+	return nil, fmt.Errorf("No such player: %q", name)
 }
 
 func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn ...string) ([]library.Track, error) {

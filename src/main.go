@@ -95,32 +95,6 @@ func (h assetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
 }
 
-type playerList interface {
-	ActivePlayers() []string
-
-	ActivePlayerByName(name string) player.Player
-}
-
-type todoPlayerList map[string]player.Player
-
-func (list todoPlayerList) ActivePlayers() []string {
-	names := make([]string, 0, len(list))
-	for name, pl := range list {
-		if pl.Available() {
-			names = append(names, name)
-		}
-	}
-	sort.Strings(names)
-	return names
-}
-
-func (list todoPlayerList) ActivePlayerByName(name string) player.Player {
-	if pl, ok := list[name]; ok && pl.Available() {
-		return pl
-	}
-	return nil
-}
-
 func main() {
 	configFile := flag.String("conf", confFile, "Path to the configuration file")
 	printVersion := flag.Bool("version", false, "Print version information and exit")
@@ -159,40 +133,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if len(players.ActivePlayers()) == 0 {
+	if names, err := players.PlayerNames(); err != nil {
+		log.Fatal(err)
+	} else if len(names) == 0 {
 		log.Fatal("No players configured or available")
+	} else {
+		for _, name := range names {
+			log.Printf("Found player %q", name)
+		}
 	}
 
 	if config.AutoQueue {
 		// TODO: Currently, only players which are active at startup attached
 		// to a queuer.
-		for _, name := range players.ActivePlayers() {
-			pl := players.ActivePlayerByName(name)
-			go func(pl player.Player, name string) {
-				filterEvents := filterdb.Listen()
-				defer filterdb.Unlisten(filterEvents)
-				for {
-					ft, _ := filterdb.Get("queuer")
-					if ft == nil {
-						// Load the default filter.
-						ft, _ = ruled.BuildFilter([]ruled.Rule{})
-						if err := filterdb.Set("queuer", ft); err != nil {
-							log.Printf("Error while autoqueueing for %q: %v", name, err)
-						}
-					}
-					cancel := make(chan struct{})
-					com := player.AutoAppend(pl, filter.RandomIterator(ft), cancel)
-					select {
-					case err := <-com:
-						if err != nil {
-							log.Printf("Error while autoqueueing for %q: %v", name, err)
-						}
-					case <-filterEvents:
-					}
-					close(cancel)
-				}
-			}(pl, name)
-		}
+		attachAutoQueuer(players, filterdb)
 	}
 
 	fullURLRoot, err := util.DetermineFullURLRoot(config.URLRoot, config.Address)
@@ -231,28 +185,58 @@ func main() {
 	log.Fatalf("Error running webserver: %v", server.ListenAndServe())
 }
 
-func connectToPlayers(config *config) (playerList, error) {
-	players := map[string]player.Player{}
-	addPlayer := func(pl player.Player, name string) error {
-		if match, _ := regexp.MatchString("^\\w+$", name); !match {
-			return fmt.Errorf("invalid player name: %q", name)
-		}
-		if _, ok := players[name]; ok {
-			return fmt.Errorf("duplicate player name: %q", name)
-		}
-		players[name] = pl
-		return nil
+func attachAutoQueuer(players player.List, filterdb *filter.DB) {
+	names, err := players.PlayerNames()
+	if err != nil {
+		log.Printf("error attaching autoqueuer: %v", err)
+		return
 	}
+	for _, name := range names {
+		pl, err := players.PlayerByName(name)
+		if err != nil {
+			log.Printf("Error attaching autoqueuer to player %q: %v", name, err)
+			continue
+		}
+		go func(pl player.Player, name string) {
+			filterEvents := filterdb.Listen()
+			defer filterdb.Unlisten(filterEvents)
+			for {
+				ft, _ := filterdb.Get("queuer")
+				if ft == nil {
+					// Load the default filter.
+					ft, _ = ruled.BuildFilter([]ruled.Rule{})
+					if err := filterdb.Set("queuer", ft); err != nil {
+						log.Printf("Error while autoqueueing for %q: %v", name, err)
+					}
+				}
+				cancel := make(chan struct{})
+				com := player.AutoAppend(pl, filter.RandomIterator(ft), cancel)
+				select {
+				case err := <-com:
+					if err != nil {
+						log.Printf("Error while autoqueueing for %q: %v", name, err)
+					}
+				case <-filterEvents:
+				}
+				close(cancel)
+			}
+		}(pl, name)
+	}
+}
 
+func connectToPlayers(config *config) (player.List, error) {
+	mpdPlayers := player.SimpleList{}
 	for _, mpdConf := range config.Mpd {
 		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
 		if err != nil {
 			return nil, fmt.Errorf("unable to connect to MPD: %v", err)
 		}
-		if err := addPlayer(mpdPlayer, mpdConf.Name); err != nil {
-			return nil, err
+		if _, ok := mpdPlayers[mpdConf.Name]; ok {
+			return nil, fmt.Errorf("duplicate player name: %q", mpdConf.Name)
 		}
+		mpdPlayers.Set(mpdConf.Name, mpdPlayer)
 	}
+
 	if config.SlimServer != nil {
 		slimServ, err := slimserver.Connect(
 			config.SlimServer.Network,
@@ -264,18 +248,10 @@ func connectToPlayers(config *config) (playerList, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to connect to SlimServer: %v", err)
 		}
-		players, err := slimServ.Players()
-		if err != nil {
-			return nil, err
-		}
-		for _, pl := range players {
-			if err := addPlayer(pl, pl.Name); err != nil {
-				return nil, err
-			}
-		}
+		return player.MultiList{mpdPlayers, slimServ}, nil
 	}
 
-	return todoPlayerList(players), nil
+	return mpdPlayers, nil
 }
 
 func getStaticAssets(files []string) map[string][]string {
@@ -301,8 +277,8 @@ func getStaticAssets(files []string) map[string][]string {
 	return static
 }
 
-func baseParamMap(config *config, players playerList) map[string]interface{} {
-	playerNames := players.ActivePlayers()
+func baseParamMap(config *config, players player.List) map[string]interface{} {
+	playerNames, _ := players.PlayerNames()
 	return map[string]interface{}{
 		"urlroot": config.URLRoot,
 		"version": version,

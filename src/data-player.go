@@ -104,14 +104,17 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, players playerList, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
+func htPlayerDataAttach(r *mux.Router, players player.List, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
 	mid := func(handleFunc func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
 		return func(res http.ResponseWriter, req *http.Request) {
 			htJSONContent(res, req)
 
 			name := mux.Vars(req)["player"]
-			pl := players.ActivePlayerByName(name)
-			if pl == nil {
+			pl, err := players.PlayerByName(name)
+			if err != nil {
+				writeError(req, res, fmt.Errorf("error looking up %q: %v", name, err))
+				return
+			} else if !pl.Available() {
 				writeError(req, res, fmt.Errorf("player %q is not active", name))
 				return
 			}
