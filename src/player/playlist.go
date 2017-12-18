@@ -1,5 +1,6 @@
 package player
 
+// A Playlist is a mutable ordered collection of tracks.
 type Playlist interface {
 	// Insert a bunch of tracks into the playlist starting at the specified
 	// position. Position -1 can be used to append to the end of the playlist.

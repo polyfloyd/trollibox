@@ -8,14 +8,23 @@ import (
 )
 
 const (
+	// PlayStateInvalid is the zero value, which is invalid.
 	PlayStateInvalid = PlayState("")
+	// PlayStatePlaying represents the state of a player that is playing a
+	// track.
 	PlayStatePlaying = PlayState("playing")
+	// PlayStateStopped represents the state of a player that is playing
+	// nothing.
 	PlayStateStopped = PlayState("stopped")
-	PlayStatePaused  = PlayState("paused")
+	// PlayStatePaused represents the state of a player has loaded a track but
+	// is not progressing playback.
+	PlayStatePaused = PlayState("paused")
 )
 
+// PlayState enumerates all 3 possible states of playback.
 type PlayState string
 
+// A Library is a database that is able to recall tracks that can be played.
 type Library interface {
 	// Returns all available tracks in the library.
 	Tracks() ([]Track, error)
@@ -70,7 +79,11 @@ func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
 	return tracks, nil
 }
 
+// The Player is the heart of Trollibox. This interface provides all common
+// actions that can be performed on a mediaplayer.
 type Player interface {
+	// It is common for backends to also have some kind of track library.
+	// Players should therefore implement the respective interface.
 	Library
 
 	// Gets the time offset into the currently playing track. 0 if no track is
