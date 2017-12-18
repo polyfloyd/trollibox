@@ -18,6 +18,7 @@ import (
 
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/netmedia"
 	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
@@ -29,7 +30,7 @@ var playerContextKey = playerContextType{}
 
 type playerContextType struct{}
 
-func trackJSON(tr *player.Track, meta *player.TrackMeta) interface{} {
+func trackJSON(tr *library.Track, meta *player.TrackMeta) interface{} {
 	if tr == nil {
 		return nil
 	}
@@ -63,7 +64,7 @@ func trackJSON(tr *player.Track, meta *player.TrackMeta) interface{} {
 	return struc
 }
 
-func trackJSONList(inList []player.Track) (outList []interface{}) {
+func trackJSONList(inList []library.Track) (outList []interface{}) {
 	outList = make([]interface{}, len(inList))
 	for i, tr := range inList {
 		outList[i] = trackJSON(&tr, nil)
@@ -71,13 +72,13 @@ func trackJSONList(inList []player.Track) (outList []interface{}) {
 	return
 }
 
-func plTrackJSONList(inList []player.Track, meta []player.TrackMeta, libs []player.Library, trackIndex int) ([]interface{}, error) {
+func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []library.Library, trackIndex int) ([]interface{}, error) {
 	outList := make([]interface{}, len(inList))
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
 		uris[i] = tr.URI
 	}
-	tracks, err := player.AllTrackInfo(libs, uris...)
+	tracks, err := library.AllTrackInfo(libs, uris...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +121,7 @@ func htPlayerDataAttach(r *mux.Router, players playerList, streamdb *stream.DB, 
 		}
 	}
 
-	libs := []player.Library{streamdb, rawServer}
+	libs := []library.Library{streamdb, rawServer}
 	r.Path("/playlist").Methods("GET").HandlerFunc(mid(htPlayerGetPlaylist(libs)))
 	r.Path("/playlist").Methods("PUT").HandlerFunc(mid(htPlayerPlaylistInsert()))
 	r.Path("/playlist").Methods("PATCH").HandlerFunc(mid(htPlayerPlaylistMove()))
@@ -292,7 +293,7 @@ func htPlayerSetVolume() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func htPlayerGetPlaylist(libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
+func htPlayerGetPlaylist(libs []library.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
 		tracks, err := pl.Playlist().Tracks()
@@ -346,7 +347,7 @@ func htPlayerPlaylistInsert() func(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		tracks := make([]player.Track, len(data.Tracks))
+		tracks := make([]library.Track, len(data.Tracks))
 		for i, uri := range data.Tracks {
 			tracks[i].URI = uri
 		}
@@ -466,7 +467,7 @@ func htPlayerTracks() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func htTrackArt(libs []player.Library) func(res http.ResponseWriter, req *http.Request) {
+func htTrackArt(libs []library.Library) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
 		uri := req.FormValue("track")
@@ -522,7 +523,7 @@ func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func removeRawTrack(pl player.Player, track player.Track, rawServer *raw.Server) {
+func removeRawTrack(pl player.Player, track library.Track, rawServer *raw.Server) {
 	events := pl.Events().Listen()
 	defer pl.Events().Unlisten(events)
 outer:
@@ -573,7 +574,7 @@ func htRawTrackAdd(rawServer *raw.Server) func(res http.ResponseWriter, req *htt
 			// the server.
 			go removeRawTrack(pl, track, rawServer)
 
-			err = pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
+			err = pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
 				{QueuedBy: "user"},
 			})
 			if err != nil {
@@ -609,7 +610,7 @@ func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req
 		// the server.
 		go removeRawTrack(pl, track, netServer.RawServer())
 
-		err := pl.Playlist().InsertWithMeta(-1, []player.Track{track}, []player.TrackMeta{
+		err := pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
 			{QueuedBy: "user"},
 		})
 		if err != nil {

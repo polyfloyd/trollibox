@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 func TestFilterTracks(t *testing.T) {
-	tracks := []player.Track{
+	tracks := []library.Track{
 		{
 			Artist: "The B-Trees",
 			Title:  "Lucy in the Cloud with Sine Waves",
@@ -27,21 +27,21 @@ func TestFilterTracks(t *testing.T) {
 		},
 	}
 
-	results := Tracks(Func(func(track player.Track) (SearchResult, bool) {
+	results := Tracks(Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, true
 	}), tracks)
 	if len(results) != 3 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(Func(func(track player.Track) (SearchResult, bool) {
+	results = Tracks(Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, false
 	}), tracks)
 	if len(results) != 0 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(Func(func(track player.Track) (SearchResult, bool) {
+	results = Tracks(Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, strings.Contains(track.Artist, "Test")
 	}), tracks)
 	if len(results) != 1 {
@@ -75,20 +75,20 @@ func TestNumMatches(t *testing.T) {
 func TestMatchSorting(t *testing.T) {
 	results := []SearchResult{
 		{
-			Track: player.Track{URI: "bar"},
+			Track: library.Track{URI: "bar"},
 			Matches: map[string][]SearchMatch{
 				"artist": {{0, 1}, {2, 3}},
 				"title":  {{0, 1}, {2, 3}},
 			},
 		},
 		{
-			Track: player.Track{URI: "baz"},
+			Track: library.Track{URI: "baz"},
 			Matches: map[string][]SearchMatch{
 				"artist": {{0, 1}, {2, 3}},
 			},
 		},
 		{
-			Track: player.Track{URI: "foo"},
+			Track: library.Track{URI: "foo"},
 			Matches: map[string][]SearchMatch{
 				"artist": {{0, 1}, {2, 3}},
 				"title":  {{0, 1}, {2, 3}},

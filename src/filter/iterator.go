@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"
 )
 
@@ -21,15 +22,15 @@ func RandomIterator(filter Filter) player.TrackIterator {
 	}
 }
 
-func (it randFilterIterator) NextTrack(pl player.Player) (player.Track, player.TrackMeta, bool) {
+func (it randFilterIterator) NextTrack(pl player.Player) (library.Track, player.TrackMeta, bool) {
 	tracks, err := pl.Tracks()
 	if err != nil {
-		return player.Track{}, player.TrackMeta{}, false
+		return library.Track{}, player.TrackMeta{}, false
 	}
 
 	results := Tracks(it.filter, tracks)
 	if len(results) == 0 {
-		return player.Track{}, player.TrackMeta{}, false
+		return library.Track{}, player.TrackMeta{}, false
 	}
 	return results[it.rand.Intn(len(results))].Track, player.TrackMeta{QueuedBy: "system"}, true
 }

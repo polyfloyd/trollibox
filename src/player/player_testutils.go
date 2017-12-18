@@ -2,7 +2,6 @@ package player
 
 import (
 	"fmt"
-	"io"
 	"testing"
 	"time"
 )
@@ -248,40 +247,4 @@ func testVolumeEvent(t *testing.T, pl Player) {
 			t.Fatal(err)
 		}
 	})
-}
-
-// TestLibraryImplementation tests the implementation of the player.Library interface.
-func TestLibraryImplementation(t *testing.T, lib Library) {
-	t.Run("tracks", func(t *testing.T) {
-	})
-	t.Run("trackinfo", func(t *testing.T) {
-	})
-	t.Run("trackart", func(t *testing.T) {
-	})
-}
-
-// DummyLibrary is used for testing.
-type DummyLibrary []Track
-
-// Tracks implements the player.Library interface.
-func (lib *DummyLibrary) Tracks() ([]Track, error) {
-	return *lib, nil
-}
-
-// TrackInfo implements the player.Library interface.
-func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
-	tracks := make([]Track, len(uris))
-	for i, uri := range uris {
-		for _, track := range *lib {
-			if uri == track.URI {
-				tracks[i] = track
-			}
-		}
-	}
-	return tracks, nil
-}
-
-// TrackArt implements the player.Library interface.
-func (lib *DummyLibrary) TrackArt(uri string) (image io.ReadCloser, mime string) {
-	return nil, ""
 }

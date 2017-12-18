@@ -2,10 +2,12 @@ package player
 
 import (
 	"testing"
+
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 func TestDummyPlaylistImplementation(t *testing.T) {
-	tracks := []Track{
+	tracks := []library.Track{
 		{
 			URI:    "track1",
 			Artist: "Artist 1",

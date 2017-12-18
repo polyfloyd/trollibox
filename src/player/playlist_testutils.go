@@ -3,10 +3,12 @@ package player
 import (
 	"sort"
 	"testing"
+
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 // TestPlaylistImplementation tests the implementation of the playerPlaylist interface.
-func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []Track) {
+func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []library.Track) {
 	clear := func() {
 		if length, err := ls.Len(); err != nil {
 			t.Fatal(err)
@@ -42,7 +44,7 @@ func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []Track) {
 	})
 }
 
-func testPlaylistLen(t *testing.T, ls Playlist, testTracks []Track) {
+func testPlaylistLen(t *testing.T, ls Playlist, testTracks []library.Track) {
 	if l, err := ls.Len(); err != nil {
 		t.Fatal(err)
 	} else if l != 0 {
@@ -58,7 +60,7 @@ func testPlaylistLen(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 }
 
-func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
+func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []library.Track) {
 	if err := ls.Insert(0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +89,7 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 }
 
-func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []Track) {
+func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []library.Track) {
 	if err := ls.Insert(0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +105,7 @@ func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 }
 
-func testPlaylistMove(t *testing.T, ls Playlist, testTracks []Track) {
+func testPlaylistMove(t *testing.T, ls Playlist, testTracks []library.Track) {
 	if err := ls.Insert(-1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
@@ -126,7 +128,7 @@ func testPlaylistMove(t *testing.T, ls Playlist, testTracks []Track) {
 	}
 }
 
-func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []Track) {
+func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []library.Track) {
 	if err := ls.Insert(-1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
@@ -145,10 +147,10 @@ func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []Track) {
 }
 
 // DummyPlaylist is used for testing.
-type DummyPlaylist []Track
+type DummyPlaylist []library.Track
 
 // Insert implements the player.Playlist interface.
-func (pl *DummyPlaylist) Insert(pos int, tracks ...Track) error {
+func (pl *DummyPlaylist) Insert(pos int, tracks ...library.Track) error {
 	if pos == -1 {
 		pos, _ = pl.Len()
 	}
@@ -178,7 +180,7 @@ func (pl *DummyPlaylist) Remove(pos ...int) error {
 }
 
 // Tracks implements the player.Playlist interface.
-func (pl *DummyPlaylist) Tracks() ([]Track, error) {
+func (pl *DummyPlaylist) Tracks() ([]library.Track, error) {
 	return *pl, nil
 }
 

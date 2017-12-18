@@ -1,10 +1,14 @@
 package player
 
+import (
+	"github.com/polyfloyd/trollibox/src/library"
+)
+
 // A Playlist is a mutable ordered collection of tracks.
 type Playlist interface {
 	// Insert a bunch of tracks into the playlist starting at the specified
 	// position. Position -1 can be used to append to the end of the playlist.
-	Insert(pos int, tracks ...Track) error
+	Insert(pos int, tracks ...library.Track) error
 
 	// Moves a track from position A to B. An error is returned if at least one
 	// of the positions is out of range.
@@ -14,7 +18,7 @@ type Playlist interface {
 	Remove(pos ...int) error
 
 	// Returns all tracks in the playlist.
-	Tracks() ([]Track, error)
+	Tracks() ([]library.Track, error)
 
 	// Len() returns the total number of tracks in the playlist. It's much the
 	// same as getting the length of the slice returned by Tracks(), but
@@ -27,7 +31,7 @@ type Playlist interface {
 type MetaPlaylist interface {
 	Playlist
 
-	InsertWithMeta(pos int, tracks []Track, meta []TrackMeta) error
+	InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error
 
 	Meta() ([]TrackMeta, error)
 }
@@ -39,7 +43,7 @@ type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end. The player that is requesting the next
 	// track is specified.
-	NextTrack(pl Player) (Track, TrackMeta, bool)
+	NextTrack(pl Player) (library.Track, TrackMeta, bool)
 }
 
 // AutoAppend attaches a listener to the specified player. The iterator is used
@@ -80,7 +84,7 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 				if !ok {
 					break outer
 				}
-				if err := plist.InsertWithMeta(-1, []Track{track}, []TrackMeta{meta}); err != nil {
+				if err := plist.InsertWithMeta(-1, []library.Track{track}, []TrackMeta{meta}); err != nil {
 					errc <- err
 					return
 				}

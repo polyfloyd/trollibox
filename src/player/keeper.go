@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 // TrackMeta contains metadata for a track in a playlist.
@@ -23,7 +25,7 @@ type TrackMeta struct {
 type PlaylistMetaKeeper struct {
 	Playlist
 
-	tracks   []Track
+	tracks   []library.Track
 	meta     []TrackMeta
 	metaLock sync.Mutex
 }
@@ -44,7 +46,7 @@ func (kpr *PlaylistMetaKeeper) update() error {
 		}
 	}
 
-	newPlist := make([]Track, len(tracks))
+	newPlist := make([]library.Track, len(tracks))
 	newMeta := make([]TrackMeta, len(tracks))
 	found := map[string]int{}
 outer:
@@ -71,7 +73,7 @@ outer:
 }
 
 // Insert implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Insert(pos int, tracks ...Track) error {
+func (kpr *PlaylistMetaKeeper) Insert(pos int, tracks ...library.Track) error {
 	meta := make([]TrackMeta, len(tracks))
 	for i := range tracks {
 		meta[i] = TrackMeta{QueuedBy: "user"}
@@ -101,7 +103,7 @@ func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
 	}
 	track := kpr.tracks[fromPos]
 	kpr.tracks = append(kpr.tracks[:fromPos], kpr.tracks[fromPos+1:]...)
-	kpr.tracks = append(kpr.tracks[:toPos+delta], append([]Track{track}, kpr.tracks[toPos+delta:]...)...)
+	kpr.tracks = append(kpr.tracks[:toPos+delta], append([]library.Track{track}, kpr.tracks[toPos+delta:]...)...)
 	meta := kpr.meta[fromPos]
 	kpr.meta = append(kpr.meta[:fromPos], kpr.meta[fromPos+1:]...)
 	kpr.meta = append(kpr.meta[:toPos+delta], append([]TrackMeta{meta}, kpr.meta[toPos+delta:]...)...)
@@ -134,7 +136,7 @@ func (kpr *PlaylistMetaKeeper) Remove(positions ...int) error {
 }
 
 // Tracks implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Tracks() ([]Track, error) {
+func (kpr *PlaylistMetaKeeper) Tracks() ([]library.Track, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if err := kpr.update(); err != nil {
@@ -147,7 +149,7 @@ func (kpr *PlaylistMetaKeeper) Tracks() ([]Track, error) {
 // metadata for all tracks inserted.
 //
 // The tracks and meta slices should have the same length.
-func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []Track, meta []TrackMeta) error {
+func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error {
 	if len(tracks) != len(meta) {
 		return fmt.Errorf("The number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
 	}

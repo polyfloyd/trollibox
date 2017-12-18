@@ -15,6 +15,7 @@ import (
 
 	"github.com/fhs/gompd/mpd"
 
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -171,9 +172,9 @@ func (pl *Player) mainLoop() {
 	}
 }
 
-// Tracks implements the player.Library interface.
-func (pl *Player) Tracks() ([]player.Track, error) {
-	var tracks []player.Track
+// Tracks implements the library.Library interface.
+func (pl *Player) Tracks() ([]library.Track, error) {
+	var tracks []library.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.ListAllInfo("/")
 		if err != nil {
@@ -181,7 +182,7 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 		}
 
 		numDirs := 0
-		tracks = make([]player.Track, len(songs))
+		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
 			if _, ok := song["directory"]; ok {
 				numDirs++
@@ -195,8 +196,8 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	return tracks, err
 }
 
-// TrackInfo implements the player.Library interface.
-func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
+// TrackInfo implements the library.Library interface.
+func (pl *Player) TrackInfo(identities ...string) ([]library.Track, error) {
 	currentTrackURI := ""
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		current, err := mpdc.CurrentSong()
@@ -212,7 +213,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 		return nil, err
 	}
 
-	var tracks []player.Track
+	var tracks []library.Track
 	err = pl.withMpd(func(mpdc *mpd.Client) error {
 		songs := make([]mpd.Attrs, len(identities))
 		for i, id := range identities {
@@ -236,7 +237,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]player.Track, error) {
 		}
 
 		numDirs := 0
-		tracks = make([]player.Track, len(songs))
+		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
 			if _, ok := song["directory"]; ok {
 				numDirs++
@@ -458,7 +459,7 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 	return &pl.playlist
 }
 
-// TrackArt implements the player.Library interface.
+// TrackArt implements the library.Library interface.
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	pl.withMpd(func(mpdc *mpd.Client) error {
 		id := uriToMpd(track)
@@ -504,7 +505,7 @@ type mpdPlaylist struct {
 	player *Player
 }
 
-func (plist mpdPlaylist) Insert(pos int, tracks ...player.Track) error {
+func (plist mpdPlaylist) Insert(pos int, tracks ...library.Track) error {
 	return plist.player.withMpd(func(mpdc *mpd.Client) error {
 		if pos == -1 {
 			for _, track := range tracks {
@@ -547,14 +548,14 @@ func (plist mpdPlaylist) Remove(positions ...int) error {
 	})
 }
 
-func (plist mpdPlaylist) Tracks() ([]player.Track, error) {
-	var tracks []player.Track
+func (plist mpdPlaylist) Tracks() ([]library.Track, error) {
+	var tracks []library.Track
 	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistInfo(-1, -1)
 		if err != nil {
 			return err
 		}
-		tracks = make([]player.Track, len(songs))
+		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
 			if err := trackFromMpdSong(mpdc, &song, &tracks[i]); err != nil {
 				return err
@@ -590,7 +591,7 @@ func playlistLength(mpdc *mpd.Client) (int, bool) {
 // ListAllInfo() and ListInfo() look very much the same but they don't return
 // the same thing. Who the fuck thought it was a good idea to mix capitals and
 // lowercase?!
-func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) error {
+func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) error {
 	if _, ok := (*song)["directory"]; ok {
 		return fmt.Errorf("Tried to read a directory as local file")
 	}
@@ -616,7 +617,7 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *player.Track) er
 		track.Duration = time.Duration(duration) * time.Second
 	}
 
-	player.InterpolateMissingFields(track)
+	library.InterpolateMissingFields(track)
 	return nil
 }
 

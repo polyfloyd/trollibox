@@ -5,7 +5,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 func init() {
@@ -19,7 +19,7 @@ type dummyFilter struct {
 	Bar string
 }
 
-func (dummyFilter) Filter(player.Track) (SearchResult, bool) {
+func (dummyFilter) Filter(library.Track) (SearchResult, bool) {
 	return SearchResult{}, true
 }
 

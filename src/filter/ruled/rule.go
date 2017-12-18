@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 const (
@@ -48,7 +48,7 @@ type Rule struct {
 }
 
 // MatchFunc Creates a function that matches a track based on this rules criteria.
-func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
+func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
 	if rule.Attribute == "" {
 		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", rule)
 	}
@@ -69,7 +69,7 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 
 	// Prevent type errors further down.
 	typeVal := reflect.ValueOf(rule.Value).Kind()
-	typeTrack := reflect.ValueOf((&player.Track{}).Attr(rule.Attribute)).Kind()
+	typeTrack := reflect.ValueOf((&library.Track{}).Attr(rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int64) {
 		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
@@ -79,15 +79,15 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 		durVal := time.Duration(float64Val) * time.Second
 		switch rule.Operation {
 		case opEquals:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Duration == durVal)
 			}, nil
 		case opGreater:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Duration > durVal)
 			}, nil
 		case opLess:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Duration < durVal)
 			}, nil
 		}
@@ -95,19 +95,19 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
 		case opContains:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(strings.Contains(track.Attr(rule.Attribute).(string), strVal))
 			}, nil
 		case opEquals:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) == strVal)
 			}, nil
 		case opGreater:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) > strVal)
 			}, nil
 		case opLess:
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(track.Attr(rule.Attribute).(string) < strVal)
 			}, nil
 		case opMatches:
@@ -115,7 +115,7 @@ func (rule Rule) MatchFunc() (func(player.Track) bool, error) {
 			if err != nil {
 				return nil, err
 			}
-			return func(track player.Track) bool {
+			return func(track library.Track) bool {
 				return inv(pat.MatchString(track.Attr(rule.Attribute).(string)))
 			}, nil
 		}
@@ -147,7 +147,7 @@ func (err RuleError) Error() string {
 type nojsonRuleFilter struct {
 	Rules []Rule `json:"rules"`
 
-	funcs []func(player.Track) bool
+	funcs []func(library.Track) bool
 }
 
 // A RuleFilter is a compiled set of rules.
@@ -167,7 +167,7 @@ func BuildFilter(rules []Rule) (filter.Filter, error) {
 }
 
 // Filter implements the filter.Filter interface.
-func (ft RuleFilter) Filter(track player.Track) (filter.SearchResult, bool) {
+func (ft RuleFilter) Filter(track library.Track) (filter.SearchResult, bool) {
 	if len(ft.funcs) == 0 {
 		// No rules, match everything.
 		return filter.SearchResult{Track: track}, true
@@ -191,8 +191,8 @@ func (ft *RuleFilter) UnmarshalJSON(data []byte) error {
 	return err
 }
 
-func compileFuncs(rules []Rule) ([]func(player.Track) bool, error) {
-	funcs := make([]func(player.Track) bool, len(rules))
+func compileFuncs(rules []Rule) ([]func(library.Track) bool, error) {
+	funcs := make([]func(library.Track) bool, len(rules))
 	for i, rule := range rules {
 		var err error
 		if funcs[i], err = rule.MatchFunc(); err != nil {

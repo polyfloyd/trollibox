@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 func TestCompileQuery(t *testing.T) {
@@ -45,7 +45,7 @@ func TestFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, ok := query.Filter(player.Track{
+	result, ok := query.Filter(library.Track{
 		Artist: "asdffootest123",
 	})
 	if !ok {
@@ -54,7 +54,7 @@ func TestFilter(t *testing.T) {
 		t.Fatalf("Unexpected match indices: %#v", m)
 	}
 
-	result, ok = query.Filter(player.Track{
+	result, ok = query.Filter(library.Track{
 		Artist: "FOO",
 	})
 	if !ok {
@@ -67,7 +67,7 @@ func TestFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, ok = query.Filter(player.Track{
+	result, ok = query.Filter(library.Track{
 		Artist: "foo bar baz",
 	})
 	if !ok {
@@ -99,7 +99,7 @@ func TestJSON(t *testing.T) {
 		t.Fatalf("Incorrect Untagged after decoding: %v", decodedQuery.Untagged)
 	}
 
-	result, ok := decodedQuery.Filter(player.Track{
+	result, ok := decodedQuery.Filter(library.Track{
 		Artist: "baz",
 		Title:  "foo",
 	})

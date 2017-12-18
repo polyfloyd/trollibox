@@ -16,7 +16,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -52,7 +52,7 @@ func LoadM3U(filename string) (*Stream, error) {
 		return nil, err
 	}
 	if firstLine != "#EXTM3U\n" {
-		return nil, fmt.Errorf("Error loading stream from M3U: first line is not \"#EXTM3U\"")
+		return nil, fmt.Errorf("Error loading stream from M3U: expected \"#EXTM3U\" as first line, got %q", firstLine)
 	}
 
 	for {
@@ -105,8 +105,8 @@ func (stream *Stream) EncodeM3U(out io.Writer) error {
 	return m3uTemplate.Execute(out, stream)
 }
 
-func (stream *Stream) PlayerTrack() player.Track {
-	return player.Track{
+func (stream *Stream) PlayerTrack() library.Track {
+	return library.Track{
 		URI:    stream.URL,
 		Title:  stream.Title,
 		HasArt: stream.ArtURI != "",
@@ -204,22 +204,22 @@ func (db *DB) StoreStream(stream *Stream) error {
 	return stream.EncodeM3U(fd)
 }
 
-// Tracks implements the player.Library interface.
-func (db *DB) Tracks() ([]player.Track, error) {
+// Tracks implements the library.Library interface.
+func (db *DB) Tracks() ([]library.Track, error) {
 	streams, err := db.Streams()
 	if err != nil {
 		return nil, err
 	}
-	tracks := make([]player.Track, len(streams))
+	tracks := make([]library.Track, len(streams))
 	for i, stream := range streams {
 		tracks[i] = stream.PlayerTrack()
 	}
 	return tracks, nil
 }
 
-// TrackInfo implements the player.Library interface.
-func (db *DB) TrackInfo(uris ...string) ([]player.Track, error) {
-	tracks := make([]player.Track, len(uris))
+// TrackInfo implements the library.Library interface.
+func (db *DB) TrackInfo(uris ...string) ([]library.Track, error) {
+	tracks := make([]library.Track, len(uris))
 	streams, err := db.Streams()
 	if err != nil {
 		return nil, err
@@ -234,7 +234,7 @@ func (db *DB) TrackInfo(uris ...string) ([]player.Track, error) {
 	return tracks, nil
 }
 
-// TrackArt implements the player.Library interface.
+// TrackArt implements the library.Library interface.
 func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
 	stream, err := db.streamByURL(track)
 	if stream == nil || err != nil {

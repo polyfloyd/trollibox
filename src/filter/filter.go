@@ -4,21 +4,21 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 // The Filter interface implements a method for filtering tracks.
 type Filter interface {
 	// Checks whether the track passes the filter's criteria.
-	Filter(track player.Track) (SearchResult, bool)
+	Filter(track library.Track) (SearchResult, bool)
 }
 
 // Func adds an implementation of the Filter interface to a function with a
 // similar signature.
-type Func func(player.Track) (SearchResult, bool)
+type Func func(library.Track) (SearchResult, bool)
 
 // Filter implements the filter.Filter interface.
-func (ff Func) Filter(track player.Track) (SearchResult, bool) {
+func (ff Func) Filter(track library.Track) (SearchResult, bool) {
 	return ff(track)
 }
 
@@ -32,7 +32,7 @@ type SearchMatch struct {
 // A SearchResult is a track that matched some Filter's criteria along with
 // what properties were matched.
 type SearchResult struct {
-	player.Track
+	library.Track
 	Matches map[string][]SearchMatch
 }
 
@@ -65,8 +65,8 @@ func (l ByNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumM
 
 // Tracks filters a list of tracks by applying the specified filter to all
 // tracks.
-func Tracks(filter Filter, tracks []player.Track) []SearchResult {
-	trackStream := make(chan player.Track)
+func Tracks(filter Filter, tracks []library.Track) []SearchResult {
+	trackStream := make(chan library.Track)
 	matchStream := make(chan SearchResult)
 	go func() {
 		defer close(trackStream)

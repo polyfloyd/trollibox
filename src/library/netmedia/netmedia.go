@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os/exec"
 
-	raw "github.com/polyfloyd/trollibox/src/library/raw"
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -29,13 +29,13 @@ func NewServer(rawServer *raw.Server) (*Server, error) {
 	}, nil
 }
 
-func (sv *Server) Download(url string) (player.Track, <-chan error) {
+func (sv *Server) Download(url string) (library.Track, <-chan error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	info, err := readMediaInfo(ctx, url)
 	if err != nil {
-		return player.Track{}, util.ErrorAsChannel(err)
+		return library.Track{}, util.ErrorAsChannel(err)
 	}
 
 	download := exec.CommandContext(ctx,
@@ -55,11 +55,11 @@ func (sv *Server) Download(url string) (player.Track, <-chan error) {
 	convOut, _ := conversion.StdoutPipe()
 
 	if err := download.Start(); err != nil {
-		return player.Track{}, util.ErrorAsChannel(err)
+		return library.Track{}, util.ErrorAsChannel(err)
 	}
 	go download.Wait()
 	if err := conversion.Start(); err != nil {
-		return player.Track{}, util.ErrorAsChannel(err)
+		return library.Track{}, util.ErrorAsChannel(err)
 	}
 	go conversion.Wait()
 

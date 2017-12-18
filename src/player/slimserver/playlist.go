@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 type userPlaylist struct {
@@ -12,7 +12,7 @@ type userPlaylist struct {
 	id     string
 }
 
-func (plist userPlaylist) Insert(pos int, tracks ...player.Track) error {
+func (plist userPlaylist) Insert(pos int, tracks ...library.Track) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
@@ -24,7 +24,7 @@ func (plist userPlaylist) Remove(positions ...int) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
-func (plist userPlaylist) Tracks() ([]player.Track, error) {
+func (plist userPlaylist) Tracks() ([]library.Track, error) {
 	numTracks, err := plist.Len()
 	if err != nil {
 		return nil, err

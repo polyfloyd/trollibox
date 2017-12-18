@@ -2,10 +2,12 @@ package player
 
 import (
 	"testing"
+
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 func TestMetaKeeperPlaylistImplementation(t *testing.T) {
-	tracks := []Track{
+	tracks := []library.Track{
 		{
 			URI:    "track1",
 			Artist: "Artist 1",
@@ -28,11 +30,11 @@ func TestMetaKeeperPlaylistImplementation(t *testing.T) {
 
 func TestMetaKeeperInsert(t *testing.T) {
 	metapl := PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
-	if err := metapl.InsertWithMeta(0, []Track{{}, {}}, []TrackMeta{{}}); err == nil {
+	if err := metapl.InsertWithMeta(0, []library.Track{{}, {}}, []TrackMeta{{}}); err == nil {
 		t.Fatalf("The Metakeeper should not accept track and meta slices which lengths do not match")
 	}
 
-	if err := metapl.InsertWithMeta(0, []Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
+	if err := metapl.InsertWithMeta(0, []library.Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
 		t.Fatal(err)
 	}
 	meta, err := metapl.Meta()

@@ -5,7 +5,7 @@ import (
 
 	"github.com/fhs/gompd/mpd"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 type userPlaylist struct {
@@ -13,7 +13,7 @@ type userPlaylist struct {
 	name   string
 }
 
-func (plist userPlaylist) Insert(pos int, tracks ...player.Track) error {
+func (plist userPlaylist) Insert(pos int, tracks ...library.Track) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
@@ -25,14 +25,14 @@ func (plist userPlaylist) Remove(positions ...int) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
-func (plist userPlaylist) Tracks() ([]player.Track, error) {
-	var tracks []player.Track
+func (plist userPlaylist) Tracks() ([]library.Track, error) {
+	var tracks []library.Track
 	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistContents(plist.name)
 		if err != nil {
 			return err
 		}
-		tracks = make([]player.Track, len(songs))
+		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
 			if err := trackFromMpdSong(mpdc, &song, &tracks[i]); err != nil {
 				return err

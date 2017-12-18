@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -100,8 +101,8 @@ func (pl *Player) eventLoop() {
 	}
 }
 
-// Tracks implements the player.Library interface.
-func (pl *Player) Tracks() ([]player.Track, error) {
+// Tracks implements the library.Library interface.
+func (pl *Player) Tracks() ([]library.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err
@@ -110,8 +111,8 @@ func (pl *Player) Tracks() ([]player.Track, error) {
 	return pl.Serv.decodeTracks("id", numTracks, "songs", "0", strconv.Itoa(numTracks), "tags:"+trackTags)
 }
 
-// TrackInfo implements the player.Library interface.
-func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
+// TrackInfo implements the library.Library interface.
+func (pl *Player) TrackInfo(uris ...string) ([]library.Track, error) {
 	res, err := pl.Serv.request(pl.ID, "path", "?")
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 		currentTrackURI, _ = url.QueryUnescape(res[2])
 	}
 
-	tracks := make([]player.Track, len(uris))
+	tracks := make([]library.Track, len(uris))
 	for i, uri := range uris {
 		isHTTP, _ := regexp.MatchString("https?:\\/\\/", uri)
 		if isHTTP && currentTrackURI == uri {
@@ -136,7 +137,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 			if err == nil && len(titleRes) >= 3 {
 				tr.Title = titleRes[2]
 			}
-			player.InterpolateMissingFields(tr)
+			library.InterpolateMissingFields(tr)
 
 		} else if !isHTTP {
 			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:"+trackTags, "url:"+encodeURI(uri))
@@ -151,7 +152,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]player.Track, error) {
 			for k, v := range attrs {
 				setSlimAttr(pl.Serv, &tracks[i], k, v)
 			}
-			player.InterpolateMissingFields(&tracks[i])
+			library.InterpolateMissingFields(&tracks[i])
 		}
 	}
 	return tracks, nil
@@ -334,7 +335,7 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 	return &pl.playlist
 }
 
-// TrackArt implements the player.Library interface.
+// TrackArt implements the library.Library interface.
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeURI(track))
 	if err != nil {
@@ -363,7 +364,7 @@ type slimPlaylist struct {
 	player *Player
 }
 
-func (plist slimPlaylist) Insert(pos int, tracks ...player.Track) error {
+func (plist slimPlaylist) Insert(pos int, tracks ...library.Track) error {
 	originalLength, err := plist.Len()
 	if err != nil {
 		return err
@@ -404,7 +405,7 @@ func (plist slimPlaylist) Remove(positions ...int) error {
 	return nil
 }
 
-func (plist slimPlaylist) Tracks() ([]player.Track, error) {
+func (plist slimPlaylist) Tracks() ([]library.Track, error) {
 	res, err := plist.player.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err

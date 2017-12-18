@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -17,8 +18,8 @@ type Cache struct {
 	util.Emitter
 
 	lock   sync.RWMutex
-	tracks []player.Track
-	index  map[string]*player.Track
+	tracks []library.Track
+	index  map[string]*library.Track
 	err    error
 }
 
@@ -30,7 +31,7 @@ func NewCache(pl player.Player) *Cache {
 }
 
 // Tracks implements the player.Library interface.
-func (cache *Cache) Tracks() ([]player.Track, error) {
+func (cache *Cache) Tracks() ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -47,7 +48,7 @@ func (cache *Cache) Tracks() ([]player.Track, error) {
 }
 
 // TrackInfo implements the player.Library interface.
-func (cache *Cache) TrackInfo(uris ...string) ([]player.Track, error) {
+func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -64,7 +65,7 @@ func (cache *Cache) TrackInfo(uris ...string) ([]player.Track, error) {
 		return nil, cache.err
 	}
 
-	results := make([]player.Track, len(uris))
+	results := make([]library.Track, len(uris))
 	for i, uri := range uris {
 		if track, ok := cache.index[uri]; ok {
 			results[i] = *track
@@ -112,7 +113,7 @@ func (cache *Cache) reloadTracks() {
 		return
 	}
 
-	cache.tracks, cache.index = tracks, map[string]*player.Track{}
+	cache.tracks, cache.index = tracks, map[string]*library.Track{}
 	for i, track := range cache.tracks {
 		cache.index[track.URI] = &cache.tracks[i]
 	}

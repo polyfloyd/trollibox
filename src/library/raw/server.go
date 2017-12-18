@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -26,8 +26,8 @@ type rawTrack struct {
 	imageMime string
 }
 
-func (rt *rawTrack) track() player.Track {
-	return player.Track{
+func (rt *rawTrack) track() library.Track {
+	return library.Track{
 		URI:    fmt.Sprintf("%s?track=%d", rt.server.urlRoot, rt.id),
 		Title:  rt.name,
 		HasArt: rt.image != nil,
@@ -64,11 +64,11 @@ func (sv *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	io.Copy(res, r)
 }
 
-func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, imageMime string) (player.Track, <-chan error) {
+func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, imageMime string) (library.Track, <-chan error) {
 	bbuf, err := util.NewBlockingBuffer()
 	if err != nil {
 		inputFile.Close()
-		return player.Track{}, util.ErrorAsChannel(fmt.Errorf("Error adding raw track: %v", err))
+		return library.Track{}, util.ErrorAsChannel(fmt.Errorf("Error adding raw track: %v", err))
 	}
 	track := rawTrack{
 		server:    sv,
@@ -99,22 +99,22 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	return track.track(), errc
 }
 
-func (sv *Server) Tracks() ([]player.Track, error) {
+func (sv *Server) Tracks() ([]library.Track, error) {
 	sv.tracksLock.RLock()
 	defer sv.tracksLock.RUnlock()
 
-	tracks := make([]player.Track, 0, len(sv.tracks))
+	tracks := make([]library.Track, 0, len(sv.tracks))
 	for _, rt := range sv.tracks {
 		tracks = append(tracks, rt.track())
 	}
 	return tracks, nil
 }
 
-func (sv *Server) TrackInfo(uris ...string) ([]player.Track, error) {
+func (sv *Server) TrackInfo(uris ...string) ([]library.Track, error) {
 	sv.tracksLock.RLock()
 	defer sv.tracksLock.RUnlock()
 
-	tracks := make([]player.Track, len(uris))
+	tracks := make([]library.Track, len(uris))
 	for i, uri := range uris {
 		if rt, ok := sv.tracks[idFromUrl(uri)]; ok {
 			tracks[i] = rt.track()

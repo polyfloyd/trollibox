@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -181,9 +181,9 @@ func (serv *Server) Players() ([]*Player, error) {
 	return players, nil
 }
 
-func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn ...string) ([]player.Track, error) {
+func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn ...string) ([]library.Track, error) {
 	if numTracks == 0 {
-		return []player.Track{}, nil
+		return []library.Track{}, nil
 	}
 
 	reader, release, err := serv.requestRaw(p0, pn...)
@@ -216,22 +216,22 @@ func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn
 		}
 	}
 
-	setAttr := func(tracks *[]player.Track, track **player.Track, field string) {
+	setAttr := func(tracks *[]library.Track, track **library.Track, field string) {
 		tag, _ := url.QueryUnescape(scanner.Text())
 		split := strings.SplitN(tag, ":", 2)
 		if split[0] == firstField {
 			if *track != nil {
 				*tracks = append(*tracks, **track)
 			}
-			*track = &player.Track{}
+			*track = &library.Track{}
 		}
 		if track != nil {
 			setSlimAttr(serv, *track, split[0], split[1])
 		}
 	}
 
-	tracks := make([]player.Track, 0, numTracks)
-	var track *player.Track
+	tracks := make([]library.Track, 0, numTracks)
+	var track *library.Track
 	setAttr(&tracks, &track, scanner.Text())
 	for scanner.Scan() {
 		setAttr(&tracks, &track, scanner.Text())
@@ -245,7 +245,7 @@ func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn
 	return tracks, nil
 }
 
-func setSlimAttr(serv *Server, track *player.Track, key, value string) {
+func setSlimAttr(serv *Server, track *library.Track, key, value string) {
 	switch key {
 	case "url":
 		uri, _ := url.QueryUnescape(value)

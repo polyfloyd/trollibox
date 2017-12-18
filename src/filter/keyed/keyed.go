@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/player"
+	"github.com/polyfloyd/trollibox/src/library"
 )
 
 var (
@@ -75,7 +75,7 @@ func (sq *Query) UnmarshalJSON(data []byte) error {
 }
 
 // Filter implements the filter.Filter interface.
-func (sq *Query) Filter(track player.Track) (filter.SearchResult, bool) {
+func (sq *Query) Filter(track library.Track) (filter.SearchResult, bool) {
 	if sq == nil || len(sq.patterns) == 0 {
 		return filter.SearchResult{}, false
 	}
