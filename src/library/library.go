@@ -2,10 +2,16 @@ package library
 
 import (
 	"io"
+
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 // A Library is a database that is able to recall tracks that can be played.
 type Library interface {
+	// The following events are emitted:
+	//   "tracks" After the track library was changed.
+	util.Eventer
+
 	// Returns all available tracks in the library.
 	Tracks() ([]Track, error)
 

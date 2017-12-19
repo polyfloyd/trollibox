@@ -35,6 +35,7 @@ func (rt *rawTrack) track() library.Track {
 }
 
 type Server struct {
+	util.Emitter
 	urlRoot    string
 	idEnum     uint64
 	tracks     map[uint64]rawTrack
@@ -82,6 +83,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	track.id = sv.idEnum
 	sv.tracks[track.id] = track
 	sv.tracksLock.Unlock()
+	sv.Emit("tracks")
 
 	errc := make(chan error, 1)
 	go func() {
@@ -92,6 +94,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 			sv.tracksLock.Lock()
 			delete(sv.tracks, track.id)
 			sv.tracksLock.Unlock()
+			sv.Emit("tracks")
 			errc <- fmt.Errorf("Error adding raw track: %v", err)
 			return
 		}
@@ -145,7 +148,14 @@ func (sv *Server) Remove(uri string) error {
 	}
 	rt.buffer.Destroy()
 	delete(sv.tracks, trackId)
+
+	sv.Emit("tracks")
 	return nil
+}
+
+// Events implements the player.Player interface.
+func (sv *Server) Events() *util.Emitter {
+	return &sv.Emitter
 }
 
 func idFromUrl(url string) uint64 {

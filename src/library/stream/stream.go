@@ -172,7 +172,7 @@ func (db *DB) RemoveStream(stream *Stream) error {
 	if path.Ext(stream.Filename) != ".m3u" {
 		return fmt.Errorf("Stream filenames must have the .m3u suffix")
 	}
-	defer db.Emit("update")
+	defer db.Emit("tracks")
 	return os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
 }
 
@@ -200,7 +200,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 	if err != nil {
 		return err
 	}
-	defer db.Emit("update")
+	defer db.Emit("tracks")
 	return stream.EncodeM3U(fd)
 }
 
@@ -241,6 +241,11 @@ func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
 		return nil, ""
 	}
 	return stream.Art()
+}
+
+// Events implements the player.Player interface.
+func (db *DB) Events() *util.Emitter {
+	return &db.Emitter
 }
 
 func (db *DB) String() string {

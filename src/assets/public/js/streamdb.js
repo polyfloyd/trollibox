@@ -5,7 +5,7 @@ var StreamDB = NetModel.extend({
 
 	initialize: function(args) {
 		this.player = args.player;
-		this.attachServerReloader('server-event:update', '/streams', function(data) {
+		this.attachServerReloader('server-event:tracks', '/streams', function(data) {
 			this.setInternal('streams', data.streams.map(function(stream) {
 				stream.uri = stream.url;
 				return this.player.fillMissingTrackFields(stream);

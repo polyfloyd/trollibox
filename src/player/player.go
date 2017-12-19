@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/util"
 )
 
 const (
@@ -29,6 +28,15 @@ type PlayState string
 type Player interface {
 	// It is common for backends to also have some kind of track library.
 	// Players should therefore implement the respective interface.
+	//
+	// Through Library, the util.Eventer interface is also required. The
+	// following events are emitted:
+	//   "playlist"     After the playlist or the current playlists' was changed.
+	//   "playstate"    After the playstate was changed.
+	//   "time"         After the playback offset of the currently playing track was changed.
+	//   "volume"       After the volume was changed.
+	//   "list"         After a stored playlist was changed.
+	//   "availability" After the player comes online or goes offline.
 	library.Library
 
 	// Gets the time offset into the currently playing track. 0 if no track is
@@ -70,14 +78,4 @@ type Player interface {
 
 	// Returns the currently playing playlist.
 	Playlist() MetaPlaylist
-
-	// Gets the event emitter for this player. The following events are emitted:
-	//   "playlist"     After the playlist or the current playlists' was changed.
-	//   "playstate"    After the playstate was changed.
-	//   "time"         After the playback offset of the currently playing track was changed.
-	//   "volume"       After the volume was changed.
-	//   "list"         After a stored playlist was changed.
-	//   "tracks"       After the track library was changed.
-	//   "availability" After the player comes online or goes offline.
-	Events() *util.Emitter
 }

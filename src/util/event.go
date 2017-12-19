@@ -7,6 +7,12 @@ import (
 
 const chanBufferSize = 128
 
+// Eventer specifies the functionality required for a type to emit events.
+type Eventer interface {
+	// Returns a reference to the associated event emitter. Never nil.
+	Events() *Emitter
+}
+
 // Emitter is an asynchronous single producer multiple consumer broadcasting.
 type Emitter struct {
 	// The release attribute determines how much time the event should be
