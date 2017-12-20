@@ -83,7 +83,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	track.id = sv.idEnum
 	sv.tracks[track.id] = track
 	sv.tracksLock.Unlock()
-	sv.Emit("tracks")
+	sv.Emit(library.UpdateEvent{})
 
 	errc := make(chan error, 1)
 	go func() {
@@ -94,7 +94,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 			sv.tracksLock.Lock()
 			delete(sv.tracks, track.id)
 			sv.tracksLock.Unlock()
-			sv.Emit("tracks")
+			sv.Emit(library.UpdateEvent{})
 			errc <- fmt.Errorf("Error adding raw track: %v", err)
 			return
 		}
@@ -149,7 +149,7 @@ func (sv *Server) Remove(uri string) error {
 	rt.buffer.Destroy()
 	delete(sv.tracks, trackId)
 
-	sv.Emit("tracks")
+	sv.Emit(library.UpdateEvent{})
 	return nil
 }
 

@@ -6,6 +6,9 @@ import (
 	"github.com/polyfloyd/trollibox/src/library"
 )
 
+// PlayState enumerates all 3 possible states of playback.
+type PlayState string
+
 const (
 	// PlayStateInvalid is the zero value, which is invalid.
 	PlayStateInvalid = PlayState("")
@@ -20,8 +23,23 @@ const (
 	PlayStatePaused = PlayState("paused")
 )
 
-// PlayState enumerates all 3 possible states of playback.
-type PlayState string
+// Event is the type of event emitted by the player.
+type Event string
+
+const (
+	// After the playlist or the current playlists' was changed.
+	PlaylistEvent = Event("playlist")
+	// After the playstate was changed.
+	PlaystateEvent = Event("playstate")
+	// After the playback offset of the currently playing track was changed.
+	TimeEvent = Event("time")
+	// After the volume was changed.
+	VolumeEvent = Event("volume")
+	// After a stored playlist was changed.
+	ListEvent = Event("list")
+	// After the player comes online or goes offline.
+	AvailabilityEvent = Event("availability")
+)
 
 // The Player is the heart of Trollibox. This interface provides all common
 // actions that can be performed on a mediaplayer.
@@ -29,14 +47,8 @@ type Player interface {
 	// It is common for backends to also have some kind of track library.
 	// Players should therefore implement the respective interface.
 	//
-	// Through Library, the util.Eventer interface is also required. The
-	// following events are emitted:
-	//   "playlist"     After the playlist or the current playlists' was changed.
-	//   "playstate"    After the playstate was changed.
-	//   "time"         After the playback offset of the currently playing track was changed.
-	//   "volume"       After the volume was changed.
-	//   "list"         After a stored playlist was changed.
-	//   "availability" After the player comes online or goes offline.
+	// Through Library, the util.Eventer interface is also required. Any type
+	// of player.Event may be emitted.
 	library.Library
 
 	// Gets the time offset into the currently playing track. 0 if no track is

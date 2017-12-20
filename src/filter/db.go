@@ -12,6 +12,8 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+type UpdateEvent struct{}
+
 var factories = map[string]func() Filter{}
 
 // RegisterFactory registers a factory function that enables DB to deserialize
@@ -119,7 +121,7 @@ func (db *DB) Set(name string, filter Filter) error {
 	}); err != nil {
 		return err
 	}
-	db.Emit("update")
+	db.Emit(UpdateEvent{})
 	return nil
 }
 
@@ -132,7 +134,7 @@ func (db *DB) Remove(name string) error {
 	} else if err != nil {
 		return err
 	}
-	db.Emit("update")
+	db.Emit(UpdateEvent{})
 	return nil
 }
 

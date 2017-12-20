@@ -6,6 +6,7 @@ import (
 
 	"github.com/fhs/gompd/mpd"
 
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"
 )
 
@@ -52,11 +53,12 @@ func TestUpdateEvent(t *testing.T) {
 	for {
 		select {
 		case msg := <-l:
-			if msg == "tracks" {
+			t.Logf("%T %#v", msg, msg)
+			if _, ok := msg.(library.UpdateEvent); ok {
 				return
 			}
 		case <-time.After(time.Second * 8):
-			t.Fatalf("Event \"tracks\" was not emitted")
+			t.Fatalf("Library update event was not emitted")
 		}
 	}
 }

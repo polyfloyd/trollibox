@@ -172,7 +172,7 @@ func (db *DB) RemoveStream(stream *Stream) error {
 	if path.Ext(stream.Filename) != ".m3u" {
 		return fmt.Errorf("Stream filenames must have the .m3u suffix")
 	}
-	defer db.Emit("tracks")
+	defer db.Emit(library.UpdateEvent{})
 	return os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
 }
 
@@ -200,7 +200,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 	if err != nil {
 		return err
 	}
-	defer db.Emit("tracks")
+	defer db.Emit(library.UpdateEvent{})
 	return stream.EncodeM3U(fd)
 }
 

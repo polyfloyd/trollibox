@@ -22,35 +22,35 @@ const trackTags = "uAglitdc"
 
 var eventTranslations = []struct {
 	Exp   *regexp.Regexp
-	Event string
+	Event interface{}
 	// If the global bit is not set, the expression is ignored if the event
 	// line does not start with the player's ID.
 	Global bool
 }{
 	{
 		Exp:    regexp.MustCompile("^rescan done"),
-		Event:  "tracks",
+		Event:  library.UpdateEvent{},
 		Global: true,
 	},
 	{
 		Exp:   regexp.MustCompile("^\\S+ mixer (?:volume|muting)"),
-		Event: "volume",
+		Event: player.VolumeEvent,
 	},
 	{
 		Exp:   regexp.MustCompile("^\\S+ playlist"),
-		Event: "playlist",
+		Event: player.PlaylistEvent,
 	},
 	{
 		Exp:   regexp.MustCompile("^\\S+ (?:play|stop|pause)"),
-		Event: "playstate",
+		Event: player.PlaystateEvent,
 	},
 	{
 		Exp:   regexp.MustCompile("^\\S+ time"),
-		Event: "time",
+		Event: player.TimeEvent,
 	},
 	{
 		Exp:   regexp.MustCompile("^\\S+ client"),
-		Event: "availability",
+		Event: player.AvailabilityEvent,
 	},
 }
 
@@ -71,7 +71,7 @@ func (pl *Player) eventLoop() {
 	for {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
-			pl.Emit("availability")
+			pl.Emit(player.AvailabilityEvent)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -239,7 +239,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 		for {
 			select {
 			case e := <-events:
-				if e == "playstate" {
+				if e == player.PlaystateEvent {
 					ack <- nil
 					break outer
 				}

@@ -13,8 +13,10 @@ import (
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
+	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
+	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -57,7 +59,16 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 		defer emitter.Unlisten(ch)
 		conn.SetDeadline(time.Time{})
 		for event := range ch {
-			if _, err := conn.Write([]uint8(event.(string))); err != nil {
+			var eventStr string
+			switch t := event.(type) {
+			case player.Event:
+				eventStr = string(t)
+			case library.UpdateEvent:
+				eventStr = "tracks"
+			default:
+				continue
+			}
+			if _, err := conn.Write([]uint8(eventStr)); err != nil {
 				break
 			}
 		}

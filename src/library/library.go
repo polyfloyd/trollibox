@@ -6,10 +6,11 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+type UpdateEvent struct{}
+
 // A Library is a database that is able to recall tracks that can be played.
 type Library interface {
-	// The following events are emitted:
-	//   "tracks" After the track library was changed.
+	// An UpdateEvent may be emitted after the track library was changed.
 	util.Eventer
 
 	// Returns all available tracks in the library.

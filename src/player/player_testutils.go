@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 func fillPlaylist(pl Player, numTracks int) error {
@@ -26,22 +28,6 @@ func fillPlaylist(pl Player, numTracks int) error {
 		return fmt.Errorf("Not enough tracks in the library: %v < %v", len(tracks), numTracks)
 	}
 	return pl.Playlist().Insert(0, tracks[0:numTracks]...)
-}
-
-func testEvent(t *testing.T, pl Player, event string, cb func()) {
-	l := pl.Events().Listen()
-	defer pl.Events().Unlisten(l)
-	cb()
-	for {
-		select {
-		case msg := <-l:
-			if msg == event {
-				return
-			}
-		case <-time.After(time.Second):
-			t.Fatalf("Event %q was not emitted", event)
-		}
-	}
 }
 
 // TestPlayerImplementation tests the implementation of the player.Player interface.
@@ -103,7 +89,7 @@ func testTime(t *testing.T, pl Player) {
 }
 
 func testTimeEvent(t *testing.T, pl Player) {
-	testEvent(t, pl, "time", func() {
+	util.TestEventEmission(t, pl, TimeEvent, func() {
 		if err := pl.SetState(PlayStatePlaying); err != nil {
 			t.Fatal(err)
 		}
@@ -148,7 +134,7 @@ func testTrackIndex(t *testing.T, pl Player) {
 }
 
 func testTrackIndexEvent(t *testing.T, pl Player) {
-	testEvent(t, pl, "playlist", func() {
+	util.TestEventEmission(t, pl, PlaylistEvent, func() {
 		if err := pl.SetTrackIndex(1); err != nil {
 			t.Fatal(err)
 		}
@@ -185,7 +171,7 @@ func testPlaystate(t *testing.T, pl Player) {
 }
 
 func testPlaystateEvent(t *testing.T, pl Player) {
-	testEvent(t, pl, "playstate", func() {
+	util.TestEventEmission(t, pl, PlaystateEvent, func() {
 		if err := pl.SetState(PlayStatePlaying); err != nil {
 			t.Fatal(err)
 		}
@@ -242,7 +228,7 @@ func testVolume(t *testing.T, pl Player) {
 }
 
 func testVolumeEvent(t *testing.T, pl Player) {
-	testEvent(t, pl, "volume", func() {
+	util.TestEventEmission(t, pl, VolumeEvent, func() {
 		if err := pl.SetVolume(0.2); err != nil {
 			t.Fatal(err)
 		}

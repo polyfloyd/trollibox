@@ -93,10 +93,10 @@ func (cache *Cache) run() {
 	cache.lock.Lock()
 	cache.reloadTracks()
 	cache.lock.Unlock()
-	cache.Emit("tracks")
+	cache.Emit(library.UpdateEvent{})
 
 	for event := range listener {
-		if event == "tracks" {
+		if _, ok := event.(library.UpdateEvent); ok {
 			cache.lock.Lock()
 			cache.reloadTracks()
 			cache.lock.Unlock()
