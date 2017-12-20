@@ -10,6 +10,7 @@ before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq mpd mpc
 install:
+    - go get -u github.com/golang/lint/golint
     - ./just install
 
 before_script:
@@ -29,3 +30,4 @@ script:
     - RELEASE=1 ./just build
     - go test -test.v -race ./src/...
     - go vet ./src/...
+    - golint -set_exit_status -min_confidence 0.3 ./src/...
