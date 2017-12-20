@@ -29,6 +29,7 @@ var m3uTemplate = template.Must(template.New("m3u").Parse(
 {{ .URL }}
 `))
 
+// A Stream represents audio that is streamed over HTTP.
 type Stream struct {
 	Filename string `json:"filename"`
 	URL      string `json:"url"`
@@ -36,7 +37,7 @@ type Stream struct {
 	ArtURI   string `json:"arturi"`
 }
 
-func LoadM3U(filename string) (*Stream, error) {
+func loadM3U(filename string) (*Stream, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
@@ -101,10 +102,11 @@ func LoadM3U(filename string) (*Stream, error) {
 	return stream, nil
 }
 
-func (stream *Stream) EncodeM3U(out io.Writer) error {
+func (stream *Stream) encodeM3U(out io.Writer) error {
 	return m3uTemplate.Execute(out, stream)
 }
 
+// PlayerTrack builds a library track for use in players.
 func (stream *Stream) PlayerTrack() library.Track {
 	return library.Track{
 		URI:    stream.URL,
@@ -113,7 +115,7 @@ func (stream *Stream) PlayerTrack() library.Track {
 	}
 }
 
-func (stream *Stream) Art() (io.ReadCloser, string) {
+func (stream *Stream) art() (io.ReadCloser, string) {
 	if match := dataURIRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
 		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1]
 	}
@@ -127,12 +129,17 @@ func (stream *Stream) String() string {
 	return fmt.Sprintf("Stream{%s}", stream.URL)
 }
 
+// DB is a database that handles persistent storage of a collection of streams.
 type DB struct {
 	util.Emitter
 
 	directory string
 }
 
+// NewDB creates a new stream database that stores streams in the specified directory.
+//
+// The directory is recursively created if it does not exists. An error is
+// returned if directory creation fails.
 func NewDB(directory string) (*DB, error) {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return nil, err
@@ -140,6 +147,7 @@ func NewDB(directory string) (*DB, error) {
 	return &DB{directory: directory}, nil
 }
 
+// Streams returns a list of all streams stored.
 func (db *DB) Streams() ([]Stream, error) {
 	fd, err := os.Open(db.directory)
 	if err != nil {
@@ -164,18 +172,36 @@ func (db *DB) Streams() ([]Stream, error) {
 	return streams, nil
 }
 
+// StreamByFilename looks up a stream by it's filename including extension.
 func (db *DB) StreamByFilename(filename string) (*Stream, error) {
-	return LoadM3U(path.Join(db.directory, path.Clean(filename)))
+	return loadM3U(path.Join(db.directory, path.Clean(filename)))
 }
 
+// RemoveStream removes a stream from the database.
+//
+// This is a no-op if the specified stream does not exists.
 func (db *DB) RemoveStream(stream *Stream) error {
 	if path.Ext(stream.Filename) != ".m3u" {
 		return fmt.Errorf("Stream filenames must have the .m3u suffix")
 	}
-	defer db.Emit(library.UpdateEvent{})
-	return os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
+	err := os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	db.Emit(library.UpdateEvent{})
+	return nil
 }
 
+// StoreStream stores the specifed stream using its filename.
+//
+// If no filename is given, it will be inferred from the URL.
+//
+// An error is returned if the filename is already set and does not have "m3u"
+// as extension.
+//
+// If the stream specifies remote artwork, it is downloaded. An error is
+// returned if downloading fails or something other than an image was
+// downloaded.
 func (db *DB) StoreStream(stream *Stream) error {
 	if stream.Filename == "" {
 		stream.Filename = filenameFromURL(stream.URL) + ".m3u"
@@ -200,8 +226,11 @@ func (db *DB) StoreStream(stream *Stream) error {
 	if err != nil {
 		return err
 	}
-	defer db.Emit(library.UpdateEvent{})
-	return stream.EncodeM3U(fd)
+	if err := stream.encodeM3U(fd); err != nil {
+		return err
+	}
+	db.Emit(library.UpdateEvent{})
+	return nil
 }
 
 // Tracks implements the library.Library interface.
@@ -240,7 +269,7 @@ func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
 	if stream == nil || err != nil {
 		return nil, ""
 	}
-	return stream.Art()
+	return stream.art()
 }
 
 // Events implements the player.Player interface.

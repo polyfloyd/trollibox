@@ -22,7 +22,45 @@ import (
 
 const uriSchema = "mpd://"
 
+// Event is an event which signals a change in one of MPD's subsystems.
 type Event string
+
+const (
+	// DatabaseEvent is emitted when the song database has been modified after update.
+	DatabaseEvent = Event("database")
+	// UpdateEvent is emitted when a database update has started or finished.
+	// If the database was modified during the update, the database event is
+	// also emitted.
+	UpdateEvent = Event("update")
+	// StoredPlaylistEvent is emitted when a stored playlist has been modified,
+	// renamed, created or deleted.
+	StoredPlaylistEvent = Event("stored_playlist")
+	// PlaylistEvent is emitted when the current playlist has been modified.
+	PlaylistEvent = Event("playlist")
+	// PlayerEvent is emitted when the player has been started, stopped or
+	// seeked.
+	PlayerEvent = Event("player")
+	// MixerEvent is emitted when the volume has been changed.
+	MixerEvent = Event("mixer")
+	// OutputEvent is emitted when an audio output has been added, removed or
+	// modified (e.g. renamed, enabled or disabled).
+	OutputEvent = Event("output")
+	// OptionsEvent is emitted when options like repeat, random, crossfade,
+	// replay gain.
+	OptionsEvent = Event("options")
+	// PartitionEvent is emitted when a partition was added, removed or
+	// changed.
+	PartitionEvent = Event("partition")
+	// StickerEvent is emitted when the sticker database has been modified..
+	StickerEvent = Event("sticker")
+	// SubscriptionEvent is emitted when a client has subscribed or
+	// unsubscribed to a channel.
+	SubscriptionEvent = Event("subscription")
+	// MessageEvent is emitted when a message was received on a channel this
+	// client is subscribed to; this event is only emitted when the queue is
+	// empty.
+	MessageEvent = Event("message")
+)
 
 // Player handles the connection to a single MPD instance.
 type Player struct {

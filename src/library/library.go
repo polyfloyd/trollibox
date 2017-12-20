@@ -6,6 +6,8 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// An UpdateEvent is emitted when the track collection in the library has
+// changed.
 type UpdateEvent struct{}
 
 // A Library is a database that is able to recall tracks that can be played.

@@ -13,10 +13,13 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// A Server is able to fetch audio files from various websites and expose them
+// using a raw.Server.
 type Server struct {
 	rawServer *raw.Server
 }
 
+// NewServer creates a new Server using the specified raw server as backend.
 func NewServer(rawServer *raw.Server) (*Server, error) {
 	if _, err := exec.LookPath("youtube-dl"); err != nil {
 		return nil, fmt.Errorf("Netmedia server not available: %v", err)
@@ -29,6 +32,12 @@ func NewServer(rawServer *raw.Server) (*Server, error) {
 	}, nil
 }
 
+// Download attempts to retrieve an audio file from the specified URL and
+// returns a track that, when added to player's queue plays the downloaded
+// file.
+//
+// The returned track's audio stream may be incomplete as downloading happens
+// in the background.
 func (sv *Server) Download(url string) (library.Track, <-chan error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -75,6 +84,7 @@ func (sv *Server) Download(url string) (library.Track, <-chan error) {
 	return sv.rawServer.Add(convOut, info.Title, image, imageMime)
 }
 
+// RawServer returns the underlying raw.Server.
 func (sv *Server) RawServer() *raw.Server {
 	return sv.rawServer
 }
@@ -85,11 +95,11 @@ type mediaInfo struct {
 }
 
 func readMediaInfo(ctx context.Context, url string) (mediaInfo, error) {
-	infoJson, err := exec.CommandContext(ctx, "youtube-dl", url, "--dump-json").Output()
+	infoJSON, err := exec.CommandContext(ctx, "youtube-dl", url, "--dump-json").Output()
 	if err != nil {
 		return mediaInfo{}, err
 	}
 	var info mediaInfo
-	err = json.Unmarshal(infoJson, &info)
+	err = json.Unmarshal(infoJSON, &info)
 	return info, err
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// An UpdateEvent is emitted when the database has changed.
 type UpdateEvent struct{}
 
 var factories = map[string]func() Filter{}

@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+// TestEventEmission may be used in unit tests to test whether some action
+// causes an event to be emitted.
 func TestEventEmission(t *testing.T, ev Eventer, event interface{}, trigger func()) {
 	l := ev.Events().Listen()
 	defer ev.Events().Unlisten(l)

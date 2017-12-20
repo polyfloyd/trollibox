@@ -34,6 +34,8 @@ func (rt *rawTrack) track() library.Track {
 	}
 }
 
+// A Server stores audio files and acts as a library for these files, exposing
+// their contents over HTTP.
 type Server struct {
 	util.Emitter
 	urlRoot    string
@@ -42,6 +44,8 @@ type Server struct {
 	tracksLock sync.RWMutex
 }
 
+// NewServer creates a new server that configures tracks using the specified
+// URL-root.
 func NewServer(urlRoot string) *Server {
 	return &Server{
 		urlRoot: urlRoot,
@@ -65,6 +69,7 @@ func (sv *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	io.Copy(res, r)
 }
 
+// Add reads an audio file and creates a track with a title and optional image.
 func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, imageMime string) (library.Track, <-chan error) {
 	bbuf, err := util.NewBlockingBuffer()
 	if err != nil {
@@ -102,6 +107,26 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	return track.track(), errc
 }
 
+// Remove removes a track managed by server.
+//
+// This is a no-op if no track with the given URL is found.
+func (sv *Server) Remove(uri string) error {
+	sv.tracksLock.Lock()
+	defer sv.tracksLock.Unlock()
+
+	trackID := idFromURL(uri)
+	rt, ok := sv.tracks[trackID]
+	if !ok {
+		return nil
+	}
+	rt.buffer.Destroy()
+	delete(sv.tracks, trackID)
+
+	sv.Emit(library.UpdateEvent{})
+	return nil
+}
+
+// Tracks implements the library.Library interface.
 func (sv *Server) Tracks() ([]library.Track, error) {
 	sv.tracksLock.RLock()
 	defer sv.tracksLock.RUnlock()
@@ -113,44 +138,30 @@ func (sv *Server) Tracks() ([]library.Track, error) {
 	return tracks, nil
 }
 
+// TrackInfo implements the library.Library interface.
 func (sv *Server) TrackInfo(uris ...string) ([]library.Track, error) {
 	sv.tracksLock.RLock()
 	defer sv.tracksLock.RUnlock()
 
 	tracks := make([]library.Track, len(uris))
 	for i, uri := range uris {
-		if rt, ok := sv.tracks[idFromUrl(uri)]; ok {
+		if rt, ok := sv.tracks[idFromURL(uri)]; ok {
 			tracks[i] = rt.track()
 		}
 	}
 	return tracks, nil
 }
 
+// TrackArt implements the library.Library interface.
 func (sv *Server) TrackArt(uri string) (io.ReadCloser, string) {
 	sv.tracksLock.RLock()
 	defer sv.tracksLock.RUnlock()
 
-	track := sv.tracks[idFromUrl(uri)]
+	track := sv.tracks[idFromURL(uri)]
 	if track.image == nil {
 		return nil, ""
 	}
 	return ioutil.NopCloser(bytes.NewReader(track.image)), track.imageMime
-}
-
-func (sv *Server) Remove(uri string) error {
-	sv.tracksLock.Lock()
-	defer sv.tracksLock.Unlock()
-
-	trackId := idFromUrl(uri)
-	rt, ok := sv.tracks[trackId]
-	if !ok {
-		return nil
-	}
-	rt.buffer.Destroy()
-	delete(sv.tracks, trackId)
-
-	sv.Emit(library.UpdateEvent{})
-	return nil
 }
 
 // Events implements the player.Player interface.
@@ -158,7 +169,7 @@ func (sv *Server) Events() *util.Emitter {
 	return &sv.Emitter
 }
 
-func idFromUrl(url string) uint64 {
+func idFromURL(url string) uint64 {
 	m := regexp.MustCompile("\\?track=(\\d+)$").FindStringSubmatch(url)
 	if m == nil {
 		return 0

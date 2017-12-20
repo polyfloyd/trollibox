@@ -27,17 +27,20 @@ const (
 type Event string
 
 const (
-	// After the playlist or the current playlists' was changed.
+	// PlaylistEvent is emitted after the playlist or the current playlist was
+	// changed.
 	PlaylistEvent = Event("playlist")
-	// After the playstate was changed.
+	// PlaystateEvent is emitted after the playstate was changed.
 	PlaystateEvent = Event("playstate")
-	// After the playback offset of the currently playing track was changed.
+	// TimeEvent is emitted after the playback offset of the currently playing
+	// track was changed.
 	TimeEvent = Event("time")
-	// After the volume was changed.
+	// VolumeEvent is emitted after the volume was changed.
 	VolumeEvent = Event("volume")
-	// After a stored playlist was changed.
+	// ListEvent is emitted after a stored playlist was changed.
 	ListEvent = Event("list")
-	// After the player comes online or goes offline.
+	// AvailabilityEvent is emitted after the player comes online or goes
+	// offline.
 	AvailabilityEvent = Event("availability")
 )
 
