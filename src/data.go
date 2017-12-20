@@ -56,8 +56,8 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 		ch := emitter.Listen()
 		defer emitter.Unlisten(ch)
 		conn.SetDeadline(time.Time{})
-		for {
-			if _, err := conn.Write([]uint8(<-ch)); err != nil {
+		for event := range ch {
+			if _, err := conn.Write([]uint8(event.(string))); err != nil {
 				break
 			}
 		}

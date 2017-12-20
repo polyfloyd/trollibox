@@ -20,10 +20,10 @@ type Emitter struct {
 	// A zero value will disable deduplication.
 	Release time.Duration
 
-	listeners map[<-chan string]chan string
+	listeners map[<-chan interface{}]chan interface{}
 	lock      sync.RWMutex
 
-	release map[string]struct{}
+	release map[interface{}]struct{}
 }
 
 func (emitter *Emitter) init() {
@@ -33,14 +33,14 @@ func (emitter *Emitter) init() {
 	if shouldInit {
 		emitter.lock.Lock()
 		if emitter.listeners == nil {
-			emitter.listeners = map[<-chan string]chan string{}
-			emitter.release = map[string]struct{}{}
+			emitter.listeners = map[<-chan interface{}]chan interface{}{}
+			emitter.release = map[interface{}]struct{}{}
 		}
 		emitter.lock.Unlock()
 	}
 }
 
-func (emitter *Emitter) broadcast(event string) {
+func (emitter *Emitter) broadcast(event interface{}) {
 	emitter.lock.RLock()
 	defer emitter.lock.RUnlock()
 	for _, listener := range emitter.listeners {
@@ -56,7 +56,7 @@ func (emitter *Emitter) broadcast(event string) {
 // Listening channels are buffered, but whether the event is delivered
 // dependending on the whether the receiving channel is being actively read by
 // some goroutine.
-func (emitter *Emitter) Emit(event string) {
+func (emitter *Emitter) Emit(event interface{}) {
 	emitter.init()
 
 	emitter.lock.RLock()
@@ -89,19 +89,19 @@ func (emitter *Emitter) Emit(event string) {
 // Listen registers a new channel at this emitter.
 //
 // The returned channel should be freed with Unlisten.
-func (emitter *Emitter) Listen() <-chan string {
+func (emitter *Emitter) Listen() <-chan interface{} {
 	emitter.init()
 
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 
-	ch := make(chan string, chanBufferSize)
+	ch := make(chan interface{}, chanBufferSize)
 	emitter.listeners[ch] = ch
 	return ch
 }
 
 // Unlisten unregisters a channel previously obtained by Listen and closes it.
-func (emitter *Emitter) Unlisten(ch <-chan string) {
+func (emitter *Emitter) Unlisten(ch <-chan interface{}) {
 	emitter.init()
 
 	emitter.lock.Lock()

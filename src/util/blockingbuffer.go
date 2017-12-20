@@ -76,7 +76,7 @@ func (bbuf *BlockingBuffer) Reader() io.ReadCloser {
 
 type blockingBufferReader struct {
 	bbuf     *BlockingBuffer
-	listener <-chan string
+	listener <-chan interface{}
 
 	file   *os.File
 	offset int64
