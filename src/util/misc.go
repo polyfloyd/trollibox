@@ -35,7 +35,7 @@ func DetermineFullURLRoot(root, address string) (string, error) {
 		return fmt.Sprintf("http://%s:%s/", host, port), nil
 	}
 	// Give up
-	return "", fmt.Errorf("Unsupported URL Root format: %q", root)
+	return "", fmt.Errorf("unsupported URL Root format: %q", root)
 }
 
 // TempName returns a path which may be used to create a temporary file at.

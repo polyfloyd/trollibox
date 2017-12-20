@@ -40,7 +40,7 @@ type Stream struct {
 func loadM3U(filename string) (*Stream, error) {
 	fd, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+		return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 	}
 	defer fd.Close()
 
@@ -53,7 +53,7 @@ func loadM3U(filename string) (*Stream, error) {
 		return nil, err
 	}
 	if firstLine != "#EXTM3U\n" {
-		return nil, fmt.Errorf("Error loading stream from M3U: expected \"#EXTM3U\" as first line, got %q", firstLine)
+		return nil, fmt.Errorf("error loading stream from M3U: expected \"#EXTM3U\" as first line, got %q", firstLine)
 	}
 
 	for {
@@ -61,14 +61,14 @@ func loadM3U(filename string) (*Stream, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+			return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 		}
 
 		if string(lineStart) == "#EXTART" {
 			m3u.Discard(len("#EXTART:"))
 			art, err := m3u.ReadString('\n')
 			if err != nil {
-				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 			}
 			stream.ArtURI = art[0 : len(art)-1]
 
@@ -76,14 +76,14 @@ func loadM3U(filename string) (*Stream, error) {
 			m3u.ReadString(',')
 			title, err := m3u.ReadString('\n')
 			if err != nil {
-				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 			}
 			stream.Title = title[0 : len(title)-1]
 
 		} else if string(lineStart[0:4]) == "http" {
 			url, err := m3u.ReadString('\n')
 			if err != nil {
-				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 			}
 			stream.URL = url[0 : len(url)-1]
 
@@ -91,13 +91,13 @@ func loadM3U(filename string) (*Stream, error) {
 			if _, err := m3u.Discard(1); err == io.EOF {
 				break
 			} else if err != nil {
-				return nil, fmt.Errorf("Error loading stream from M3U: %v", err)
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
 			}
 		}
 	}
 
 	if stream.URL == "" {
-		return nil, fmt.Errorf("Error loading stream from M3U: Empty URL")
+		return nil, fmt.Errorf("error loading stream from M3U: Empty URL")
 	}
 	return stream, nil
 }
@@ -182,7 +182,7 @@ func (db *DB) StreamByFilename(filename string) (*Stream, error) {
 // This is a no-op if the specified stream does not exists.
 func (db *DB) RemoveStream(stream *Stream) error {
 	if path.Ext(stream.Filename) != ".m3u" {
-		return fmt.Errorf("Stream filenames must have the .m3u suffix")
+		return fmt.Errorf("stream filenames must have the .m3u suffix")
 	}
 	err := os.Remove(path.Join(db.directory, path.Clean(stream.Filename)))
 	if err != nil && !os.IsNotExist(err) {
@@ -207,7 +207,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 		stream.Filename = filenameFromURL(stream.URL) + ".m3u"
 	}
 	if path.Ext(stream.Filename) != ".m3u" {
-		return fmt.Errorf("Stream filenames must have the .m3u suffix")
+		return fmt.Errorf("stream filenames must have the .m3u suffix")
 	}
 
 	// Download the track art and store it as a data URI.
@@ -217,7 +217,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 			return err
 		}
 		if !regexp.MustCompile("^image/").MatchString(contentType) {
-			return fmt.Errorf("Invalid content type for stream image: %s", contentType)
+			return fmt.Errorf("invalid content type for stream image: %s", contentType)
 		}
 		stream.ArtURI = artURI
 	}

@@ -90,7 +90,7 @@ func (db *DB) Get(name string) (Filter, error) {
 
 	fac, ok := factories[ft.Type]
 	if !ok {
-		return nil, fmt.Errorf("Unknown filter type: %s", ft.Type)
+		return nil, fmt.Errorf("unknown filter type: %s", ft.Type)
 	}
 	filter := fac()
 	if err := json.Unmarshal(([]byte)(*ft.Value), filter); err != nil {
@@ -103,7 +103,7 @@ func (db *DB) Get(name string) (Filter, error) {
 // pre-existing filter with the same name.
 func (db *DB) Set(name string, filter Filter) error {
 	if name == "" || strings.Contains(name, "/") {
-		return fmt.Errorf("Invalid filter name: %q", name)
+		return fmt.Errorf("invalid filter name: %q", name)
 	}
 
 	ftVal, err := json.Marshal(filter)

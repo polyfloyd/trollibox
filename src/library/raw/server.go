@@ -74,7 +74,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	bbuf, err := util.NewBlockingBuffer()
 	if err != nil {
 		inputFile.Close()
-		return library.Track{}, util.ErrorAsChannel(fmt.Errorf("Error adding raw track: %v", err))
+		return library.Track{}, util.ErrorAsChannel(fmt.Errorf("error adding raw track: %v", err))
 	}
 	track := rawTrack{
 		server:    sv,
@@ -100,7 +100,7 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 			delete(sv.tracks, track.id)
 			sv.tracksLock.Unlock()
 			sv.Emit(library.UpdateEvent{})
-			errc <- fmt.Errorf("Error adding raw track: %v", err)
+			errc <- fmt.Errorf("error adding raw track: %v", err)
 			return
 		}
 	}()

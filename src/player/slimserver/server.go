@@ -40,7 +40,7 @@ func Connect(network, address string, username, password *string, webURL string)
 				queryEscape(*password),
 			)))
 			if scanner := bufio.NewScanner(conn); !scanner.Scan() {
-				return nil, fmt.Errorf("Could not login")
+				return nil, fmt.Errorf("could not login")
 			}
 		}
 		return conn, nil
@@ -109,7 +109,7 @@ func (serv *Server) request(p0 string, pn ...string) ([]string, error) {
 	// Read the LF delimited response.
 	scanner := bufio.NewScanner(conn)
 	if !scanner.Scan() {
-		return nil, fmt.Errorf("Unable to scan response")
+		return nil, fmt.Errorf("unable to scan response")
 	}
 	response := scanner.Text()
 	if err := scanner.Err(); err != nil {

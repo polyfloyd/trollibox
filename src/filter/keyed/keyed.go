@@ -52,7 +52,7 @@ func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 		return nil, err
 	}
 	if len(pat[""]) > 0 && len(untaggedFields) == 0 {
-		return nil, fmt.Errorf("Keywords without property indicators require untaggedFields to be set")
+		return nil, fmt.Errorf("keywords without property indicators require untaggedFields to be set")
 	}
 	return &Query{
 		Query:    query,
@@ -116,12 +116,12 @@ func (sq *Query) Filter(track library.Track) (filter.SearchResult, bool) {
 
 func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
 	if query == "" {
-		return nil, fmt.Errorf("Query is empty")
+		return nil, fmt.Errorf("query is empty")
 	}
 
 	matches := queryRe.FindAllStringSubmatch(query, -1)
 	if matches == nil || len(matches) == 0 {
-		return nil, fmt.Errorf("Query does not match the expected format")
+		return nil, fmt.Errorf("query does not match the expected format")
 	}
 
 	patterns := map[string][]*regexp.Regexp{}
@@ -133,7 +133,7 @@ func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
 		value = strings.Replace(value, "*", ".*", -1)
 		re, err := regexp.Compile("(?i)" + value)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to compile %q for property %q: %v", value, property, err)
+			return nil, fmt.Errorf("unable to compile %q for property %q: %v", value, property, err)
 		}
 
 		patterns[property] = append(patterns[property], re)

@@ -99,7 +99,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		}
 		if filter == nil {
 			// TODO: Return a proper response code.
-			writeError(req, res, fmt.Errorf("Not found"))
+			writeError(req, res, fmt.Errorf("not found"))
 			return
 		}
 
@@ -110,7 +110,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		case *keyed.Query:
 			typ = "keyed"
 		default:
-			writeError(req, res, fmt.Errorf("Unknown filter type %T", filter))
+			writeError(req, res, fmt.Errorf("unknown filter type %T", filter))
 			return
 		}
 		json.NewEncoder(res).Encode(map[string]interface{}{
@@ -155,7 +155,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 		case "keyed":
 			filter = &keyed.Query{}
 		default:
-			writeError(req, res, fmt.Errorf("Unknown filter type %q", data.Filter.Type))
+			writeError(req, res, fmt.Errorf("unknown filter type %q", data.Filter.Type))
 			return
 		}
 

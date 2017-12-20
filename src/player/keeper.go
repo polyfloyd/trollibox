@@ -95,7 +95,7 @@ func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
 	}
 
 	if fromPos >= len(kpr.meta) || toPos >= len(kpr.meta) {
-		return fmt.Errorf("Move positions out of range: (%v -> %v) len=%v", fromPos, toPos, len(kpr.meta))
+		return fmt.Errorf("move positions out of range: (%v -> %v) len=%v", fromPos, toPos, len(kpr.meta))
 	}
 	delta := 0
 	if fromPos > toPos {
@@ -151,7 +151,7 @@ func (kpr *PlaylistMetaKeeper) Tracks() ([]library.Track, error) {
 // The tracks and meta slices should have the same length.
 func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error {
 	if len(tracks) != len(meta) {
-		return fmt.Errorf("The number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
+		return fmt.Errorf("the number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
 	}
 
 	kpr.metaLock.Lock()

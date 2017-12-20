@@ -122,7 +122,7 @@ func (pl *Player) withMpd(fn func(*mpd.Client) error) error {
 		client, err = mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 		if err != nil {
 			pl.clientPool <- nil
-			return fmt.Errorf("Error connecting to MPD: %v", err)
+			return fmt.Errorf("error connecting to MPD: %v", err)
 		}
 	}
 
@@ -222,7 +222,7 @@ func (pl *Player) Tracks() ([]library.Track, error) {
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.ListAllInfo("/")
 		if err != nil {
-			return fmt.Errorf("Error getting MPD songs: %v", err)
+			return fmt.Errorf("error getting MPD songs: %v", err)
 		}
 
 		numDirs := 0
@@ -231,7 +231,7 @@ func (pl *Player) Tracks() ([]library.Track, error) {
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
-				return fmt.Errorf("Error mapping MPD song to track: %v", err)
+				return fmt.Errorf("error mapping MPD song to track: %v", err)
 			}
 		}
 		tracks = tracks[:len(tracks)-numDirs]
@@ -265,7 +265,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]library.Track, error) {
 			if strings.HasPrefix(uri, uriSchema) {
 				s, err := mpdc.ListAllInfo(uriToMpd(uri))
 				if err != nil {
-					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+					return fmt.Errorf("unable to get info about %v: %v", uri, err)
 				}
 				if len(s) > 0 {
 					songs[i] = s[0]
@@ -273,7 +273,7 @@ func (pl *Player) TrackInfo(identities ...string) ([]library.Track, error) {
 			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackURI == uri {
 				song, err := mpdc.CurrentSong()
 				if err != nil {
-					return fmt.Errorf("Unable to get info about %v: %v", uri, err)
+					return fmt.Errorf("unable to get info about %v: %v", uri, err)
 				}
 				songs[i] = song
 				songs[i]["Album"] = song["Name"]
@@ -333,17 +333,17 @@ func (pl *Player) Time() (time.Duration, error) {
 
 func (pl *Player) setTimeWith(mpdc *mpd.Client, offset time.Duration) error {
 	if offset < 0 {
-		return fmt.Errorf("Error setting time: negative offset")
+		return fmt.Errorf("error setting time: negative offset")
 	}
 	index, err := pl.trackIndexWith(mpdc)
 	if err != nil {
-		return fmt.Errorf("Error getting index for setting time: %v", err)
+		return fmt.Errorf("error getting index for setting time: %v", err)
 	}
 	if index < 0 {
-		return fmt.Errorf("Error setting time: negative track index (is any playback happening?)")
+		return fmt.Errorf("error setting time: negative track index (is any playback happening?)")
 	}
 	if err := mpdc.Seek(index, int(offset/time.Second)); err != nil {
-		return fmt.Errorf("Error setting time: %v", err)
+		return fmt.Errorf("error setting time: %v", err)
 	}
 	return nil
 }
@@ -418,7 +418,7 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 		return mpdc.Pause(true)
 	case player.PlayStatePlaying:
 		if plistLen, err := pl.Playlist().Len(); err != nil {
-			return fmt.Errorf("Error getting playlist length: %v", err)
+			return fmt.Errorf("error getting playlist length: %v", err)
 		} else if plistLen == 0 {
 			pl.Emit(player.PlaystateEvent)
 			return nil
@@ -426,23 +426,23 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 
 		status, err := mpdc.Status()
 		if err != nil {
-			return fmt.Errorf("Error getting status: %v", err)
+			return fmt.Errorf("error getting status: %v", err)
 		}
 		if status["state"] == "stop" {
 			if err := mpdc.Play(0); err != nil {
-				return fmt.Errorf("Error starting playback: %v", err)
+				return fmt.Errorf("error starting playback: %v", err)
 			}
 		} else {
 			if err := mpdc.Pause(false); err != nil {
-				return fmt.Errorf("Error unpausing: %v", err)
+				return fmt.Errorf("error unpausing: %v", err)
 			}
 		}
 	case player.PlayStateStopped:
 		if err := mpdc.Stop(); err != nil {
-			return fmt.Errorf("Error stopping: %v", err)
+			return fmt.Errorf("error stopping: %v", err)
 		}
 	default:
-		return fmt.Errorf("Unknown play state %v", state)
+		return fmt.Errorf("unknown play state %v", state)
 	}
 	return nil
 }
@@ -466,7 +466,7 @@ func (pl *Player) Volume() (float32, error) {
 		volInt, ok := statusAttrInt(status, "volume")
 		if !ok {
 			// Volume should always be present.
-			return fmt.Errorf("No volume property is present in the MPD status")
+			return fmt.Errorf("no volume property is present in the MPD status")
 		}
 
 		vol = float32(volInt) / 100
@@ -554,13 +554,13 @@ func (plist mpdPlaylist) Insert(pos int, tracks ...library.Track) error {
 		if pos == -1 {
 			for _, track := range tracks {
 				if _, err := mpdc.AddID(uriToMpd(track.URI), -1); err != nil {
-					return fmt.Errorf("Error appending %q: %v", track.URI, err)
+					return fmt.Errorf("error appending %q: %v", track.URI, err)
 				}
 			}
 		} else {
 			for i, track := range tracks {
 				if _, err := mpdc.AddID(uriToMpd(track.URI), pos+i); err != nil {
-					return fmt.Errorf("Error inserting %q: %v", track.URI, err)
+					return fmt.Errorf("error inserting %q: %v", track.URI, err)
 				}
 			}
 		}
@@ -578,7 +578,7 @@ func (plist mpdPlaylist) Remove(positions ...int) error {
 	return plist.player.withMpd(func(mpdc *mpd.Client) error {
 		length, ok := playlistLength(mpdc)
 		if !ok {
-			return fmt.Errorf("Unable to determine playlist length")
+			return fmt.Errorf("unable to determine playlist length")
 		}
 		sort.Ints(positions)
 		for i := len(positions) - 1; i >= 0; i-- {
@@ -637,7 +637,7 @@ func playlistLength(mpdc *mpd.Client) (int, bool) {
 // lowercase?!
 func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) error {
 	if _, ok := (*song)["directory"]; ok {
-		return fmt.Errorf("Tried to read a directory as local file")
+		return fmt.Errorf("tried to read a directory as local file")
 	}
 
 	track.URI = mpdToURI((*song)["file"])

@@ -73,7 +73,7 @@ type config struct {
 func (conf *config) Load(filename string) error {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return fmt.Errorf("Unable to decode config: %v", err)
+		return fmt.Errorf("unable to decode config: %v", err)
 	}
 	multilineCommentRe := regexp.MustCompile("(?s)/\\*.*\\*/")
 	content = multilineCommentRe.ReplaceAll(content, []byte{})
@@ -236,10 +236,10 @@ func connectToPlayers(config *config) (playerList, error) {
 	players := map[string]player.Player{}
 	addPlayer := func(pl player.Player, name string) error {
 		if match, _ := regexp.MatchString("^\\w+$", name); !match {
-			return fmt.Errorf("Invalid player name: %q", name)
+			return fmt.Errorf("invalid player name: %q", name)
 		}
 		if _, ok := players[name]; ok {
-			return fmt.Errorf("Duplicate player name: %q", name)
+			return fmt.Errorf("duplicate player name: %q", name)
 		}
 		players[name] = pl
 		return nil
@@ -248,7 +248,7 @@ func connectToPlayers(config *config) (playerList, error) {
 	for _, mpdConf := range config.Mpd {
 		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to connect to MPD: %v", err)
+			return nil, fmt.Errorf("unable to connect to MPD: %v", err)
 		}
 		if err := addPlayer(mpdPlayer, mpdConf.Name); err != nil {
 			return nil, err
@@ -263,7 +263,7 @@ func connectToPlayers(config *config) (playerList, error) {
 			config.SlimServer.WebURL,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to connect to SlimServer: %v", err)
+			return nil, fmt.Errorf("unable to connect to SlimServer: %v", err)
 		}
 		players, err := slimServ.Players()
 		if err != nil {

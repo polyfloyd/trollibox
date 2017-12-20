@@ -17,7 +17,7 @@ func connectForTesting() (*Player, error) {
 		return nil, err
 	}
 	if len(players) == 0 {
-		return nil, fmt.Errorf("The SlimServer is not connected to any players")
+		return nil, fmt.Errorf("the SlimServer is not connected to any players")
 	}
 	return players[0], nil
 }

@@ -25,7 +25,7 @@ func fillPlaylist(pl Player, numTracks int) error {
 		return err
 	}
 	if len(tracks) < numTracks {
-		return fmt.Errorf("Not enough tracks in the library: %v < %v", len(tracks), numTracks)
+		return fmt.Errorf("not enough tracks in the library: %v < %v", len(tracks), numTracks)
 	}
 	return pl.Playlist().Insert(0, tracks[0:numTracks]...)
 }

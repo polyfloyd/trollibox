@@ -22,10 +22,10 @@ type Server struct {
 // NewServer creates a new Server using the specified raw server as backend.
 func NewServer(rawServer *raw.Server) (*Server, error) {
 	if _, err := exec.LookPath("youtube-dl"); err != nil {
-		return nil, fmt.Errorf("Netmedia server not available: %v", err)
+		return nil, fmt.Errorf("netmedia server not available: %v", err)
 	}
 	if _, err := exec.LookPath("ffmpeg"); err != nil {
-		return nil, fmt.Errorf("Netmedia server not available: %v", err)
+		return nil, fmt.Errorf("netmedia server not available: %v", err)
 	}
 	return &Server{
 		rawServer: rawServer,

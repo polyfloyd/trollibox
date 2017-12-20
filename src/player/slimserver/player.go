@@ -219,7 +219,7 @@ func (pl *Player) State() (player.PlayState, error) {
 	case "stop":
 		return player.PlayStateStopped, nil
 	default:
-		return player.PlayStateInvalid, fmt.Errorf("Server returned an invalid playstate: %q", res[2])
+		return player.PlayStateInvalid, fmt.Errorf("server returned an invalid playstate: %q", res[2])
 	}
 }
 
@@ -244,7 +244,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 					break outer
 				}
 			case <-timeout:
-				ack <- fmt.Errorf("Timeout waiting for playstate update")
+				ack <- fmt.Errorf("timeout waiting for playstate update")
 				break outer
 			}
 		}
@@ -259,7 +259,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 	case player.PlayStateStopped:
 		_, err = pl.Serv.request(pl.ID, "mode", "stop")
 	default:
-		err = fmt.Errorf("Attempted to set an invalid playstate: %q", state)
+		err = fmt.Errorf("attempted to set an invalid playstate: %q", state)
 	}
 	if err != nil {
 		return err

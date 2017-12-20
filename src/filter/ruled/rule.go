@@ -50,13 +50,13 @@ type Rule struct {
 // MatchFunc Creates a function that matches a track based on this rules criteria.
 func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
 	if rule.Attribute == "" {
-		return nil, fmt.Errorf("Rule's Attribute is unset (%v)", rule)
+		return nil, fmt.Errorf("rule's Attribute is unset (%v)", rule)
 	}
 	if rule.Operation == "" {
-		return nil, fmt.Errorf("Rule's Operation is unset (%v)", rule)
+		return nil, fmt.Errorf("rule's Operation is unset (%v)", rule)
 	}
 	if rule.Value == nil {
-		return nil, fmt.Errorf("Rule's Value is unset (%v)", rule)
+		return nil, fmt.Errorf("rule's Value is unset (%v)", rule)
 	}
 
 	// We'll use rule function to invert the output if necessary.
@@ -71,7 +71,7 @@ func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
 	typeVal := reflect.ValueOf(rule.Value).Kind()
 	typeTrack := reflect.ValueOf((&library.Track{}).Attr(rule.Attribute)).Kind()
 	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int64) {
-		return nil, fmt.Errorf("Value and attribute types do not match (%v, %v)", typeVal, typeTrack)
+		return nil, fmt.Errorf("value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
 
 	// The duration is currently the only integer attribute.
@@ -121,7 +121,7 @@ func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("No implementation defined for op(%v), attr(%v), val(%v)", rule.Operation, rule.Attribute, rule.Value)
+	return nil, fmt.Errorf("no implementation defined for op(%v), attr(%v), val(%v)", rule.Operation, rule.Attribute, rule.Value)
 }
 
 func (rule *Rule) String() string {

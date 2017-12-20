@@ -112,7 +112,7 @@ func htPlayerDataAttach(r *mux.Router, players playerList, streamdb *stream.DB, 
 			name := mux.Vars(req)["player"]
 			pl := players.ActivePlayerByName(name)
 			if pl == nil {
-				writeError(req, res, fmt.Errorf("Player %q is not active", name))
+				writeError(req, res, fmt.Errorf("player %q is not active", name))
 				return
 			}
 			playerCtx := context.WithValue(req.Context(), playerContextKey, pl)
