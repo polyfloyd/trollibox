@@ -19,6 +19,7 @@ func TestAllTrackInfo(t *testing.T) {
 	})
 	libs := []Library{&lib1, &lib2, &lib3}
 
+	// No URIs should no tracks.
 	tracks, err := AllTrackInfo(libs)
 	if err != nil {
 		t.Fatal(err)
@@ -26,6 +27,7 @@ func TestAllTrackInfo(t *testing.T) {
 		t.Fatalf("Unexpected length: %v", len(tracks))
 	}
 
+	// Non-existing tracks should have a zero value.
 	tracks, err = AllTrackInfo(libs, "x", "y", "z")
 	if err != nil {
 		t.Fatal(err)
@@ -70,5 +72,21 @@ func TestAllTrackInfo(t *testing.T) {
 		t.Fatalf("Unexpected library: %s", tracks[1].Title)
 	} else if tracks[2].Title != "lib3" {
 		t.Fatalf("Unexpected library: %s", tracks[2].Title)
+	}
+
+	// https://github.com/polyfloyd/trollibox/issues/5
+	tracks, err = AllTrackInfo([]Library{&lib3}, "foo", "bar", "baz")
+	if err != nil {
+		t.Fatal(err)
+	} else if len(tracks) != 3 {
+		t.Fatalf("Unexpected length: %v", len(tracks))
+	} else {
+		for i, tr := range tracks {
+			if tr.URI == "" {
+				t.Fatalf("The track at index %v is zero", i)
+			} else if tr.Title != "lib3" {
+				t.Fatalf("Unexpected library: %s", tr.Title)
+			}
+		}
 	}
 }
