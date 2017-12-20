@@ -1,6 +1,6 @@
 required = [
-  "github.com/jteeuwen/go-bindata",
   "github.com/tdewolff/minify",
+  "github.com/tmthrgd/go-bindata",
 ]
 
 [[constraint]]
