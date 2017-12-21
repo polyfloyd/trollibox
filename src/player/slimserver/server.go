@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/library/cache"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
@@ -174,6 +175,7 @@ func (serv *Server) Players() ([]*Player, error) {
 			Serv:    serv,
 			Emitter: util.Emitter{Release: time.Millisecond * 100},
 		}
+		pl.cachedLibrary = cache.NewCache(pl)
 		pl.playlist.Playlist = slimPlaylist{player: pl}
 		go pl.eventLoop() // Add a way to halt the eventLoop?
 		players = append(players, pl)

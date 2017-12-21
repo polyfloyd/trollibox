@@ -21,7 +21,6 @@ import (
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
-	"github.com/polyfloyd/trollibox/src/library/cache"
 	"github.com/polyfloyd/trollibox/src/library/netmedia"
 	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
@@ -276,10 +275,6 @@ func connectToPlayers(config *config) (playerList, error) {
 		}
 	}
 
-	for name, pl := range players {
-		log.Printf("Attached player %v", pl)
-		players[name] = cache.NewCache(pl)
-	}
 	return todoPlayerList(players), nil
 }
 

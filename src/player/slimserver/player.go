@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/library/cache"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -62,7 +63,8 @@ type Player struct {
 
 	Serv *Server
 
-	playlist player.PlaylistMetaKeeper
+	cachedLibrary *cache.Cache
+	playlist      player.PlaylistMetaKeeper
 
 	util.Emitter
 }
@@ -99,6 +101,11 @@ func (pl *Player) eventLoop() {
 			log.Println(err)
 		}
 	}
+}
+
+// Library implements the player.Player interface.
+func (pl *Player) Library() library.Library {
+	return pl.cachedLibrary
 }
 
 // Tracks implements the library.Library interface.

@@ -43,7 +43,7 @@ type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end. The player that is requesting the next
 	// track is specified.
-	NextTrack(pl Player) (library.Track, TrackMeta, bool)
+	NextTrack(lib library.Library) (library.Track, TrackMeta, bool)
 }
 
 // AutoAppend attaches a listener to the specified player. The iterator is used
@@ -80,7 +80,7 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 					continue
 				}
 
-				track, meta, ok := iter.NextTrack(pl)
+				track, meta, ok := iter.NextTrack(pl.Library())
 				if !ok {
 					break outer
 				}

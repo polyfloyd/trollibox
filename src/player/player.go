@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 // PlayState enumerates all 3 possible states of playback.
@@ -47,12 +48,19 @@ const (
 // The Player is the heart of Trollibox. This interface provides all common
 // actions that can be performed on a mediaplayer.
 type Player interface {
-	// It is common for backends to also have some kind of track library.
-	// Players should therefore implement the respective interface.
+	// Any type of player.Event may be emitted.
 	//
-	// Through Library, the util.Eventer interface is also required. Any type
-	// of player.Event may be emitted.
-	library.Library
+	// NOTE: The library.UpdateEvent is also emitted. This is legacy behaviour
+	// and should be removed in the future.
+	util.Eventer
+
+	// It is common for backends to also have some kind of track library.
+	// Players should therefore return an implementation of the respective
+	// interface.
+	Library() library.Library
+
+	// Returns the currently playing playlist.
+	Playlist() MetaPlaylist
 
 	// Gets the time offset into the currently playing track. 0 if no track is
 	// being played.
@@ -90,7 +98,4 @@ type Player interface {
 
 	// Reports wether the player is online and reachable.
 	Available() bool
-
-	// Returns the currently playing playlist.
-	Playlist() MetaPlaylist
 }

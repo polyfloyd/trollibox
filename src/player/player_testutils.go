@@ -9,7 +9,7 @@ import (
 )
 
 func fillPlaylist(pl Player, numTracks int) error {
-	tracks, err := pl.Tracks()
+	tracks, err := pl.Library().Tracks()
 	if err != nil {
 		return err
 	}

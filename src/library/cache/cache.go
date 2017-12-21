@@ -5,16 +5,15 @@ import (
 	"sync"
 
 	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
-// A Cache wraps a Player and keeps a local copy of it's library.
+// A Cache wraps a Library and keeps a local copy of it's library.
 //
 // The copy is kept synchronized by listening for update events from the
-// player.
+// library.
 type Cache struct {
-	player.Player
+	library.Library
 	util.Emitter
 
 	lock   sync.RWMutex
@@ -23,14 +22,14 @@ type Cache struct {
 	err    error
 }
 
-// NewCache wraps the specified player and caches it's library.
-func NewCache(pl player.Player) *Cache {
-	cache := &Cache{Player: pl}
+// NewCache wraps the specified library and caches it's contents.
+func NewCache(lib library.Library) *Cache {
+	cache := &Cache{Library: lib}
 	go cache.run()
 	return cache
 }
 
-// Tracks implements the player.Library interface.
+// Tracks implements the library.Library interface.
 func (cache *Cache) Tracks() ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
@@ -47,7 +46,7 @@ func (cache *Cache) Tracks() ([]library.Track, error) {
 	return cache.tracks, cache.err
 }
 
-// TrackInfo implements the player.Library interface.
+// TrackInfo implements the library.Library interface.
 func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
@@ -70,7 +69,7 @@ func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 		if track, ok := cache.index[uri]; ok {
 			results[i] = *track
 		} else {
-			tracks, err := cache.Player.TrackInfo(uri)
+			tracks, err := cache.Library.TrackInfo(uri)
 			if err != nil {
 				return nil, err
 			}
@@ -80,14 +79,14 @@ func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 	return results, nil
 }
 
-// Events implements the player.Player interface.
+// Events implements the util.Eventer interface.
 func (cache *Cache) Events() *util.Emitter {
 	return &cache.Emitter
 }
 
 func (cache *Cache) run() {
-	listener := cache.Player.Events().Listen()
-	defer cache.Player.Events().Unlisten(listener)
+	listener := cache.Library.Events().Listen()
+	defer cache.Library.Events().Unlisten(listener)
 
 	// Reload tracks on startup.
 	cache.lock.Lock()
@@ -106,7 +105,7 @@ func (cache *Cache) run() {
 }
 
 func (cache *Cache) reloadTracks() {
-	tracks, err := cache.Player.Tracks()
+	tracks, err := cache.Library.Tracks()
 	if err != nil {
 		cache.err = err
 		cache.tracks, cache.index = nil, nil
@@ -120,5 +119,5 @@ func (cache *Cache) reloadTracks() {
 }
 
 func (cache *Cache) String() string {
-	return fmt.Sprintf("Cache{%v}", cache.Player)
+	return fmt.Sprintf("Cache{%v}", cache.Library)
 }

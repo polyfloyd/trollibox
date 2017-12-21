@@ -16,6 +16,7 @@ import (
 	"github.com/fhs/gompd/mpd"
 
 	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/library/cache"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -71,7 +72,8 @@ type Player struct {
 	network, address string
 	passwd           string
 
-	playlist player.PlaylistMetaKeeper
+	cachedLibrary *cache.Cache
+	playlist      player.PlaylistMetaKeeper
 
 	// Sometimes, the volume returned by MPD is invalid, so we have to take
 	// care of that ourselves.
@@ -99,6 +101,7 @@ func Connect(network, address string, mpdPassword *string) (*Player, error) {
 		clientPool: make(chan *mpd.Client, 6),
 	}
 	player.playlist.Playlist = mpdPlaylist{player: player}
+	player.cachedLibrary = cache.NewCache(player)
 
 	// Test the connection.
 	client, err := mpd.DialAuthenticated(player.network, player.address, player.passwd)
@@ -214,6 +217,11 @@ func (pl *Player) mainLoop() {
 			}
 		}
 	}
+}
+
+// Library implements the player.Player interface.
+func (pl *Player) Library() library.Library {
+	return pl.cachedLibrary
 }
 
 // Tracks implements the library.Library interface.

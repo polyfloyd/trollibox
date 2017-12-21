@@ -22,8 +22,8 @@ func RandomIterator(filter Filter) player.TrackIterator {
 	}
 }
 
-func (it randFilterIterator) NextTrack(pl player.Player) (library.Track, player.TrackMeta, bool) {
-	tracks, err := pl.Tracks()
+func (it randFilterIterator) NextTrack(lib library.Library) (library.Track, player.TrackMeta, bool) {
+	tracks, err := lib.Tracks()
 	if err != nil {
 		return library.Track{}, player.TrackMeta{}, false
 	}

@@ -316,7 +316,7 @@ func htPlayerGetPlaylist(libs []library.Library) func(res http.ResponseWriter, r
 			writeError(req, res, err)
 			return
 		}
-		trJSON, err := plTrackJSONList(tracks, meta, append(libs, pl), trackIndex)
+		trJSON, err := plTrackJSONList(tracks, meta, append(libs, pl.Library()), trackIndex)
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -456,7 +456,7 @@ func htPlayerStoredPlaylistTracks() func(res http.ResponseWriter, req *http.Requ
 func htPlayerTracks() func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
-		tracks, err := pl.Tracks()
+		tracks, err := pl.Library().Tracks()
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -473,7 +473,7 @@ func htTrackArt(libs []library.Library) func(res http.ResponseWriter, req *http.
 		uri := req.FormValue("track")
 		var image io.ReadCloser
 		var mime string
-		for _, lib := range append(libs, pl) {
+		for _, lib := range append(libs, pl.Library()) {
 			if image, mime = lib.TrackArt(uri); image != nil {
 				break
 			}
@@ -495,7 +495,7 @@ func htTrackArt(libs []library.Library) func(res http.ResponseWriter, req *http.
 func htTrackSearch() func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
-		tracks, err := pl.Tracks()
+		tracks, err := pl.Library().Tracks()
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -528,7 +528,7 @@ func removeRawTrack(pl player.Player, track library.Track, rawServer *raw.Server
 	defer pl.Events().Unlisten(events)
 outer:
 	for event := range events {
-		if event != "playlist" {
+		if event != player.PlaylistEvent {
 			continue
 		}
 		tracks, err := pl.Playlist().Tracks()
