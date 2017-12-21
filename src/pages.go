@@ -44,7 +44,7 @@ func htRedirectToDefaultPlayer(config *config, players player.List) func(res htt
 		} else if names, err := players.PlayerNames(); err != nil && len(names) > 0 {
 			defaultPlayer = names[0]
 		} else {
-			writeError(req, res, fmt.Errorf("Error finding a player to redirect to: %v", err))
+			writeError(req, res, fmt.Errorf("error finding a player to redirect to: %v", err))
 			return
 		}
 		http.Redirect(res, req, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)

@@ -217,7 +217,7 @@ func (serv *Server) PlayerByName(name string) (player.Player, error) {
 		return pl, nil
 	}
 
-	return nil, fmt.Errorf("No such player: %q", name)
+	return nil, fmt.Errorf("no such player: %q", name)
 }
 
 func (serv *Server) decodeTracks(firstField string, numTracks int, p0 string, pn ...string) ([]library.Track, error) {
