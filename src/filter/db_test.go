@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/polyfloyd/trollibox/src/library"
+	"github.com/polyfloyd/trollibox/src/util"
 )
 
 func init() {
@@ -131,4 +132,23 @@ func TestDBSetInvalid(t *testing.T) {
 	if err := db.Set("foo/bar/baz", dummyFilter{}); err == nil {
 		t.Fatalf("Slashes were allowed to be set")
 	}
+}
+
+func TestDBEvents(t *testing.T) {
+	db, err := NewDB(path.Join(os.TempDir(), "filter-db-test-events"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	util.TestEventEmission(t, db, UpdateEvent{}, func() {
+		filter := dummyFilter{Foo: "foo"}
+		if err := db.Set("filter", filter); err != nil {
+			t.Fatal(err)
+		}
+	})
+	util.TestEventEmission(t, db, UpdateEvent{}, func() {
+		if err := db.Remove("filter"); err != nil {
+			t.Fatal(err)
+		}
+	})
 }

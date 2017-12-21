@@ -139,6 +139,11 @@ func (db *DB) Remove(name string) error {
 	return nil
 }
 
+// Events implements the util.Eventer interface.
+func (db *DB) Events() *util.Emitter {
+	return &db.Emitter
+}
+
 func (db *DB) filterFile(name string) string {
 	return path.Join(db.directory, name+".json")
 }

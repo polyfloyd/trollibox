@@ -58,6 +58,7 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 		ch := emitter.Listen()
 		defer emitter.Unlisten(ch)
 		conn.SetDeadline(time.Time{})
+		// TODO: All these events should not all be combined in here.
 		for event := range ch {
 			var eventStr string
 			switch t := event.(type) {
@@ -65,6 +66,8 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 				eventStr = string(t)
 			case library.UpdateEvent:
 				eventStr = "tracks"
+			case filter.UpdateEvent:
+				eventStr = "update"
 			default:
 				continue
 			}
