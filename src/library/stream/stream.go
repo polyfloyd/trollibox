@@ -192,7 +192,7 @@ func (db *DB) RemoveStream(stream *Stream) error {
 	return nil
 }
 
-// StoreStream stores the specifed stream using its filename.
+// StoreStream stores the specified stream using its filename.
 //
 // If no filename is given, it will be inferred from the URL.
 //
