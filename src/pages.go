@@ -39,9 +39,9 @@ func htBrowserPage(config *config, players player.List) func(res http.ResponseWr
 func htRedirectToDefaultPlayer(config *config, players player.List) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		defaultPlayer := ""
-		if pl, err := players.PlayerByName(config.DefaultPlayer); err != nil || pl != nil {
+		if pl, err := players.PlayerByName(config.DefaultPlayer); err == nil && pl != nil {
 			defaultPlayer = config.DefaultPlayer
-		} else if names, err := players.PlayerNames(); err != nil && len(names) > 0 {
+		} else if names, err := players.PlayerNames(); err == nil && len(names) > 0 {
 			defaultPlayer = names[0]
 		} else {
 			writeError(req, res, fmt.Errorf("error finding a player to redirect to: %v", err))
