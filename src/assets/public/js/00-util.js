@@ -112,6 +112,23 @@ function showTrackArt($elem, player, track, cb) {
 }
 
 /**
+ * Shows an animation to indicate that a track was added to the playlist.
+ */
+function showInsertionAnimation($elems) {
+	$elems.each(function(i, el) {
+		var $elem = $(el);
+
+		var $anim = $('<div class="insertion-animation glyphicon glyphicon-plus"></div>');
+		$anim.css($elem.offset());
+
+		$('body').prepend($anim);
+		setTimeout(function() {
+			$anim.remove();
+		}, 1500);
+	});
+}
+
+/**
  * To be used as argument to Array#sort(). Compares strings without case
  * sensitivity.
  */

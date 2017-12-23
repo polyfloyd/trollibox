@@ -143,10 +143,12 @@ var BrowserFilesView = BrowserView.extend({
 			});
 			$tab.find('.result-list > li.type-track').on('click', function() {
 				var $li = $(this);
+				showInsertionAnimation($li);
 				Hotkeys.playerInsert(self.model, tracks[$li.attr('data-index')].track);
 			});
 			$tab.find('.do-queue-all').on('click', function() {
 				var tracks = self.getTracksInDir(dir.path);
+				showInsertionAnimation($tab.find('.result-list > li'));
 				if (tracks.length < 20 || confirm('You are about to add '+tracks.length+' tracks to the playlist. Is that okay?')) {
 					Hotkeys.playerInsert(self.model, tracks);
 				}

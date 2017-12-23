@@ -27,6 +27,7 @@ var BrowserStreamsView = BrowserView.extend({
 			}));
 			showTrackArt($el.find('.track-art'), this.player, stream);
 			$el.on('click', function() {
+				showInsertionAnimation($el);
 				Hotkeys.playerInsert(self.player, [stream]);
 			});
 			$el.find('.do-edit').on('click', function(event) {

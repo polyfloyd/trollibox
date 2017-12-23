@@ -91,6 +91,7 @@ var BrowserSearchView = BrowserView.extend({
 			highlight: highlight,
 		}));
 		$el.on('click', function() {
+			showInsertionAnimation($el);
 			Hotkeys.playerInsert(this.model, [result.track]);
 		}.bind(this));
 		return $el;
