@@ -6,7 +6,6 @@ required = [
 [[constraint]]
   name = "github.com/fhs/gompd"
   branch = "master"
-  source = "github.com/polyfloyd/gompd"
 
 [[constraint]]
   name = "github.com/gorilla/mux"

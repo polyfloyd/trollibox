@@ -5,8 +5,7 @@
   branch = "master"
   name = "github.com/fhs/gompd"
   packages = ["mpd"]
-  revision = "be3b3c68d974a95a58fb62bb194ae8da4cd28193"
-  source = "github.com/polyfloyd/gompd"
+  revision = "24b9f318c4d17a3e036d8bc0cfbbbb6232167a0d"
 
 [[projects]]
   name = "github.com/gorilla/context"
@@ -18,7 +17,7 @@
   branch = "master"
   name = "github.com/gorilla/mux"
   packages = ["."]
-  revision = "5ab525f4fb1678e197ae59401e9050fa0b6cb5fd"
+  revision = "69dae3b874ba34bcaa563d5e5b1680334bfd9b73"
 
 [[projects]]
   name = "github.com/tdewolff/minify"
@@ -55,6 +54,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "51dc59a45b7ef84950746dcb7c0df09bc08f3bd2922d047a9cfaa954e51583e7"
+  inputs-digest = "dc8d697c352760b048613674f2e8114b3dd7770ecce6b0c4f500c7ed5d331033"
   solver-name = "gps-cdcl"
   solver-version = 1

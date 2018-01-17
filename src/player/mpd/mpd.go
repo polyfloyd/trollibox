@@ -516,27 +516,20 @@ func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	pl.withMpd(func(mpdc *mpd.Client) error {
 		id := uriToMpd(track)
 		numChunks := 0
-		if strNum, err := mpdc.StickerGet(id, "image-nchunks"); err == nil {
-			if num, err := strconv.ParseInt(strNum, 10, 32); err == nil {
-				numChunks = int(num)
-			}
-		}
-		if numChunks == 0 {
+		if stkNum, err := mpdc.StickerGet(id, "image-nchunks"); err != nil || stkNum == nil {
+			return nil
+		} else if numChunks, err = strconv.Atoi(stkNum.Value); err != nil {
 			return nil
 		}
 
-		chunks := make([]io.Reader, numChunks+1)
-		totalLength := 0
+		chunks := make([]io.Reader, 0, numChunks)
 		for i := 0; i < numChunks; i++ {
-			b64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%v", i))
-			if err != nil {
+			stkB64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%d", i))
+			if err != nil || stkB64Data == nil {
 				return nil
 			}
-			chunks[i] = strings.NewReader(b64Data)
-			totalLength += len(b64Data)
+			chunks = append(chunks, strings.NewReader(stkB64Data.Value))
 		}
-		// The padding seems to be getting lost somewhere along the way from MPD to here.
-		chunks[len(chunks)-1] = strings.NewReader([]string{"", "=", "==", "==="}[totalLength%4])
 		image = ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...)))
 		mime = "image/jpeg"
 		return nil
@@ -657,9 +650,11 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) e
 	track.AlbumDisc = (*song)["Disc"]
 	track.AlbumTrack = (*song)["Track"]
 
-	strNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
-	_, err := strconv.ParseInt(strNum, 10, 32)
-	track.HasArt = err == nil
+	stkNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
+	if stkNum != nil {
+		_, err := strconv.ParseInt(stkNum.Value, 10, 32)
+		track.HasArt = err == nil
+	}
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
 		duration, err := strconv.ParseInt(timeStr, 10, 32)
