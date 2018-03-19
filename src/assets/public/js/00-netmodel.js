@@ -47,7 +47,7 @@ var NetModel = Backbone.Model.extend({
 			dataType: 'json',
 			data:     body ? JSON.stringify(body) : null,
 		}).catch(function(err) {
-			this.trigger('error', err);
+			this.trigger('error', method+' '+path+': '+err);
 		}.bind(this));
 	},
 
