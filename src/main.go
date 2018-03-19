@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
@@ -159,20 +159,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	service := mux.NewRouter()
+	service := chi.NewRouter()
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, publicDir) {
 			continue
 		}
 		urlPath := strings.TrimPrefix(file, publicDir)
-		service.Path(urlPath).Handler(assetServeHandler(file))
+		service.Get(urlPath, assetServeHandler(file).ServeHTTP)
 	}
 
-	service.HandleFunc("/", htRedirectToDefaultPlayer(&config, players))
-	service.Path("/player/{player}").HandlerFunc(htBrowserPage(&config, players))
-	dataService := service.PathPrefix("/data/").Subrouter()
-	htDataAttach(dataService, filterdb, streamdb, rawServer)
-	htPlayerDataAttach(dataService.PathPrefix("/player/{player}/").Subrouter(), players, streamdb, rawServer, netServer)
+	service.Get("/", htRedirectToDefaultPlayer(&config, players))
+	service.Get("/player/{player}", htBrowserPage(&config, players))
+	service.Route("/data", func(r chi.Router) {
+		htDataAttach(r, filterdb, streamdb, rawServer)
+		htPlayerDataAttach(r, players, streamdb, rawServer, netServer)
+	})
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{

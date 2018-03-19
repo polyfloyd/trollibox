@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"golang.org/x/net/websocket"
 
 	"github.com/polyfloyd/trollibox/src/filter"
@@ -104,47 +104,49 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 	return outList, nil
 }
 
-func htPlayerDataAttach(r *mux.Router, players player.List, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
-	mid := func(handleFunc func(res http.ResponseWriter, req *http.Request)) func(res http.ResponseWriter, req *http.Request) {
-		return func(res http.ResponseWriter, req *http.Request) {
-			htJSONContent(res, req)
+func htPlayerDataAttach(r chi.Router, players player.List, streamdb *stream.DB, rawServer *raw.Server, netServer *netmedia.Server) {
+	r.Route("/player/{playerName}", func(r chi.Router) {
+		r.Use(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+				htJSONContent(res, req)
+				name := chi.URLParam(req, "playerName")
+				pl, err := players.PlayerByName(name)
+				if err != nil {
+					writeError(req, res, fmt.Errorf("error looking up %q: %v", name, err))
+					return
+				} else if !pl.Available() {
+					writeError(req, res, fmt.Errorf("player %q is not active", name))
+					return
+				}
+				playerCtx := context.WithValue(req.Context(), playerContextKey, pl)
+				next.ServeHTTP(res, req.WithContext(playerCtx))
+			})
+		})
 
-			name := mux.Vars(req)["player"]
-			pl, err := players.PlayerByName(name)
-			if err != nil {
-				writeError(req, res, fmt.Errorf("error looking up %q: %v", name, err))
-				return
-			} else if !pl.Available() {
-				writeError(req, res, fmt.Errorf("player %q is not active", name))
-				return
-			}
-			playerCtx := context.WithValue(req.Context(), playerContextKey, pl)
-
-			handleFunc(res, req.WithContext(playerCtx))
-		}
-	}
-
-	libs := []library.Library{streamdb, rawServer}
-	r.Path("/playlist").Methods("GET").HandlerFunc(mid(htPlayerGetPlaylist(libs)))
-	r.Path("/playlist").Methods("PUT").HandlerFunc(mid(htPlayerPlaylistInsert()))
-	r.Path("/playlist").Methods("PATCH").HandlerFunc(mid(htPlayerPlaylistMove()))
-	r.Path("/playlist").Methods("DELETE").HandlerFunc(mid(htPlayerPlaylistRemove()))
-	r.Path("/playlist/appendraw").Methods("POST").HandlerFunc(mid(htRawTrackAdd(rawServer)))
-	r.Path("/playlist/appendnet").Methods("POST").HandlerFunc(mid(htNetTrackAdd(netServer)))
-	r.Path("/current").Methods("POST").HandlerFunc(mid(htPlayerSetCurrent()))
-	r.Path("/next").Methods("POST").HandlerFunc(mid(htPlayerNext())) // Deprecated
-	r.Path("/time").Methods("GET").HandlerFunc(mid(htPlayerGetTime()))
-	r.Path("/time").Methods("POST").HandlerFunc(mid(htPlayerSetTime()))
-	r.Path("/playstate").Methods("GET").HandlerFunc(mid(htPlayerGetPlaystate()))
-	r.Path("/playstate").Methods("POST").HandlerFunc(mid(htPlayerSetPlaystate()))
-	r.Path("/volume").Methods("GET").HandlerFunc(mid(htPlayerGetVolume()))
-	r.Path("/volume").Methods("POST").HandlerFunc(mid(htPlayerSetVolume()))
-	r.Path("/list/").Methods("GET").HandlerFunc(mid(htPlayerListStoredPlaylists()))
-	r.Path("/list/{name}/").Methods("GET").HandlerFunc(mid(htPlayerStoredPlaylistTracks()))
-	r.Path("/tracks").Methods("GET").HandlerFunc(mid(htPlayerTracks()))
-	r.Path("/tracks/search").Methods("GET").HandlerFunc(mid(htTrackSearch()))
-	r.Path("/tracks/art").Methods("GET").HandlerFunc(mid(htTrackArt(libs)))
-	r.Path("/listen").HandlerFunc(mid(htPlayerListen()))
+		libs := []library.Library{streamdb, rawServer}
+		r.Route("/playlist", func(r chi.Router) {
+			r.Get("/", htPlayerGetPlaylist(libs))
+			r.Put("/", htPlayerPlaylistInsert())
+			r.Patch("/", htPlayerPlaylistMove())
+			r.Delete("/", htPlayerPlaylistRemove())
+			r.Post("/appendraw", htRawTrackAdd(rawServer))
+			r.Post("/appendnet", htNetTrackAdd(netServer))
+		})
+		r.Post("/current", htPlayerSetCurrent())
+		r.Post("/next", htPlayerNext()) // Deprecated
+		r.Get("/time", htPlayerGetTime())
+		r.Post("/time", htPlayerSetTime())
+		r.Get("/playstate", htPlayerGetPlaystate())
+		r.Post("/playstate", htPlayerSetPlaystate())
+		r.Get("/volume", htPlayerGetVolume())
+		r.Post("/volume", htPlayerSetVolume())
+		r.Get("/list/", htPlayerListStoredPlaylists())
+		r.Get("/list/{name}/", htPlayerStoredPlaylistTracks())
+		r.Get("/tracks", htPlayerTracks())
+		r.Get("/tracks/search", htTrackSearch())
+		r.Get("/tracks/art", htTrackArt(libs))
+		r.Mount("/listen", htPlayerListen())
+	})
 }
 
 // Deprecated, use htPlayerSetCurrent instead.
@@ -434,7 +436,7 @@ func htPlayerStoredPlaylistTracks() func(res http.ResponseWriter, req *http.Requ
 			writeError(req, res, err)
 			return
 		}
-		playlist, ok := playlists[mux.Vars(req)["name"]]
+		playlist, ok := playlists[chi.URLParam(req, "name")]
 		if !ok {
 			res.WriteHeader(http.StatusNotFound)
 			res.Write([]byte("{}"))
@@ -625,9 +627,9 @@ func htNetTrackAdd(netServer *netmedia.Server) func(res http.ResponseWriter, req
 	}
 }
 
-func htPlayerListen() func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
+func htPlayerListen() http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		pl := req.Context().Value(playerContextKey).(player.Player)
 		websocket.Handler(htListen(pl.Events())).ServeHTTP(res, req)
-	}
+	})
 }

@@ -2,22 +2,16 @@
 
 
 [[projects]]
-  branch = "master"
   name = "github.com/fhs/gompd"
   packages = ["mpd"]
-  revision = "24b9f318c4d17a3e036d8bc0cfbbbb6232167a0d"
+  revision = "3c02eec3bcb53632cb9d7afea23baf363305384c"
+  version = "v2.0.2"
 
 [[projects]]
-  name = "github.com/gorilla/context"
+  name = "github.com/go-chi/chi"
   packages = ["."]
-  revision = "1ea25387ff6f684839d82767c1733ff4d4d15d0a"
-  version = "v1.1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/gorilla/mux"
-  packages = ["."]
-  revision = "69dae3b874ba34bcaa563d5e5b1680334bfd9b73"
+  revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
+  version = "v3.3.2"
 
 [[projects]]
   name = "github.com/tdewolff/minify"
@@ -54,6 +48,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "dc8d697c352760b048613674f2e8114b3dd7770ecce6b0c4f500c7ed5d331033"
+  inputs-digest = "7f020f253988bfae07934a74b0cfd6aa7668a94358db894ae0d3c67e7fea3ce5"
   solver-name = "gps-cdcl"
   solver-version = 1

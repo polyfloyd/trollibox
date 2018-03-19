@@ -59,7 +59,7 @@ func (sl SimpleList) PlayerByName(name string) (Player, error) {
 	if pl, ok := sl[name]; ok {
 		return pl, nil
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no player with name %q", name)
 }
 
 // A MultiList combines multiple player lists into one.
@@ -89,5 +89,5 @@ func (mp MultiList) PlayerByName(name string) (Player, error) {
 			return player, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no player with name %q", name)
 }

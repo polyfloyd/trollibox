@@ -5,7 +5,7 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/player"
@@ -27,7 +27,7 @@ func getTemplate() *template.Template {
 func htBrowserPage(config *config, players player.List) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		params := baseParamMap(config, players)
-		params["player"] = mux.Vars(req)["player"]
+		params["player"] = chi.URLParam(req, "player")
 
 		res.Header().Set("Content-Type", "text/html")
 		if err := getTemplate().Execute(res, params); err != nil {

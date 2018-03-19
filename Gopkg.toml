@@ -8,8 +8,8 @@ required = [
   branch = "master"
 
 [[constraint]]
-  name = "github.com/gorilla/mux"
-  branch = "master"
+  name = "github.com/go-chi/chi"
+  version = "3.3.2"
 
 [[constraint]]
   branch = "release-branch.go1.8"

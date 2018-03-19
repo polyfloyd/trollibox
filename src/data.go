@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"golang.org/x/net/websocket"
 
 	"github.com/polyfloyd/trollibox/src/filter"
@@ -20,17 +20,23 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
-func htDataAttach(r *mux.Router, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) {
-	r.Path("/filters/").Methods("GET").HandlerFunc(htFilterList(filterdb))
-	r.Path("/filters/{name}/").Methods("GET").HandlerFunc(htFilterGet(filterdb))
-	r.Path("/filters/{name}/").Methods("DELETE").HandlerFunc(htFilterRemove(filterdb))
-	r.Path("/filters/{name}/").Methods("PUT").HandlerFunc(htFilterSet(filterdb))
-	r.Path("/filters/listen").Handler(websocket.Handler(htListen(&filterdb.Emitter)))
-	r.Path("/streams").Methods("GET").HandlerFunc(htStreamsList(streamdb))
-	r.Path("/streams").Methods("POST").HandlerFunc(htStreamsAdd(streamdb))
-	r.Path("/streams").Methods("DELETE").HandlerFunc(htStreamsRemove(streamdb))
-	r.Path("/streams/listen").Handler(websocket.Handler(websocket.Handler(htListen(&streamdb.Emitter))))
-	r.Path("/raw").Methods("GET").Handler(rawServer)
+func htDataAttach(r chi.Router, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) {
+	r.Route("/filters/", func(r chi.Router) {
+		r.Get("/", htFilterList(filterdb))
+		r.Route("/{name}", func(r chi.Router) {
+			r.Get("/", htFilterGet(filterdb))
+			r.Delete("/", htFilterRemove(filterdb))
+			r.Put("/", htFilterSet(filterdb))
+		})
+		r.Mount("/listen", websocket.Handler(htListen(&filterdb.Emitter)))
+	})
+	r.Route("/streams", func(r chi.Router) {
+		r.Get("/", htStreamsList(streamdb))
+		r.Post("/", htStreamsAdd(streamdb))
+		r.Delete("/", htStreamsRemove(streamdb))
+		r.Mount("/listen", websocket.Handler(htListen(&streamdb.Emitter)))
+	})
+	r.Mount("/raw", rawServer)
 }
 
 // Writes an error to the client or an empty object if err is nil.
@@ -95,7 +101,7 @@ func htFilterList(filterdb *filter.DB) func(res http.ResponseWriter, req *http.R
 func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		htJSONContent(res, req)
-		filter, err := filterdb.Get(mux.Vars(req)["name"])
+		filter, err := filterdb.Get(chi.URLParam(req, "name"))
 		if err != nil {
 			writeError(req, res, err)
 			return
@@ -128,7 +134,7 @@ func htFilterGet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 func htFilterRemove(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
 		htJSONContent(res, req)
-		name := mux.Vars(req)["name"]
+		name := chi.URLParam(req, "name")
 		if err := filterdb.Remove(name); err != nil {
 			writeError(req, res, err)
 			return
@@ -166,7 +172,7 @@ func htFilterSet(filterdb *filter.DB) func(res http.ResponseWriter, req *http.Re
 			writeError(req, res, err)
 			return
 		}
-		name := mux.Vars(req)["name"]
+		name := chi.URLParam(req, "name")
 		if err := filterdb.Set(name, filter); err != nil {
 			writeError(req, res, err)
 			return
