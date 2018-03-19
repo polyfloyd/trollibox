@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
@@ -160,6 +161,7 @@ func main() {
 	}
 
 	service := chi.NewRouter()
+	service.Use(middleware.DefaultCompress)
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, publicDir) {
 			continue
@@ -178,7 +180,7 @@ func main() {
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
-		Handler:        util.Gzip(service),
+		Handler:        service,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
