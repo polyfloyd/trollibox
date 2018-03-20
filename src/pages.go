@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi"
 
+	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/player"
 )
@@ -44,13 +45,9 @@ func htRedirectToDefaultPlayer(config *config, players player.List) func(res htt
 		} else if names, err := players.PlayerNames(); err == nil && len(names) > 0 {
 			defaultPlayer = names[0]
 		} else {
-			writeError(req, res, fmt.Errorf("error finding a player to redirect to: %v", err))
+			api.WriteError(req, res, fmt.Errorf("error finding a player to redirect to: %v", err))
 			return
 		}
 		http.Redirect(res, req, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)
 	}
-}
-
-func htJSONContent(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "application/json")
 }

@@ -19,6 +19,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 
+	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
@@ -173,8 +174,7 @@ func main() {
 	service.Get("/", htRedirectToDefaultPlayer(&config, players))
 	service.Get("/player/{player}", htBrowserPage(&config, players))
 	service.Route("/data", func(r chi.Router) {
-		htDataAttach(r, filterdb, streamdb, rawServer)
-		htPlayerDataAttach(r, players, streamdb, rawServer, netServer)
+		api.InitRouter(r, players, netServer, filterdb, streamdb, rawServer)
 	})
 
 	log.Printf("Now accepting HTTP connections on %v", config.Address)
