@@ -27,7 +27,7 @@ var NetModel = Backbone.Model.extend({
 		};
 		sock.onclose = function() {
 			if (self.sock) {
-				self.trigger('error', new Error('Socket connection lost'));
+				self.trigger('server-disconnect');
 			}
 			self.sock = null;
 			setTimeout(function() {
