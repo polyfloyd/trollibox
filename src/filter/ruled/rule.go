@@ -48,7 +48,7 @@ type Rule struct {
 }
 
 // MatchFunc Creates a function that matches a track based on this rules criteria.
-func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
+func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), error) {
 	if rule.Attribute == "" {
 		return nil, fmt.Errorf("rule's Attribute is unset (%v)", rule)
 	}
@@ -79,44 +79,66 @@ func (rule Rule) MatchFunc() (func(library.Track) bool, error) {
 		durVal := time.Duration(float64Val) * time.Second
 		switch rule.Operation {
 		case opEquals:
-			return func(track library.Track) bool {
-				return inv(track.Duration == durVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration == durVal)
 			}, nil
 		case opGreater:
-			return func(track library.Track) bool {
-				return inv(track.Duration > durVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration > durVal)
 			}, nil
 		case opLess:
-			return func(track library.Track) bool {
-				return inv(track.Duration < durVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration < durVal)
 			}, nil
 		}
 
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
 		case opContains:
-			return func(track library.Track) bool {
-				return inv(strings.Contains(track.Attr(rule.Attribute).(string), strVal))
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				idx := strings.Index(track.Attr(rule.Attribute).(string), strVal)
+				if idx == -1 {
+					return nil, inv(false)
+				}
+				return []filter.SearchMatch{{
+					Start: idx, End: idx + len(strVal),
+				}}, true
 			}, nil
 		case opEquals:
-			return func(track library.Track) bool {
-				return inv(track.Attr(rule.Attribute).(string) == strVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				if inv(track.Attr(rule.Attribute).(string) == strVal) {
+					return []filter.SearchMatch{{
+						Start: 0, End: len(strVal),
+					}}, true
+				}
+				return nil, false
 			}, nil
 		case opGreater:
-			return func(track library.Track) bool {
-				return inv(track.Attr(rule.Attribute).(string) > strVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Attr(rule.Attribute).(string) > strVal)
 			}, nil
 		case opLess:
-			return func(track library.Track) bool {
-				return inv(track.Attr(rule.Attribute).(string) < strVal)
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Attr(rule.Attribute).(string) < strVal)
 			}, nil
 		case opMatches:
 			pat, err := regexp.Compile(strVal)
 			if err != nil {
 				return nil, err
 			}
-			return func(track library.Track) bool {
-				return inv(pat.MatchString(track.Attr(rule.Attribute).(string)))
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				indices := pat.FindAllStringIndex(track.Attr(rule.Attribute).(string), -1)
+				if indices == nil {
+					return nil, inv(false)
+				}
+				matches := make([]filter.SearchMatch, 0, len(indices)/2)
+				for _, ix := range indices {
+					matches = append(matches, filter.SearchMatch{
+						Start: ix[0],
+						End:   ix[1],
+					})
+				}
+				return matches, inv(true)
 			}, nil
 		}
 	}
@@ -147,7 +169,7 @@ func (err RuleError) Error() string {
 type nojsonRuleFilter struct {
 	Rules []Rule `json:"rules"`
 
-	funcs []func(library.Track) bool
+	funcs []func(library.Track) ([]filter.SearchMatch, bool)
 }
 
 // A RuleFilter is a compiled set of rules.
@@ -172,13 +194,15 @@ func (ft RuleFilter) Filter(track library.Track) (filter.SearchResult, bool) {
 		// No rules, match everything.
 		return filter.SearchResult{Track: track}, true
 	}
-	for _, rule := range ft.funcs {
-		if !rule(track) {
+	result := filter.SearchResult{Track: track}
+	for i, rule := range ft.funcs {
+		matches, ok := rule(track)
+		if !ok {
 			return filter.SearchResult{}, false
 		}
+		result.AddMatches(ft.Rules[i].Attribute, matches...)
 	}
-	// TODO: Return a proper search result.
-	return filter.SearchResult{Track: track}, true
+	return result, true
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
@@ -191,8 +215,8 @@ func (ft *RuleFilter) UnmarshalJSON(data []byte) error {
 	return err
 }
 
-func compileFuncs(rules []Rule) ([]func(library.Track) bool, error) {
-	funcs := make([]func(library.Track) bool, len(rules))
+func compileFuncs(rules []Rule) ([]func(library.Track) ([]filter.SearchMatch, bool), error) {
+	funcs := make([]func(library.Track) ([]filter.SearchMatch, bool), len(rules))
 	for i, rule := range rules {
 		var err error
 		if funcs[i], err = rule.MatchFunc(); err != nil {

@@ -41,10 +41,15 @@ type SearchResult struct {
 // Multiple possibliy overlapping matches may be added. The propertes accepted
 // are the same as Track.Attr().
 func (sr *SearchResult) AddMatch(property string, start, end int) {
+	sr.AddMatches(property, SearchMatch{Start: start, End: end})
+}
+
+// AddMatches marks portions of the named property value as matched.
+func (sr *SearchResult) AddMatches(property string, matches ...SearchMatch) {
 	if sr.Matches == nil {
 		sr.Matches = map[string][]SearchMatch{}
 	}
-	sr.Matches[property] = append(sr.Matches[property], SearchMatch{Start: start, End: end})
+	sr.Matches[property] = append(sr.Matches[property], matches...)
 }
 
 // NumMatches returns the total number of matches across all properties.
