@@ -2,6 +2,7 @@ package raw
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,11 +18,12 @@ import (
 )
 
 type rawTrack struct {
-	server *Server
-	id     uint64
-	name   string
-	buffer *util.BlockingBuffer
+	server    *Server
+	id        uint64
+	buffer    *util.BlockingBuffer
+	cancelJob func()
 
+	name      string
 	image     []byte
 	imageMime string
 }
@@ -69,19 +71,24 @@ func (sv *Server) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	io.Copy(res, r)
 }
 
-// Add reads an audio file and creates a track with a title and optional image.
-func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, imageMime string) (library.Track, <-chan error) {
+// Add creates track with a title and optional image and contents written by
+// the specified function.
+//
+// createFn is run asynchronously. To wait for the complete file to be created,
+// receive from the returned channel.
+func (sv *Server) Add(ctx context.Context, title string, image []byte, imageMime string, createFn func(context.Context, io.Writer) error) (library.Track, <-chan error) {
 	bbuf, err := util.NewBlockingBuffer()
 	if err != nil {
-		inputFile.Close()
 		return library.Track{}, util.ErrorAsChannel(fmt.Errorf("error adding raw track: %v", err))
 	}
+	ctx, cancel := context.WithCancel(ctx)
 	track := rawTrack{
 		server:    sv,
 		name:      title,
 		buffer:    bbuf,
 		image:     image,
 		imageMime: imageMime,
+		cancelJob: cancel,
 	}
 	sv.tracksLock.Lock()
 	sv.idEnum++
@@ -92,14 +99,9 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 
 	errc := make(chan error, 1)
 	go func() {
-		defer inputFile.Close()
 		defer close(errc)
-		if _, err := io.Copy(track.buffer, inputFile); err != nil {
-			track.buffer.Destroy()
-			sv.tracksLock.Lock()
-			delete(sv.tracks, track.id)
-			sv.tracksLock.Unlock()
-			sv.Emit(library.UpdateEvent{})
+		if err := createFn(ctx, track.buffer); err != nil {
+			sv.removeByID(track.id)
 			errc <- fmt.Errorf("error adding raw track: %v", err)
 			return
 		}
@@ -107,23 +109,27 @@ func (sv *Server) Add(inputFile io.ReadCloser, title string, image []byte, image
 	return track.track(), errc
 }
 
+func (sv *Server) removeByID(id uint64) error {
+	sv.tracksLock.Lock()
+	defer sv.tracksLock.Unlock()
+
+	rt, ok := sv.tracks[id]
+	if !ok {
+		return nil
+	}
+	rt.cancelJob()
+	rt.buffer.Destroy()
+	delete(sv.tracks, id)
+
+	sv.Emit(library.UpdateEvent{})
+	return nil
+}
+
 // Remove removes a track managed by server.
 //
 // This is a no-op if no track with the given URL is found.
 func (sv *Server) Remove(uri string) error {
-	sv.tracksLock.Lock()
-	defer sv.tracksLock.Unlock()
-
-	trackID := idFromURL(uri)
-	rt, ok := sv.tracks[trackID]
-	if !ok {
-		return nil
-	}
-	rt.buffer.Destroy()
-	delete(sv.tracks, trackID)
-
-	sv.Emit(library.UpdateEvent{})
-	return nil
+	return sv.removeByID(idFromURL(uri))
 }
 
 // Tracks implements the library.Library interface.

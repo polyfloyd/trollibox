@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
@@ -39,39 +40,10 @@ func NewServer(rawServer *raw.Server) (*Server, error) {
 // The returned track's audio stream may be incomplete as downloading happens
 // in the background.
 func (sv *Server) Download(url string) (library.Track, <-chan error) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	info, err := readMediaInfo(ctx, url)
+	info, err := readMediaInfo(context.Background(), url)
 	if err != nil {
 		return library.Track{}, util.ErrorAsChannel(err)
 	}
-
-	download := exec.CommandContext(ctx,
-		"youtube-dl",
-		url,
-		"--output", "-",
-	)
-	conversion := exec.CommandContext(ctx,
-		"ffmpeg",
-		"-i", "-",
-		"-vn",
-		"-acodec", "libmp3lame",
-		"-f", "mp3",
-		"-",
-	)
-	conversion.Stdin, _ = download.StdoutPipe()
-	convOut, _ := conversion.StdoutPipe()
-
-	if err := download.Start(); err != nil {
-		return library.Track{}, util.ErrorAsChannel(err)
-	}
-	go download.Wait()
-	if err := conversion.Start(); err != nil {
-		return library.Track{}, util.ErrorAsChannel(err)
-	}
-	go conversion.Wait()
-
 	var image []byte
 	var imageMime string
 	if info.Thumbnail != "" {
@@ -81,7 +53,34 @@ func (sv *Server) Download(url string) (library.Track, <-chan error) {
 			imageMime = resp.Header.Get("Content-Type")
 		}
 	}
-	return sv.rawServer.Add(convOut, info.Title, image, imageMime)
+	return sv.rawServer.Add(context.Background(), info.Title, image, imageMime, func(ctx context.Context, w io.Writer) error {
+		download := exec.CommandContext(ctx,
+			"youtube-dl",
+			url,
+			"--output", "-",
+		)
+		conversion := exec.CommandContext(ctx,
+			"ffmpeg",
+			"-i", "-",
+			"-vn",
+			"-acodec", "libmp3lame",
+			"-f", "mp3",
+			"-",
+		)
+		conversion.Stdin, _ = download.StdoutPipe()
+		conversion.Stdout = w
+
+		if err := download.Start(); err != nil {
+			return err
+		}
+		defer download.Wait()
+		if err := conversion.Start(); err != nil {
+			return err
+		}
+		defer conversion.Wait()
+
+		return nil
+	})
 }
 
 // RawServer returns the underlying raw.Server.

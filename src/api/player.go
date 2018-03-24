@@ -510,7 +510,10 @@ func (api *playerAPI) rawTrackAdd(res http.ResponseWriter, req *http.Request) {
 			return
 		}
 		// Make the file available through the server.
-		track, errs := api.rawServer.Add(part, part.FileName(), nil, "")
+		track, errs := api.rawServer.Add(req.Context(), part.FileName(), nil, "", func(ctx context.Context, w io.Writer) error {
+			_, err := io.Copy(w, part)
+			return err
+		})
 		if err := <-errs; err != nil {
 			WriteError(req, res, err)
 			return
