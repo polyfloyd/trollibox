@@ -76,6 +76,7 @@ case ${1:-} in
 		VERSION_DATE="$(date --date="@$(git show -s --format='%ct' HEAD)" '+%F')"
 		BUILD_DATE="$(date '+%F_%T_%z')"
 
+		ONAME=${ONAME:-$NAME}
 		cd "$WORKSPACE/src"
 		go build \
 			-ldflags "
@@ -84,7 +85,7 @@ case ${1:-} in
 				-X main.versionDate=$VERSION_DATE
 				-X main.buildDate=$BUILD_DATE
 			" \
-			-o "$WORKSPACE/bin/$NAME"
+			-o "$WORKSPACE/bin/$ONAME"
 		cd "$WORKSPACE"
 	;;
 
