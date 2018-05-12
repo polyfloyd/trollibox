@@ -14,11 +14,11 @@ import (
 // of a webservice can be found.
 func DetermineFullURLRoot(root, address string) (string, error) {
 	// Handle "http://host:port/"
-	if regexp.MustCompile("^https?:\\/\\/").MatchString(root) {
+	if regexp.MustCompile(`^https?:\/\/`).MatchString(root) {
 		return root, nil
 	}
 	// Handle "//host:port/"
-	if regexp.MustCompile("^\\/\\/.").MatchString(root) {
+	if regexp.MustCompile(`^\/\/.`).MatchString(root) {
 		// Assume plain HTTP. If you are smart enough to set up HTTPS you are
 		// also smart enough to configure the URLRoot.
 		return "http:" + root, nil

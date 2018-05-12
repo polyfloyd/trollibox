@@ -176,7 +176,7 @@ func (sv *Server) Events() *util.Emitter {
 }
 
 func idFromURL(url string) uint64 {
-	m := regexp.MustCompile("\\?track=(\\d+)$").FindStringSubmatch(url)
+	m := regexp.MustCompile(`\?track=(\d+)$`).FindStringSubmatch(url)
 	if m == nil {
 		return 0
 	}

@@ -76,7 +76,7 @@ func (conf *config) Load(filename string) error {
 	if err != nil {
 		return fmt.Errorf("unable to decode config: %v", err)
 	}
-	multilineCommentRe := regexp.MustCompile("(?s)/\\*.*\\*/")
+	multilineCommentRe := regexp.MustCompile(`(?s)/\*.*\*/`)
 	content = multilineCommentRe.ReplaceAll(content, []byte{})
 	singlelineCommentRe := regexp.MustCompile("(\"[^\"]*\")|(//.*)")
 	content = singlelineCommentRe.ReplaceAllFunc(content, func(str []byte) []byte {

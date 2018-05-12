@@ -11,9 +11,9 @@ import (
 )
 
 var (
-	regexControlRe = regexp.MustCompile("([\\.\\^\\$\\?\\+\\[\\]\\{\\}\\(\\)\\|\\\\])")
-	escapedWhite   = regexp.MustCompile("\\\\(\\s)")
-	queryRe        = regexp.MustCompile("(?:(\\w+):)?((?:(?:\\\\\\s)|[^:\\s])+)")
+	regexControlRe = regexp.MustCompile(`([\.\^\$\?\+\[\]\{\}\(\)\|\\])`)
+	escapedWhite   = regexp.MustCompile(`\\(\s)`)
+	queryRe        = regexp.MustCompile(`(?:(\w+):)?((?:(?:\\\s)|[^:\s])+)`)
 )
 
 func init() {
@@ -120,7 +120,7 @@ func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
 	}
 
 	matches := queryRe.FindAllStringSubmatch(query, -1)
-	if matches == nil || len(matches) == 0 {
+	if len(matches) == 0 {
 		return nil, fmt.Errorf("query does not match the expected format")
 	}
 

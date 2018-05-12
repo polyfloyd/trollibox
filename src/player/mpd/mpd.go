@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -278,7 +277,11 @@ func (pl *Player) TrackInfo(identities ...string) ([]library.Track, error) {
 				if len(s) > 0 {
 					songs[i] = s[0]
 				}
-			} else if ok, _ := regexp.MatchString("https?:\\/\\/", uri); ok && currentTrackURI == uri {
+				continue
+			}
+
+			isHTTP := strings.HasPrefix(uri, "https://") || strings.HasPrefix(uri, "http://")
+			if currentTrackURI == uri && isHTTP {
 				song, err := mpdc.CurrentSong()
 				if err != nil {
 					return fmt.Errorf("unable to get info about %v: %v", uri, err)
@@ -683,7 +686,7 @@ func uriToMpd(uri string) string {
 }
 
 func mpdToURI(song string) string {
-	if strings.Index(song, "://") == -1 {
+	if !strings.Contains(song, "://") {
 		return uriSchema + song
 	}
 	return song

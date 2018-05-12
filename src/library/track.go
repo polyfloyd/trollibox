@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	interpArtistTitleInTitle    = regexp.MustCompile("(.+)\\s+-\\s+(.+)")
-	interpArtistTitleInFilename = regexp.MustCompile("(?:(?:\\d+\\.\\s+)|(?:\\d+\\s+-\\s+))?([^/]+?)\\s+-\\s+([^/]+)\\.\\w+$")
-	interpFilename              = regexp.MustCompile("^.*\\/(.+)\\.\\w+$")
+	interpArtistTitleInTitle    = regexp.MustCompile(`(.+)\s+-\s+(.+)`)
+	interpArtistTitleInFilename = regexp.MustCompile(`(?:(?:\d+\.\s+)|(?:\d+\s+-\s+))?([^/]+?)\s+-\s+([^/]+)\.\w+$`)
+	interpFilename              = regexp.MustCompile(`^.*\/(.+)\.\w+$`)
 )
 
 // Track holds all information associated with a single piece of music.

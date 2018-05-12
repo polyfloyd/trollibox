@@ -295,7 +295,7 @@ func (db *DB) streamByURL(url string) (*Stream, error) {
 }
 
 func filenameFromURL(url string) string {
-	return regexp.MustCompile("\\W").ReplaceAllString(url, "_")
+	return regexp.MustCompile(`\W`).ReplaceAllString(url, "_")
 }
 
 func downloadToDataURI(url string) (string, string, error) {

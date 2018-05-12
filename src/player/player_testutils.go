@@ -60,7 +60,7 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 		testVolume(t, pl)
 	})
 	t.Run("volume_event", func(t *testing.T) {
-		testVolume(t, pl)
+		testVolumeEvent(t, pl)
 	})
 }
 

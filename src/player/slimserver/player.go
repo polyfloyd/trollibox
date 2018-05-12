@@ -34,23 +34,23 @@ var eventTranslations = []struct {
 		Global: true,
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ mixer (?:volume|muting)"),
+		Exp:   regexp.MustCompile(`^\S+ mixer (?:volume|muting)`),
 		Event: player.VolumeEvent,
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ playlist"),
+		Exp:   regexp.MustCompile(`^\S+ playlist`),
 		Event: player.PlaylistEvent,
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ (?:play|stop|pause)"),
+		Exp:   regexp.MustCompile(`^\S+ (?:play|stop|pause)`),
 		Event: player.PlaystateEvent,
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ time"),
+		Exp:   regexp.MustCompile(`^\S+ time`),
 		Event: player.TimeEvent,
 	},
 	{
-		Exp:   regexp.MustCompile("^\\S+ client"),
+		Exp:   regexp.MustCompile(`^\S+ client`),
 		Event: player.AvailabilityEvent,
 	},
 }
@@ -131,7 +131,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]library.Track, error) {
 
 	tracks := make([]library.Track, len(uris))
 	for i, uri := range uris {
-		isHTTP, _ := regexp.MatchString("https?:\\/\\/", uri)
+		isHTTP := strings.HasPrefix(uri, "https://") || strings.HasPrefix(uri, "http://")
 		if isHTTP && currentTrackURI == uri {
 			tr := &tracks[i]
 			tr.URI = uri
@@ -145,8 +145,10 @@ func (pl *Player) TrackInfo(uris ...string) ([]library.Track, error) {
 				tr.Title = titleRes[2]
 			}
 			library.InterpolateMissingFields(tr)
+			continue
+		}
 
-		} else if !isHTTP {
+		if !isHTTP {
 			attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:"+trackTags, "url:"+encodeURI(uri))
 			if err != nil {
 				return nil, err

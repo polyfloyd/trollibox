@@ -7,7 +7,7 @@ import (
 
 // ValidListName may be used to check whether the name of a player list entry
 // is valid.
-var ValidListName = regexp.MustCompile("^\\w+$")
+var ValidListName = regexp.MustCompile(`^\w+$`)
 
 // A List is an immutable collection of named players.
 type List interface {
@@ -35,7 +35,7 @@ type SimpleList map[string]Player
 //
 // And error is returned if the name does not match the name format.
 func (sl *SimpleList) Set(name string, player Player) error {
-	if match, _ := regexp.MatchString("^\\w+$", name); !match {
+	if match, _ := regexp.MatchString(`^\w+$`, name); !match {
 		return fmt.Errorf("invalid player name: %q", name)
 	}
 	(*sl)[name] = player
