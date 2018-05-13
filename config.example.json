@@ -12,6 +12,15 @@
 	// saved to configured players.
 	"storage-dir": "~/.config/trollibox",
 
+	// The CSS colors used in the interface.
+	"colors": {
+		"background": "#333",
+		"background-elem": "#222",
+		"text": "#eee",
+		"text-inactive": "#aaa",
+		"accent": "#f60"
+	},
+
 	// Enable or disable random tracks being automatically queued when the
 	// playlist ends.
 	"autoqueue": true,

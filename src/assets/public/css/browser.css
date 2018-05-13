@@ -37,7 +37,7 @@
 
 .views-container > .view > * {
 	padding: 15px;
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 .views-container > .view > .tab-view {
@@ -48,20 +48,20 @@
 }
 
 .views-container > .view > .tab-view:after {
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 	margin-right: -15px;
 }
 
 .views-container > .view > .tab-view > .tab {
 	margin-right: 15px;
 	padding: 15px;
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 .views-container > .view > .tab-view .do-pop-tab {
 	font-size: 0.8em;
 	padding: 0 0.3em 0 0;
-	color: #f60;
+	color: var(--color-accent);
 	cursor: pointer;
 }
 

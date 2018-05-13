@@ -8,7 +8,7 @@
 	display: inline-block;
 	font-size: 0.6em;
 	vertical-align: middle;
-	color: #f60;
+	color: var(--color-accent);
 	cursor: pointer;
 }
 
@@ -29,10 +29,12 @@
 	height: calc(100% - 8px);
 	margin: 4px;
 	position: relative;
+	font-size: 1.2em;
+	background-color: var(--color-bg);
 }
 
 .browser-streams ul > li .track-art > * {
-	background-color: rgba(0, 0, 0, 0.6);
+	background-color: var(--color-bg);
 	position: absolute;
 	padding: 0 0.2em;
 	overflow: hidden;
@@ -42,17 +44,6 @@
 	top: 0;
 	left: 0;
 	right: 0;
-	font-size: 1.2em;
-}
-
-.browser-streams ul > li .track-art > .stream-title > .glyphicon {
-	opacity: 0;
-	color: #f60;
-	float: right;
-}
-
-.browser-streams ul > li:hover .track-art > .stream-title > .glyphicon {
-	opacity: 1;
 }
 
 .browser-streams ul > li .track-art > button {
@@ -61,19 +52,29 @@
 	bottom: 0;
 	border: none;
 	opacity: 0;
-	transition: opacity 0.2s;
+	color: var(--color-accent);
 }
 
 .browser-streams ul > li:hover .track-art > button {
 	opacity: 1;
 }
 
-.browser-streams ul > li .track-art > .do-remove {
+.browser-streams ul > li .track-art > button.do-remove {
 	right: 0;
 }
 
-.browser-streams ul > li .track-art > .do-edit {
+.browser-streams ul > li .track-art > button.do-edit {
 	left: 0;
+}
+
+.browser-streams ul > li .track-art > .do-add {
+	right: 0;
+	color: var(--color-accent);
+	opacity: 0;
+}
+
+.browser-streams ul > li:hover .track-art > .do-add {
+	opacity: 1;
 }
 
 .dialog-add-stream .art-preview {

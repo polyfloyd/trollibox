@@ -29,12 +29,11 @@
 }
 
 .browser-albums li .track-art > * {
-	background-color: rgba(0, 0, 0, 0.6);
+	background-color: var(--color-bg);
 	position: absolute;
 	padding: 0 0.2em;
 	opacity: 0;
 	overflow: hidden;
-	transition: opacity 0.2s;
 }
 
 .browser-albums li.show-details .track-art > *,
@@ -81,12 +80,6 @@
 	cursor: pointer;
 }
 
-.browser-albums .track-art span,
-.browser-albums .tab-name-album span,
-.browser-albums .tab-name-album .album-disc-title {
-	text-shadow: 0 0 0.2em #000;
-}
-
 .browser-albums .tab-name-album .album-info,
 .browser-albums .tab-name-album .album-disc-title,
 .browser-albums .tab-name-album .result-list {
@@ -98,7 +91,7 @@
 .browser-albums .tab-name-album .album-disc-title:hover,
 .browser-albums .tab-name-album .album-disc-title:hover + .result-list,
 .browser-albums .tab-name-album .result-list li:hover {
-	background-color: rgba(0, 0, 0, 0.4);
+	background-color: var(--color-bg);
 }
 
 .browser-albums .tab-name-album .album-info:hover + .album-content .result-list > li > .glyphicon,

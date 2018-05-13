@@ -19,7 +19,7 @@
 }
 
 .queuer-rules .queuer-invert span {
-	color: #222;
+	color: var(--color-bg-elem);
 }
 
 .queuer-rules .queuer-invert input:not(:checked) ~ span {
@@ -33,7 +33,7 @@
 .queuer button.glyphicon {
 	font-size: 20px;
 	border: none;
-	color: #f60;
+	color: var(--color-accent);
 	background: none;
 }
 
@@ -57,7 +57,7 @@
 .queuer-rules input.queuer-value ~ .field-modified {
 	padding: 0 2px;
 	font-size: 30px;
-	color: #f60;
+	color: var(--color-accent);
 	background-color: transparent;
 }
 

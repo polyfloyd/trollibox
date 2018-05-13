@@ -10,6 +10,15 @@
 	<script>
 		window.URLROOT = '{{ .urlroot }}';
 	</script>
+	<style>
+		:root {
+			--color-bg: {{ .colors.bg }};
+			--color-bg-elem: {{ .colors.bgElem }};
+			--color-text: {{ .colors.text }};
+			--color-text-inactive: {{ .colors.textInactive }};
+			--color-accent: {{ .colors.accent }};
+		}
+	</style>
 
 	{{ with $v := . }}
 		{{ range $v.assets.css }}

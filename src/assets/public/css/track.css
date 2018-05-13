@@ -1,5 +1,5 @@
 .track-duration {
-	color: #aaa;
+	color: var(--color-text-inactive);
 }
 
 .track-duration:before {
@@ -36,7 +36,7 @@ ul.result-list li .track-num {
 
 ul.result-list li .track-num,
 ul.result-list li .track-num:after {
-	color: #aaa;
+	color: var(--color-text-inactive);
 }
 
 ul.result-list li .track-num:not(:empty):after {
@@ -52,7 +52,7 @@ ul.result-list li .track-album {
 	margin: 0 0.5em;
 	flex-grow: 1;
 	text-align: right;
-	color: #aaa;
+	color: var(--color-text-inactive);
 }
 
 ul.result-list li .track-duration {
@@ -60,13 +60,13 @@ ul.result-list li .track-duration {
 }
 
 ul.result-list li:hover {
-	background-color: #333;
+	background-color: var(--color-bg);
 	cursor: pointer;
 }
 
 ul.result-list li.active {
-	background-color: #333;
-	color: #f60;
+	background-color: var(--color-bg);
+	color: var(--color-accent);
 }
 
 ul.result-list:empty:before {
@@ -74,7 +74,7 @@ ul.result-list:empty:before {
 }
 
 ul.result-list li em {
-	color: #f60;
+	color: var(--color-accent);
 	font-style: normal;
 }
 
@@ -87,7 +87,7 @@ ul.result-list li .track-artist:after {
 ul.result-list li > .glyphicon {
 	opacity: 0;
 	height: 100%;
-	color: #f60;
+	color: var(--color-accent);
 	font-size: 1.2em;
 	text-align: right;
 	flex-grow: 1;
@@ -140,7 +140,7 @@ ul.result-list.grid-list li img.ratio + * {
 	position: absolute;
 	z-index: 10000;
 	font-size: 4vmin;
-	color: #f60;
+	color: var(--color-accent);
 	animation: 1.5s bubble-up;
 }
 

@@ -1,7 +1,7 @@
 * {
 	border-radius: 0 !important;
 	font-family: Liberation Sans, Helvetica;
-	color: #ddd;
+	color: var(--color-text);
 }
 
 [hidden] {
@@ -14,7 +14,7 @@ body {
 }
 
 body {
-	background-color: #333;
+	background-color: var(--color-bg);
 }
 
 h2:first-child {
@@ -35,13 +35,13 @@ h2:first-child {
 }
 
 .panel.panel-default > .panel-body {
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 /* Navbar */
 .navbar-default .navbar-nav > li > a {
 	padding: 13px;
-	color: #f60;
+	color: var(--color-accent);
 }
 
 .navbar-default .navbar-nav > li > a .nav-title {
@@ -56,7 +56,7 @@ h2:first-child {
 }
 
 .navbar-default .navbar-nav > li.nav-item:hover {
-	box-shadow: inset 0 -2px #f60;
+	box-shadow: inset 0 -2px var(--color-accent);
 }
 
 
@@ -73,12 +73,12 @@ h2:first-child {
 .navbar-default .navbar-nav > .active > a,
 .navbar-default .navbar-nav > .active > a:hover,
 .navbar-default .navbar-nav > .active > a:focus {
-	background-color: #f60;
-	color: #333;
+	background-color: var(--color-accent);
+	color: var(--color-bg);
 }
 
 .navbar-default .navbar-toggle {
-	border-color: #f60;
+	border-color: var(--color-accent);
 }
 
 .navbar-default .navbar-toggle:active,
@@ -87,7 +87,7 @@ h2:first-child {
 }
 
 .navbar-default .navbar-toggle .icon-bar {
-	background-color: #f60;
+	background-color: var(--color-accent);
 }
 
 .navbar-default .navbar-collapse {
@@ -96,19 +96,19 @@ h2:first-child {
 
 .player-selector {
 	background-color: transparent;
-	border: 1px solid #f60;
+	border: 1px solid var(--color-accent);
 }
 
 .player-selector option {
-	background-color: #222;
-	color: #f60;
+	background-color: var(--color-bg-elem);
+	color: var(--color-accent);
 }
 
 /* Forms and inputs */
 .btn.btn-default {
-	background-color: #f60;
+	background-color: var(--color-accent);
 	border: none;
-	color: #222;
+	color: var(--color-bg-elem);
 }
 
 .btn.glyphicon {
@@ -118,34 +118,35 @@ h2:first-child {
 
 .btn.btn-default:hover,
 .btn.btn-default:active {
-	box-shadow: inset 0 0 0 2px #f91;
+	background-color: var(--color-bg);
+	color: var(--color-accent);
 	border: none;
 }
 
 .input-group > .input-group-btn {
-	border: 1px solid #f60;
+	border: 1px solid var(--color-accent);
 }
 
 .form-control {
-	background-color: #222;
-	border-color: #f60;
-	color: #f60;
+	background-color: var(--color-bg-elem);
+	border-color: var(--color-accent);
+	color: var(--color-accent);
 }
 
 .form-control:focus {
-	border-color: #f60;
-	background-color: #333;
+	border-color: var(--color-accent);
+	background-color: var(--color-bg);
 	box-shadow: none;
 }
 
 .input-group-addon {
-	color: #222;
-	background-color: #f60;
+	color: var(--color-bg-elem);
+	background-color: var(--color-accent);
 	border: none;
 }
 
 .input-group-addon .glyphicon {
-	color: #222;
+	color: var(--color-bg-elem);
 	font-size: 1.4em;
 }
 
@@ -156,7 +157,7 @@ h2:first-child {
 input[type='range'] {
 	-webkit-appearance: none;
 	        appearance: none;
-	background: #333;
+	background: var(--color-bg);
 	border: none;
 	overflow: hidden;
 }
@@ -164,7 +165,7 @@ input[type='range'] {
 input[type="range"]::-moz-range-track {
 	-moz-appearance: none;
 	     appearance: none;
-	background: #333;
+	background: var(--color-bg);
 	height: 0;
 }
 
@@ -173,7 +174,7 @@ input[type='range']::-moz-range-thumb {
 	     appearance: none;
 	width: 0;
 	border: 0;
-	box-shadow: -100vw 0 0 100vw #f60;
+	box-shadow: -100vw 0 0 100vw var(--color-accent);
 }
 
 input[type='range'][disabled]::-moz-range-thumb {
@@ -185,7 +186,7 @@ input[type='range']::-webkit-slider-thumb {
 	        appearance: none;
 	width: 0;
 	height: 1.0em;
-	box-shadow: -100vw 0 0 100vw #f60;
+	box-shadow: -100vw 0 0 100vw var(--color-accent);
 }
 
 input[type='range'][disabled]::-webkit-slider-thumb {
@@ -194,35 +195,35 @@ input[type='range'][disabled]::-webkit-slider-thumb {
 
 /* Navbar */
 .navbar.navbar-default {
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 .navbar.navbar-default .navbar-brand {
-	color: #f60;
+	color: var(--color-accent);
 }
 
 .navbar-default .navbar-nav > .active > a {
-	background-color: #f60;
-	color: #222;
+	background-color: var(--color-accent);
+	color: var(--color-bg-elem);
 }
 
 .navbar-default .navbar-nav > li > a:hover {
-	color: #f60;
+	color: var(--color-accent);
 }
 
 .navbar-default .navbar-nav > .active > a:active,
 .navbar-default .navbar-nav > .active > a:hover {
-	background-color: #f60;
-	color: #222;
+	background-color: var(--color-accent);
+	color: var(--color-bg-elem);
 }
 
 /* Modal */
 .modal-content {
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 .modal-content > * {
-	border-color: #333;
+	border-color: var(--color-background);
 }
 
 /* Scrollbars (webkit) */
@@ -235,10 +236,10 @@ input[type='range'][disabled]::-webkit-slider-thumb {
 }
 
 ::-webkit-scrollbar-track {
-	background-color: #222;
+	background-color: var(--color-bg-elem);
 }
 
 ::-webkit-scrollbar-thumb {
-	border: 3px solid #222;
-	background-color: #333;
+	border: 3px solid var(--color-bg-elem);
+	background-color: var(--color-background);
 }

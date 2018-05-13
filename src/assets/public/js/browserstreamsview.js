@@ -102,8 +102,8 @@ var BrowserStreamsView = BrowserView.extend({
 			'<div class="track-art">'+
 				'<span class="stream-title">'+
 					'<%- title %>'+
-					'<span class="glyphicon glyphicon-plus"></span>'+
 				'</span>'+
+				'<span class="glyphicon glyphicon-plus do-add"></span>'+
 				'<button class="glyphicon glyphicon-remove do-remove"></button>'+
 				'<button class="glyphicon glyphicon-edit do-edit"></button>'+
 			'</div>'+

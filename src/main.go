@@ -55,6 +55,14 @@ type config struct {
 	AutoQueue     bool   `json:"autoqueue"`
 	DefaultPlayer string `json:"default-player"`
 
+	Colors struct {
+		Background     string `json:"background"`
+		BackgroundElem string `json:"background-elem"`
+		Text           string `json:"text"`
+		TextInactive   string `json:"text-inactive"`
+		Accent         string `json:"accent"`
+	} `json:"colors"`
+
 	Mpd []struct {
 		Name     string  `json:"name"`
 		Network  string  `json:"network"`
@@ -95,6 +103,16 @@ func (h assetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
 	info, _ := assets.AssetInfo(name)
 	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
+}
+
+func htDefaultAlbumArt(config *config) http.HandlerFunc {
+	filename := "default-album-art.svg"
+	recolored := bytes.Replace(assets.MustAsset(filename), []byte("#ffffff"), []byte(config.Colors.Accent), -1)
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		info, _ := assets.AssetInfo(filename)
+		http.ServeContent(w, req, filename, info.ModTime(), bytes.NewReader(recolored))
+	})
 }
 
 func main() {
@@ -170,6 +188,7 @@ func main() {
 		urlPath := strings.TrimPrefix(file, publicDir)
 		service.Get(urlPath, assetServeHandler(file).ServeHTTP)
 	}
+	service.Get("/img/default-album-art.svg", htDefaultAlbumArt(&config))
 
 	service.Get("/", htRedirectToDefaultPlayer(&config, players))
 	service.Get("/player/{player}", htBrowserPage(&config, players))
@@ -288,5 +307,12 @@ func baseParamMap(config *config, players player.List) map[string]interface{} {
 		"assets":  static,
 		"time":    time.Now(),
 		"players": playerNames,
+		"colors": map[string]string{
+			"bg":           config.Colors.Background,
+			"bgElem":       config.Colors.BackgroundElem,
+			"text":         config.Colors.Text,
+			"textInactive": config.Colors.TextInactive,
+			"accent":       config.Colors.Accent,
+		},
 	}
 }

@@ -26,5 +26,5 @@
 }
 
 .browser-files .do-queue-all:hover {
-	background-color: #333;
+	background-color: var(--color-bg);
 }
