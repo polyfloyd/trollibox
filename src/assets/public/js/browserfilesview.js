@@ -199,7 +199,7 @@ var BrowserFilesView = BrowserView.extend({
 				'<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>'+
 			'<% }) %>'+
 			'<% tracks.forEach(function(file, i) { %>'+
-				'<li class="type-track" data-path-"<%- file.path %>" data-index="<%= i %>">'+
+				'<li class="type-track" data-path-"<%- file.path %>" data-index="<%= i %>" title="<%- formatTrackTitle(file.track) %>">'+
 					'<span class="track-artist"><%- file.track.artist %></span>'+
 					'<span class="track-title"><%- file.track.title %></span>'+
 					'<span class="track-duration"><%- durationToString(file.track.duration) %></span>'+

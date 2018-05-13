@@ -101,7 +101,7 @@ var BrowserBrowseView = BrowserView.extend({
 		'<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>Tracks</h2>'+
 		'<ul class="result-list">'+
 			'<% tracks.forEach(function(track, index) { %>'+
-				'<li data-index="<%= index %>">'+
+				'<li data-index="<%= index %>" title="<%- formatTrackTitle(track) %>">'+
 					'<span class="track-title"><%- track.title %></span>'+
 					'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
 					'<span class="track-album"><%- track.album %></span>'+

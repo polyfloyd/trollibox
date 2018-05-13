@@ -32,6 +32,7 @@ ul.result-list li > * {
 
 ul.result-list li .track-num {
 	margin-right: 0.3em;
+	flex-shrink: 0;
 }
 
 ul.result-list li .track-num,
@@ -78,7 +79,7 @@ ul.result-list li em {
 	font-style: normal;
 }
 
-ul.result-list li .track-artist:after {
+ul.result-list li .track-artist:not(:empty):after {
 	content: "-";
 	margin: 0 0.35em;
 	overflow: hidden;

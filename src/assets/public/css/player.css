@@ -36,8 +36,8 @@
 	color: var(--color-accent);
 }
 
-.track-artist:empty:before,
-.track-title:empty:before {
+.player .track-artist:empty:before,
+.player .track-title:empty:before {
 	content: "None";
 	opacity: 0.7;
 }

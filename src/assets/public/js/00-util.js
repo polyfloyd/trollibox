@@ -97,6 +97,17 @@ function durationToString(seconds) {
 	}).join(':');
 }
 
+var formatTrackTitle = _.template(
+	'<% if (albumtrack) {%>'+
+		'<%= albumtrack %>. '+
+	'<% } %>'+
+	'<% if (artist) {%>'+
+		'<%= artist %> - '+
+	'<% } %>'+
+	'<%= title %>'+
+	' (<%= durationToString(duration) %>)'
+);
+
 function showTrackArt($elem, player, track, cb) {
 	$elem.css('background-image', ''); // Reset to default.
 	if (!track || !track.uri) {

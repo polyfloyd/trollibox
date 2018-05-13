@@ -143,7 +143,7 @@ var BrowserAlbumsView = BrowserView.extend({
 			'</div>'+
 		'</li>'
 	),
-	albumTemplate:_.template(
+	albumTemplate: _.template(
 		'<div class="album-art"></div>'+
 		'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
 		'<p class="album-info">'+
@@ -158,7 +158,7 @@ var BrowserAlbumsView = BrowserView.extend({
 				'<% } %>'+
 				'<ul class="result-list">'+
 					'<% disc.tracks.forEach(function(track) { %>'+
-						'<li class="track" data-index="<%= track.selectionIndex %>">'+
+						'<li class="track" data-index="<%= track.selectionIndex %>" title="<%- formatTrackTitle(track) %>">'+
 							'<span class="track-num"><%- track.albumtrack %></span>'+
 							'<span class="track-artist"><%- track.artist %></span>'+
 							'<span class="track-title"><%- track.title %></span>'+

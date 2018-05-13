@@ -112,7 +112,7 @@ var BrowserSearchView = BrowserView.extend({
 		'<ul class="result-list search-results"></ul>'
 	),
 	resultTemplate: _.template(
-		'<li>'+
+		'<li title="<%- formatTrackTitle(result)%>">'+
 			'<span class="track-artist"><%= highlight(result, \'artist\') %></span>'+
 			'<span class="track-title"><%= highlight(result, \'title\') %></span>'+
 			'<span class="track-duration"><%- durationToString(result.track.duration) %></span>'+
