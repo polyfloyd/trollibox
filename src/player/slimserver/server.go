@@ -288,7 +288,11 @@ func setSlimAttr(serv *Server, track *library.Track, key, value string) {
 	switch key {
 	case "url":
 		uri, _ := url.QueryUnescape(value)
-		track.URI = uri
+		if i := strings.LastIndex(uri, "#"); i != -1 {
+			track.URI = uri[:i]
+		} else {
+			track.URI = uri
+		}
 	case "artist":
 		fallthrough
 	case "trackartist":
