@@ -57,9 +57,14 @@ var BrowserAlbumsView = BrowserView.extend({
 				title:    album.title,
 				duration: this.albumDuration(album.tracks),
 			}));
-			showTrackArt($el.find('.track-art'), this.model, album.tracks[0], function(success) {
-				$el.toggleClass('show-details', !success);
-			});
+			showTrackArt($el.find('.track-art'), this.model, album.tracks[0])
+				.then(function(hasArt) {
+					$el.toggleClass('show-details', !hasArt);
+				})
+				.catch(function(err) {
+					$el.toggleClass('show-details', true);
+					console.error(err);
+				});
 			$el.on('click', function() {
 				$list.find('.active').removeClass('active');
 				$el.addClass('active');

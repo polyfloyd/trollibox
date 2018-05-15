@@ -357,6 +357,9 @@ func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	if err != nil {
 		return nil, ""
 	}
+	if res.StatusCode >= 400 {
+		return nil, ""
+	}
 	return res.Body, res.Header.Get("Content-Type")
 }
 

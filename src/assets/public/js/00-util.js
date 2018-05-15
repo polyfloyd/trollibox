@@ -108,18 +108,23 @@ var formatTrackTitle = _.template(
 	' (<%= durationToString(duration) %>)'
 );
 
-function showTrackArt($elem, player, track, cb) {
+function showTrackArt($elem, player, track) {
 	$elem.css('background-image', ''); // Reset to default.
-	if (!track || !track.uri) {
-		if (cb) cb(false);
-		return;
+	if (!track || !track.uri || !track.hasart) {
+		return Promise.resolve();
 	}
 
-	var url = URLROOT+'data/player/'+player.name+'/tracks/art?track='+encodeURIComponent(track.uri).replace(/'/g, '%27');
-	if (track.hasart) {
-		$elem.css('background-image', 'url(\''+url+'\')');
-	}
-	if (cb) cb(track.hasart)
+	return fetch(URLROOT+'data/player/'+player.name+'/tracks/art?track='+encodeURIComponent(track.uri))
+		.then(function(res) {
+			if (res.status >= 400) {
+				throw new Error('could not fetch track art for '+track.uri);
+			}
+			return res.blob();
+		})
+		.then(function(blob) {
+			let url = URL.createObjectURL(blob);
+			$elem.css('background-image', 'url(\''+url+'\')');
+		});
 }
 
 /**
