@@ -3,6 +3,7 @@ package player
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 // ValidListName may be used to check whether the name of a player list entry
@@ -35,7 +36,7 @@ type SimpleList map[string]Player
 //
 // And error is returned if the name does not match the name format.
 func (sl *SimpleList) Set(name string, player Player) error {
-	if match, _ := regexp.MatchString(`^\w+$`, name); !match {
+	if !ValidListName.MatchString(name) {
 		return fmt.Errorf("invalid player name: %q", name)
 	}
 	(*sl)[name] = player
@@ -59,7 +60,15 @@ func (sl SimpleList) PlayerByName(name string) (Player, error) {
 	if pl, ok := sl[name]; ok {
 		return pl, nil
 	}
-	return nil, fmt.Errorf("no player with name %q", name)
+	return nil, fmt.Errorf("no player with name %q in %v", name, sl)
+}
+
+func (sl SimpleList) String() string {
+	names, err := sl.PlayerNames()
+	if err != nil {
+		return fmt.Sprintf("SimpleList{err=%v, len=%d}", err, len(sl))
+	}
+	return fmt.Sprintf("SimpleList{names=[%s], len=%d}", strings.Join(names, ", "), len(sl))
 }
 
 // A MultiList combines multiple player lists into one.
@@ -80,14 +89,30 @@ func (mp MultiList) PlayerNames() ([]string, error) {
 
 // PlayerByName implements the player.List interface.
 func (mp MultiList) PlayerByName(name string) (Player, error) {
+	if len(mp) == 0 {
+		return nil, fmt.Errorf("could not look up player by name %q, no player lists", name)
+	}
+	var errors []error
 	for _, list := range mp {
 		player, err := list.PlayerByName(name)
 		if err != nil {
-			return nil, err
+			errors = append(errors, err)
+			continue
 		}
 		if player != nil {
 			return player, nil
 		}
 	}
-	return nil, fmt.Errorf("no player with name %q", name)
+	if len(errors) > 0 {
+		return nil, errors[0]
+	}
+	return nil, fmt.Errorf("no player with name %q in %v", name, mp)
+}
+
+func (mp MultiList) String() string {
+	names, err := mp.PlayerNames()
+	if err != nil {
+		return fmt.Sprintf("MultiList{err=%v}", err)
+	}
+	return fmt.Sprintf("MultiList{names=[%s]}", strings.Join(names, ", "))
 }

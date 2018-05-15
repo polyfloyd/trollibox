@@ -137,7 +137,7 @@ func main() {
 	if err := os.MkdirAll(storeDir, 0755); err != nil {
 		log.Fatalf("Unable to create config dir: %v", err)
 	}
-	log.Printf("Using \"%s\" for storage", storeDir)
+	log.Printf("Using %q for storage", storeDir)
 
 	streamdb, err := stream.NewDB(path.Join(storeDir, "streams"))
 	if err != nil {
