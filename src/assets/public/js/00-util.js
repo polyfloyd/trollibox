@@ -97,7 +97,7 @@ function durationToString(seconds) {
 	}).join(':');
 }
 
-var formatTrackTitle = _.template(
+var _formatTrackTitleTemplate = _.template(
 	'<% if (albumtrack) {%>'+
 		'<%= albumtrack %>. '+
 	'<% } %>'+
@@ -105,8 +105,19 @@ var formatTrackTitle = _.template(
 		'<%= artist %> - '+
 	'<% } %>'+
 	'<%= title %>'+
-	' (<%= durationToString(duration) %>)'
+	'<% if (duration) {%>'+
+	' (<%= durationToString(duration) %>)'+
+	'<% } %>'
 );
+
+function formatTrackTitle(track) {
+	return  _formatTrackTitleTemplate({
+		artist: track.artist || '',
+		title: track.title || '',
+		albumtrack: track.albumtrack || '',
+		duration: track.duration || 0,
+	});
+}
 
 function showTrackArt($elem, player, track) {
 	$elem.css('background-image', ''); // Reset to default.
