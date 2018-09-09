@@ -102,7 +102,7 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 				}
 				return []filter.SearchMatch{{
 					Start: idx, End: idx + len(strVal),
-				}}, true
+				}}, inv(true)
 			}, nil
 		case opEquals:
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
