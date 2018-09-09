@@ -75,21 +75,30 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 	}
 
 	// The duration is currently the only integer attribute.
-	if float64Val, ok := rule.Value.(float64); ok && rule.Attribute == "duration" {
-		durVal := time.Duration(float64Val) * time.Second
-		switch rule.Operation {
-		case opEquals:
-			return func(track library.Track) ([]filter.SearchMatch, bool) {
-				return nil, inv(track.Duration == durVal)
-			}, nil
-		case opGreater:
-			return func(track library.Track) ([]filter.SearchMatch, bool) {
-				return nil, inv(track.Duration > durVal)
-			}, nil
-		case opLess:
-			return func(track library.Track) ([]filter.SearchMatch, bool) {
-				return nil, inv(track.Duration < durVal)
-			}, nil
+	if rule.Attribute == "duration" {
+		var durVal time.Duration
+		f64Val, okF64 := rule.Value.(float64)
+		i64Val, okI64 := rule.Value.(int64)
+		if okF64 {
+			durVal = time.Duration(f64Val) * time.Second
+		} else if okI64 {
+			durVal = time.Duration(i64Val) * time.Second
+		}
+		if okF64 || okI64 {
+			switch rule.Operation {
+			case opEquals:
+				return func(track library.Track) ([]filter.SearchMatch, bool) {
+					return nil, inv(track.Duration == durVal)
+				}, nil
+			case opGreater:
+				return func(track library.Track) ([]filter.SearchMatch, bool) {
+					return nil, inv(track.Duration > durVal)
+				}, nil
+			case opLess:
+				return func(track library.Track) ([]filter.SearchMatch, bool) {
+					return nil, inv(track.Duration < durVal)
+				}, nil
+			}
 		}
 
 	} else if strVal, ok := rule.Value.(string); ok {
