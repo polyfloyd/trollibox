@@ -174,6 +174,7 @@
 			var player = new Player({ name: '{{ .player }}' });
 			var streamdb = new StreamDB({ player: player });
 			var filterdb = new FilterDB();
+			var playerView = new PlayerView({ model: player });
 
 			filterdb.on('error', function(err) {
 				console.error(err);
@@ -235,6 +236,7 @@
 			});
 			app.on('route:player', function() {
 				$('.browser').addClass('expand-player');
+				playerView.showCurrent();
 			});
 
 			app.once('route', function(initRoute) {
@@ -264,8 +266,13 @@
 					});
 				});
 
-				var playerView = new PlayerView({ model: player });
 				$('.browser-player').append(playerView.$el);
+
+				// Scroll to the current track, but only if the player is the
+				// initialy selected view.
+				if ($(window).width() < 992 && initRoute == 'player') {
+					playerView.showCurrent();
+				}
 
 				Hotkeys.player(player, $(document));
 				Hotkeys.browserSearch(views.search, $(document));
