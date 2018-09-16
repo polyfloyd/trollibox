@@ -118,7 +118,9 @@ var PlayerView = Backbone.View.extend({
 				return $li;
 			}, this));
 			window.sortable(opt.$pl); // Reload sortable
-		}.bind(this))
+		}.bind(this));
+
+		this.trigger('render:playlist');
 	},
 
 	// Aligns the player to the top of the container.
