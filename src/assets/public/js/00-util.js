@@ -143,15 +143,16 @@ function showTrackArt($elem, player, track) {
  */
 function showInsertionAnimation($elems) {
 	$elems.each(function(i, el) {
-		var $elem = $(el);
-
-		var $anim = $('<div class="insertion-animation glyphicon glyphicon-plus"></div>');
-		$anim.css($elem.offset());
-
-		$('body').prepend($anim);
 		setTimeout(function() {
-			$anim.remove();
-		}, 1500);
+			var $elem = $(el);
+			var $anim = $('<div class="insertion-animation glyphicon glyphicon-plus"></div>');
+			$anim.css($elem.offset());
+
+			$('body').prepend($anim);
+			setTimeout(function() {
+				$anim.remove();
+			}, 1500);
+		}, i * 40);
 	});
 }
 
