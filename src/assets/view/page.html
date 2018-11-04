@@ -184,18 +184,17 @@
 				}
 			});
 
-			filterdb.on('error', function(err) {
-				console.error(err);
-			});
-
-			player.on('error', function(err) {
+			function handleError(err) {
 				console.error(err);
 				$('body > .modal').modal('hide');
 				var $el = $($('#tmpl-error-modal').html());
-				$el.find('.modal-body p').text(err.message);
+				$el.find('.modal-body p').text(err.message || err);
 				$el.on('hidden.bs.modal', function() { $el.remove(); });
 				$el.modal('show');
-			});
+			}
+			player.on('error', handleError);
+			streamdb.on('error', handleError);
+			filterdb.on('error', handleError);
 
 			var views = {
 				search:  new BrowserSearchView({ model: player }),
