@@ -21,6 +21,22 @@
   version = "v3.3.3"
 
 [[projects]]
+  digest = "1:6a874e3ddfb9db2b42bd8c85b6875407c702fa868eed20634ff489bc896ccfd3"
+  name = "github.com/konsorten/go-windows-terminal-sequences"
+  packages = ["."]
+  pruneopts = ""
+  revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
+  version = "v1.0.1"
+
+[[projects]]
+  digest = "1:9d57e200ef5ccc4217fe0a34287308bac652435e7c6513f6263e0493d2245c56"
+  name = "github.com/sirupsen/logrus"
+  packages = ["."]
+  pruneopts = ""
+  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
+  version = "v1.2.0"
+
+[[projects]]
   digest = "1:a0a7e05d58aacdb34a2ebe8e063c85b5b064bebd746328a96853b462980ae7e4"
   name = "github.com/tdewolff/minify"
   packages = ["."]
@@ -53,12 +69,31 @@
   revision = "c8d03665bae952dfa38eb10db25b708af1836157"
 
 [[projects]]
+  branch = "master"
+  digest = "1:887074c37fcefc2f49b5ae9c6f9f36107341aec23185613d0e9f1ee81db7f94a"
+  name = "golang.org/x/crypto"
+  packages = ["ssh/terminal"]
+  pruneopts = ""
+  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+
+[[projects]]
   branch = "release-branch.go1.11"
   digest = "1:3837669a90a891c317803d065189d9ff9a743fae1e9583be2c4c817c004d3fd1"
   name = "golang.org/x/net"
   packages = ["websocket"]
   pruneopts = ""
   revision = "a4630153038d3cb8c57f83d95200aea356145cf5"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c2c4c39f961dde3f317a48713db65329863b61316edabf19b96784b2da8406ac"
+  name = "golang.org/x/sys"
+  packages = [
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
+  revision = "4d1cda033e0619309c606fc686de3adcf599539e"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -67,6 +102,7 @@
     "github.com/fhs/gompd/mpd",
     "github.com/go-chi/chi",
     "github.com/go-chi/chi/middleware",
+    "github.com/sirupsen/logrus",
     "github.com/tdewolff/minify",
     "github.com/tmthrgd/go-bindata",
     "github.com/tmthrgd/go-bindata/restore",

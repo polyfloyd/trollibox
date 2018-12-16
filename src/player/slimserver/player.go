@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -12,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/cache"
@@ -73,6 +74,7 @@ func (pl *Player) eventLoop() {
 	for {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
+			log.Debugf("Could not start event loop: %v", err)
 			pl.Emit(player.AvailabilityEvent)
 			time.Sleep(time.Second)
 			continue
@@ -82,7 +84,8 @@ func (pl *Player) eventLoop() {
 		for scanner.Scan() {
 			line, err := url.QueryUnescape(scanner.Text())
 			if err != nil {
-				log.Println(err)
+				log.WithField("line", scanner.Text()).
+					Errorf("Could not parse line from event loop: %v", err)
 				continue
 			} else if len(line) == 0 {
 				continue
@@ -98,7 +101,7 @@ func (pl *Player) eventLoop() {
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			log.Println(err)
+			log.Errorf("Could not scan event loop: %v", err)
 		}
 	}
 }

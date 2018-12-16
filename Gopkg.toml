@@ -12,5 +12,9 @@ required = [
   version = "3.3.3"
 
 [[constraint]]
+  name = "github.com/sirupsen/logrus"
+  version = "1.2.0"
+
+[[constraint]]
   name = "golang.org/x/net"
   branch = "release-branch.go1.11"

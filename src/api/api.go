@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 )
 
@@ -78,7 +78,7 @@ func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, f
 //
 // An attempt is made to tune the response format to the requestor.
 func WriteError(req *http.Request, res http.ResponseWriter, err error) {
-	log.Printf("Error serving %s: %v", req.RemoteAddr, err)
+	log.Errorf("Error serving %s: %v", req.RemoteAddr, err)
 	res.WriteHeader(http.StatusBadRequest)
 
 	if req.Header.Get("X-Requested-With") == "" {

@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
@@ -116,9 +116,22 @@ func htDefaultAlbumArt(config *config) http.HandlerFunc {
 }
 
 func main() {
+	defaultLogLevel := "warn"
+	if build == "debug" {
+		defaultLogLevel = "debug"
+	}
+
 	configFile := flag.String("conf", confFile, "Path to the configuration file")
 	printVersion := flag.Bool("version", false, "Print version information and exit")
+	logLevel := flag.String("log", defaultLogLevel, "Sets the log level. [debug, info, warn, error]")
 	flag.Parse()
+
+	if ll, err := log.ParseLevel(*logLevel); err != nil {
+		log.Fatalf("Could not parse log level: %v", err)
+	} else {
+		log.SetLevel(ll)
+	}
+	log.SetReportCaller(true)
 
 	if *printVersion {
 		fmt.Printf("Version: %v (%v)\n", version, versionDate)
@@ -127,17 +140,17 @@ func main() {
 		return
 	}
 
-	log.Printf("Version: %v (%v)\n", version, build)
+	log.Infof("Version: %v (%v)\n", version, build)
 	var config config
 	if err := config.Load(*configFile); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Could not load config: %v", err)
 	}
 
 	storeDir := strings.Replace(config.StorageDir, "~", os.Getenv("HOME"), 1)
 	if err := os.MkdirAll(storeDir, 0755); err != nil {
 		log.Fatalf("Unable to create config dir: %v", err)
 	}
-	log.Printf("Using %q for storage", storeDir)
+	log.Infof("Using %q for storage", storeDir)
 
 	streamdb, err := stream.NewDB(path.Join(storeDir, "streams"))
 	if err != nil {
@@ -159,7 +172,7 @@ func main() {
 		log.Fatal("No players configured or available")
 	} else {
 		for _, name := range names {
-			log.Printf("Found player %q", name)
+			log.Infof("Found player %q", name)
 		}
 	}
 
@@ -180,6 +193,7 @@ func main() {
 	}
 
 	service := chi.NewRouter()
+	service.Use(util.LogHandler)
 	service.Use(middleware.DefaultCompress)
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, publicDir) {
@@ -196,7 +210,7 @@ func main() {
 		api.InitRouter(r, players, netServer, filterdb, streamdb, rawServer)
 	})
 
-	log.Printf("Now accepting HTTP connections on %v", config.Address)
+	log.Infof("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
 		Handler:        service,
@@ -210,13 +224,13 @@ func main() {
 func attachAutoQueuer(players player.List, filterdb *filter.DB) {
 	names, err := players.PlayerNames()
 	if err != nil {
-		log.Printf("error attaching autoqueuer: %v", err)
+		log.Errorf("error attaching autoqueuer: %v", err)
 		return
 	}
 	for _, name := range names {
 		pl, err := players.PlayerByName(name)
 		if err != nil {
-			log.Printf("Error attaching autoqueuer to player %q: %v", name, err)
+			log.WithField("player", name).Errorf("Error attaching autoqueuer: %v", err)
 			continue
 		}
 		go func(pl player.Player, name string) {
@@ -228,7 +242,7 @@ func attachAutoQueuer(players player.List, filterdb *filter.DB) {
 					// Load the default filter.
 					ft, _ = ruled.BuildFilter([]ruled.Rule{})
 					if err := filterdb.Set("queuer", ft); err != nil {
-						log.Printf("Error while autoqueueing for %q: %v", name, err)
+						log.WithField("player", name).Errorf("Error while autoqueueing: %v", err)
 					}
 				}
 				cancel := make(chan struct{})
@@ -236,7 +250,7 @@ func attachAutoQueuer(players player.List, filterdb *filter.DB) {
 				select {
 				case err := <-com:
 					if err != nil {
-						log.Printf("Error while autoqueueing for %q: %v", name, err)
+						log.WithField("player", name).Errorf("Error while autoqueueing: %v", err)
 					}
 				case <-filterEvents:
 				}

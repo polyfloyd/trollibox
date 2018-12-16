@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
@@ -32,7 +33,7 @@ func htBrowserPage(config *config, players player.List) func(res http.ResponseWr
 
 		res.Header().Set("Content-Type", "text/html")
 		if err := getTemplate().Execute(res, params); err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 }

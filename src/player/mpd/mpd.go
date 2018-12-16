@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"reflect"
 	"sort"
 	"strconv"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/fhs/gompd/mpd"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/cache"
@@ -136,6 +136,7 @@ func (pl *Player) eventLoop() {
 	for {
 		watcher, err := mpd.NewWatcher(pl.network, pl.address, pl.passwd)
 		if err != nil {
+			log.Debugf("Could not start watcher: %v", err)
 			// Limit the number of reconnection attempts to one per second.
 			time.Sleep(time.Second)
 			continue
@@ -179,12 +180,12 @@ func (pl *Player) mainLoop() {
 		switch string(mpdEvent) {
 		case "player":
 			if state, err := pl.State(); err != nil {
-				log.Println(err)
+				log.Error(err)
 			} else {
 				dedupEmit(player.PlaystateEvent, state)
 			}
 			if time, err := pl.Time(); err != nil {
-				log.Println(err)
+				log.Error(err)
 			} else {
 				dedupEmit(player.TimeEvent, time)
 			}
@@ -195,7 +196,7 @@ func (pl *Player) mainLoop() {
 
 		case "mixer":
 			if volume, err := pl.Volume(); err != nil {
-				log.Println(err)
+				log.Error(err)
 			} else {
 				dedupEmit(player.VolumeEvent, volume)
 			}
@@ -212,7 +213,7 @@ func (pl *Player) mainLoop() {
 				return nil
 			})
 			if err != nil {
-				log.Println(err)
+				log.Error(err)
 			}
 		}
 	}

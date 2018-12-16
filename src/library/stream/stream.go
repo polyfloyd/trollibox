@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path"
@@ -15,6 +14,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/util"
@@ -162,11 +163,12 @@ func (db *DB) Streams() ([]Stream, error) {
 	streams := make([]Stream, 0, len(files))
 	for _, file := range files {
 		if path.Ext(file.Name()) == ".m3u" {
-			if stream, err := db.StreamByFilename(file.Name()); err == nil {
-				streams = append(streams, *stream)
-			} else {
-				log.Printf("Unable to load stream from %q: %v", file.Name(), err)
+			stream, err := db.StreamByFilename(file.Name())
+			if err != nil {
+				log.Errorf("Unable to load stream from %q: %v", file.Name(), err)
+				continue
 			}
+			streams = append(streams, *stream)
 		}
 	}
 	return streams, nil

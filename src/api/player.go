@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"path"
 	"sort"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 
 	"github.com/polyfloyd/trollibox/src/filter"
@@ -549,7 +549,7 @@ func (api *playerAPI) netTrackAdd(res http.ResponseWriter, req *http.Request) {
 	track, errc := api.netServer.Download(data.URL)
 	go func() {
 		if err := <-errc; err != nil {
-			log.Println(err)
+			log.Error(err)
 		}
 	}()
 
