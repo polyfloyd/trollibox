@@ -2,55 +2,75 @@
 
 
 [[projects]]
+  digest = "1:4b906628b9b254c7cbc18b3da42959f5c3f2acc0222307bb4416ff8825f3a4ac"
   name = "github.com/fhs/gompd"
   packages = ["mpd"]
+  pruneopts = ""
   revision = "3c02eec3bcb53632cb9d7afea23baf363305384c"
   version = "v2.0.2"
 
 [[projects]]
+  digest = "1:3cc6cc81e607288ff63cc34b8b8f5f57a0f47e5bc554b86e31bf723612121763"
   name = "github.com/go-chi/chi"
   packages = [
     ".",
-    "middleware"
+    "middleware",
   ]
-  revision = "e83ac2304db3c50cf03d96a2fcd39009d458bc35"
-  version = "v3.3.2"
+  pruneopts = ""
+  revision = "b5294d10673813fac8558e7f47242bc9e61b4c25"
+  version = "v3.3.3"
 
 [[projects]]
+  digest = "1:a0a7e05d58aacdb34a2ebe8e063c85b5b064bebd746328a96853b462980ae7e4"
   name = "github.com/tdewolff/minify"
   packages = ["."]
-  revision = "222672169d634c440a73abc47685074e1a9daa60"
-  version = "v2.3.4"
+  pruneopts = ""
+  revision = "c86dd764169e70ab04e3b0d5fd5e478657a6c83d"
+  version = "v2.3.6"
 
 [[projects]]
+  digest = "1:0293325c4b11b7448bf03ab266e96ec4de60de1c5d4a7ec99cbd206982291603"
   name = "github.com/tdewolff/parse"
   packages = [
     ".",
     "buffer",
-    "strconv"
+    "strconv",
   ]
-  revision = "639f6272aec6b52094db77b9ec488214b0b4b1a1"
-  version = "v2.3.2"
+  pruneopts = ""
+  revision = "1b0354dccc7aceb4528eb638fbfec60d20338a29"
+  version = "v2.3.4"
 
 [[projects]]
   branch = "master"
+  digest = "1:529ad0803f637dea6544e72860fdd4edeedd007921746d7177ccc36e5da91a8b"
   name = "github.com/tmthrgd/go-bindata"
   packages = [
     ".",
     "internal/identifier",
-    "restore"
+    "restore",
   ]
-  revision = "40f4993ede74f673cfe96bed75ef8513a389a00a"
+  pruneopts = ""
+  revision = "c8d03665bae952dfa38eb10db25b708af1836157"
 
 [[projects]]
-  branch = "release-branch.go1.8"
+  branch = "release-branch.go1.11"
+  digest = "1:3837669a90a891c317803d065189d9ff9a743fae1e9583be2c4c817c004d3fd1"
   name = "golang.org/x/net"
   packages = ["websocket"]
-  revision = "186fd3fc8194a5e9980a82230d69c1ff7134229f"
+  pruneopts = ""
+  revision = "a4630153038d3cb8c57f83d95200aea356145cf5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "6bcb5191c6b2dc4d143378352d74310281109b1c7360fa40ce32e0da58f9ace7"
+  input-imports = [
+    "github.com/fhs/gompd/mpd",
+    "github.com/go-chi/chi",
+    "github.com/go-chi/chi/middleware",
+    "github.com/tdewolff/minify",
+    "github.com/tmthrgd/go-bindata",
+    "github.com/tmthrgd/go-bindata/restore",
+    "golang.org/x/net/websocket",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

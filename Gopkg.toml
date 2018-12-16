@@ -5,12 +5,12 @@ required = [
 
 [[constraint]]
   name = "github.com/fhs/gompd"
-  branch = "master"
+  version = "2.0.2"
 
 [[constraint]]
   name = "github.com/go-chi/chi"
-  version = "3.3.2"
+  version = "3.3.3"
 
 [[constraint]]
-  branch = "release-branch.go1.8"
   name = "golang.org/x/net"
+  branch = "release-branch.go1.11"
