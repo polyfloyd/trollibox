@@ -228,9 +228,26 @@ func (pl *Player) Library() library.Library {
 func (pl *Player) Tracks() ([]library.Track, error) {
 	var tracks []library.Track
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
-		songs, err := mpdc.ListAllInfo("/")
+		// The MPD listallinfo command breaks for large libraries. So we'll run
+		// individual queries for each file in the root to try to get around
+		// this weird limitiation.
+		filesInRoot, err := mpdc.ListInfo("/")
 		if err != nil {
-			return fmt.Errorf("error getting MPD songs: %v", err)
+			return fmt.Errorf("error root MPD songs: %v", err)
+		}
+		var songs []mpd.Attrs
+		for _, rootFile := range filesInRoot {
+			var filename string
+			if f, ok := rootFile["file"]; ok {
+				filename = f
+			} else if f, ok := rootFile["directory"]; ok {
+				filename = f
+			}
+			ls, err := mpdc.ListAllInfo(filename)
+			if err != nil {
+				return fmt.Errorf("error getting MPD songs: %v", err)
+			}
+			songs = append(songs, ls...)
 		}
 
 		numDirs := 0
