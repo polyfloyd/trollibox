@@ -9,6 +9,8 @@ BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
 ASSETS="$WORKSPACE/src/assets"
 
+GO111MODULE=on
+
 mkdir -p "$BIN"
 mkdir -p "$LIB"
 
@@ -29,10 +31,9 @@ fi
 case ${1:-} in
 	"install")
 		echo "*** Installing dependencies ***"
-		go get -u github.com/golang/dep/cmd/dep
-		dep ensure
+		go mod download
 		echo "*** Building minifier ***"
-		go get -u github.com/tdewolff/minify/...
+		go get -u github.com/tdewolff/minify/v2/cmd/minify
 		echo "*** Building go-bindata ***"
 		go get -u github.com/tmthrgd/go-bindata/...
 	;;

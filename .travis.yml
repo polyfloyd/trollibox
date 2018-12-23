@@ -5,14 +5,14 @@ matrix:
   allow_failures:
     - go: master
   include:
-    - env: GOOS_=linux GOARCH_=amd64
+    - env: GO111MODULE=on GOOS_=linux GOARCH_=amd64
       go: stable
-    - env: GOOS_=linux GOARCH_=arm GOARM_=6
+    - env: GO111MODULE=on GOOS_=linux GOARCH_=arm GOARM_=6
       go: stable
-    - env: GOOS_=linux GOARCH_=arm GOARM_=7
+    - env: GO111MODULE=on GOOS_=linux GOARCH_=arm GOARM_=7
       go: stable
     # Test other Go versions
-    - env: GOOS_=linux GOARCH_=amd64
+    - env: GO111MODULE=on GOOS_=linux GOARCH_=amd64
       go: master
 
 install:
