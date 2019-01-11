@@ -9,6 +9,6 @@ require (
 	github.com/tmthrgd/go-bindata v0.0.0-20180829002824-c8d03665bae9
 	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9 // indirect
 	golang.org/x/net v0.0.0-20181214192244-a4630153038d
-	golang.org/x/sys v0.0.0-20181221143128-b4a75ba826a6 // indirect
+	golang.org/x/sys v0.0.0-20190109145017-48ac38b7c8cb // indirect
 	golang.org/x/text v0.3.0 // indirect
 )
