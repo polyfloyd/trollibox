@@ -39,7 +39,7 @@ var PlayerView = Backbone.View.extend({
 		var sortables = window.sortable(this.$('.player-playlist'), {
 			forcePlaceholderSize: true,
 			items:                'li',
-			connectWith:          'connected',
+			acceptFrom:           '.player-playlist',
 		});
 		sortables.forEach(function(s) {
 			s.addEventListener('sortupdate', function(event) {
@@ -166,12 +166,19 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	doReorderPlaylist: function(event) {
+		var data = sortable(event.target, 'serialize');
 		var offset = function($parent) {
 			var ci = this.model.get('current');
 			return $parent.classList.contains('player-future') ? ci + 1 : 0;
 		}.bind(this);
-		var from = event.detail.oldindex + offset(event.detail.startparent);
-		var to = event.detail.index + offset(event.detail.endparent);
+
+		var from = offset(event.detail.origin.container) + event.detail.origin.index;
+		var to = offset(event.detail.destination.container) + event.detail.destination.index;
+		var fromPast = !event.detail.origin.container.classList.contains('player-future');
+		var toFuture = event.detail.destination.container.classList.contains('player-future');
+		if (fromPast && toFuture) {
+			to -= 1;
+		}
 		this.model.moveInPlaylist(from, to);
 	},
 
