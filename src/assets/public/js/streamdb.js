@@ -4,15 +4,15 @@ var StreamDB = NetModel.extend({
 	},
 
 	initialize: function(args) {
+		NetModel.prototype.initialize.call(this, {
+			eventSourcePath: '/streams/events',
+		});
 		this.player = args.player;
 		this.attachServerReloader('server-event:tracks', '/streams', function(data) {
 			this.setInternal('streams', data.streams.map(function(stream) {
 				stream.uri = stream.url;
 				return this.player.fillMissingTrackFields(stream);
 			}, this));
-		});
-		NetModel.prototype.initialize.call(this, {
-			eventSocketPath: '/streams/listen',
 		});
 	},
 

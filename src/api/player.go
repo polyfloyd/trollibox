@@ -10,11 +10,11 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/websocket"
 
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
@@ -569,7 +569,22 @@ func (api *playerAPI) netTrackAdd(res http.ResponseWriter, req *http.Request) {
 	res.Write([]byte("{}"))
 }
 
-func (api *playerAPI) listen(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	websocket.Handler(htListen(pl.Events())).ServeHTTP(res, req)
+func (api *playerAPI) events() http.Handler {
+	var eventSourcesLock sync.Mutex
+	eventSources := map[string]http.Handler{}
+
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		playerName := chi.URLParam(req, "playerName")
+		pl := req.Context().Value(playerContextKey).(player.Player)
+
+		eventSourcesLock.Lock()
+		ev, ok := eventSources[playerName]
+		if !ok {
+			ev = htEvents(pl.Events())
+			eventSources[playerName] = ev
+		}
+		eventSourcesLock.Unlock()
+
+		ev.ServeHTTP(res, req)
+	})
 }

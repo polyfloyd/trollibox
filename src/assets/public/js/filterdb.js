@@ -6,6 +6,9 @@ var FilterDB = NetModel.extend({
 	},
 
 	initialize: function(args) {
+		NetModel.prototype.initialize.call(this, {
+			eventSourcePath: '/filters/events',
+		});
 		var self = this;
 		this.attachServerReloader('server-event:update', '/filters/', function(data) {
 			var filters = {};
@@ -21,9 +24,6 @@ var FilterDB = NetModel.extend({
 				});
 			}
 			next(0);
-		});
-		NetModel.prototype.initialize.call(this, {
-			eventSocketPath: '/filters/listen',
 		});
 	},
 

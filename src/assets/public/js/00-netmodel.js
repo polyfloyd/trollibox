@@ -4,40 +4,13 @@ var NetModel = Backbone.Model.extend({
 	updating: {},
 
 	initialize: function(args) {
-		this.on('server-connect', this.reload, this);
-		this.connectEventSocket(args.eventSocketPath);
-	},
-
-	connectEventSocket: function(eventSocketPath) {
-		var self = this;
-
-		var proto = window.location.protocol.replace(/^http/, 'ws');
+		var proto = window.location.protocol;
 		var path = URLROOT.replace(/^https?:(\/\/)?/, '');
 		if (path === '/') {
 			path = window.location.host+path;
 		}
-		var sock = new WebSocket(proto+'//'+path+'data'+eventSocketPath);
-
-		sock.onopen = function() {
-			self.sock = sock;
-			self.sock.onerror = function() {
-				self.sock.close();
-			};
-			self.trigger('server-connect');
-		};
-		sock.onclose = function() {
-			if (self.sock) {
-				self.trigger('server-disconnect');
-			}
-			self.sock = null;
-			setTimeout(function() {
-				self.connectEventSocket(eventSocketPath);
-			}, 1000 * 4);
-		};
-
-		sock.onmessage = function(event) {
-			self.trigger('server-event:'+event.data);
-		};
+		var url = `${window.location.protocol}//${path}data${args.eventSourcePath}`;
+		this.eventSource = new EventSource(url);
 	},
 
 	callServer: function(path, method, body) {
@@ -53,14 +26,19 @@ var NetModel = Backbone.Model.extend({
 
 	attachServerReloader: function(event, path, handler) {
 		this.reloaders = this.reloaders || {};
+		var property = event.split(':')[1];
 		var reload = function() {
-			var property = event.split(':')[1];
 			if (!this.updating[property]) {
 				this.callServer(path, 'GET', null).then(handler.bind(this));
 			}
-		};
-		this.on(event, reload, this);
+		}.bind(this);
+		if (this.eventSource) {
+			this.eventSource.addEventListener(property, function() { reload(); });
+		} else {
+			this.on(event, reload, this);
+		}
 		this.reloaders[event] = reload;
+		reload();
 	},
 
 	attachServerUpdater: function(property, path, getUpdateData) {

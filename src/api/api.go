@@ -2,10 +2,13 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/antage/eventsource"
 	"github.com/go-chi/chi"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/library/netmedia"
@@ -13,8 +16,6 @@ import (
 	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/net/websocket"
 )
 
 // InitRouter attaches all API routes to the specified router.
@@ -49,7 +50,7 @@ func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, f
 		r.Get("/tracks", api.tracks)
 		r.Get("/tracks/search", api.trackSearch)
 		r.Get("/tracks/art", api.trackArt)
-		r.Mount("/listen", http.HandlerFunc(api.listen))
+		r.Mount("/events", api.events())
 	})
 
 	r.Route("/filters/", func(r chi.Router) {
@@ -60,7 +61,7 @@ func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, f
 			r.Delete("/", api.remove)
 			r.Put("/", api.set)
 		})
-		r.Mount("/listen", websocket.Handler(htListen(&filterdb.Emitter)))
+		r.Mount("/events", htEvents(&filterdb.Emitter))
 	})
 
 	r.Route("/streams", func(r chi.Router) {
@@ -68,7 +69,7 @@ func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, f
 		r.Get("/", api.list)
 		r.Post("/", api.add)
 		r.Delete("/", api.remove)
-		r.Mount("/listen", websocket.Handler(htListen(&streamdb.Emitter)))
+		r.Mount("/events", htEvents(&streamdb.Emitter))
 	})
 
 	r.Mount("/raw", rawServer)
@@ -96,13 +97,21 @@ func WriteError(req *http.Request, res http.ResponseWriter, err error) {
 	})
 }
 
-func htListen(emitter *util.Emitter) func(*websocket.Conn) {
-	return func(conn *websocket.Conn) {
-		ch := emitter.Listen()
-		defer emitter.Unlisten(ch)
-		conn.SetDeadline(time.Time{})
-		// TODO: All these events should not all be combined in here.
+func htEvents(emitter *util.Emitter) http.Handler {
+	conf := eventsource.DefaultSettings()
+	events := eventsource.New(conf, func(req *http.Request) [][]byte {
+		return [][]byte{
+			[]byte("X-Accel-Buffering: no"),
+		}
+	})
+
+	ch := emitter.Listen()
+	go func() {
+		id := 0
 		for event := range ch {
+			id++
+
+			// TODO: All these events should not all be combined in here.
 			var eventStr string
 			switch t := event.(type) {
 			case player.Event:
@@ -114,11 +123,11 @@ func htListen(emitter *util.Emitter) func(*websocket.Conn) {
 			default:
 				continue
 			}
-			if _, err := conn.Write([]uint8(eventStr)); err != nil {
-				break
-			}
+
+			events.SendEventMessage("{}", eventStr, fmt.Sprintf("%d", id))
 		}
-	}
+	}()
+	return events
 }
 
 func jsonCtx(next http.Handler) http.Handler {

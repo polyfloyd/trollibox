@@ -13,6 +13,10 @@ var Player = NetModel.extend({
 	initialize: function(args) {
 		this.name = args.name;
 
+		NetModel.prototype.initialize.call(this, {
+			eventSourcePath: '/player/'+this.name+'/events',
+		});
+
 		this.on('change:current', this.reloadProgressUpdater, this);
 		this.on('change:state',   this.reloadProgressUpdater, this);
 		this.attachServerReloader('server-event:playstate', '/player/'+this.name+'/playstate', function(data) {
@@ -45,9 +49,6 @@ var Player = NetModel.extend({
 		});
 		this.attachServerUpdater('volume', '/player/'+this.name+'/volume', function(value) {
 			return { volume: value };
-		});
-		NetModel.prototype.initialize.call(this, {
-			eventSocketPath: '/player/'+this.name+'/listen',
 		});
 	},
 
