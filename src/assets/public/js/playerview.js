@@ -193,43 +193,43 @@ var PlayerView = Backbone.View.extend({
 		return false;
 	},
 
-	template: _.template(
-		'<ul class="player-playlist player-past"></ul>'+
+	template: _.template(`
+		<ul class="player-playlist player-past"></ul>
 
-		'<div class="player-current">'+
-			'<div class="track-art"></div>'+
-			'<p class="track-album"></p>'+
-			'<p class="track-title"></p>'+
-			'<p class="track-artist"></p>'+
+		<div class="player-current">
+			<div class="track-art"></div>
+			<p class="track-album"></p>
+			<p class="track-title"></p>
+			<p class="track-artist"></p>
 
-			'<div class="track-time">'+
-				'<span class="track-time-current"></span>'+
-				'<input class="do-set-time" type="range" min="0" max="100" title="Seek in the current track" />'+
-				'<span class="track-time-total"></span>'+
-			'</div>'+
+			<div class="track-time">
+				<span class="track-time-current"></span>
+				<input class="do-set-time" type="range" min="0" max="100" title="Seek in the current track" />
+				<span class="track-time-total"></span>
+			</div>
 
-			'<div class="player-volume">'+
-				'<span class="glyphicon glyphicon-volume-down"></span>'+
-				'<input class="do-set-volume" type="range" min="0" max="100" value="0" title="Set volume level" />'+
-				'<span class="glyphicon glyphicon-volume-up"></span>'+
-			'</div>'+
+			<div class="player-volume">
+				<span class="glyphicon glyphicon-volume-down"></span>
+				<input class="do-set-volume" type="range" min="0" max="100" value="0" title="Set volume level" />
+				<span class="glyphicon glyphicon-volume-up"></span>
+			</div>
 
-			'<div class="player-controls">'+
-				'<button class="btn btn-default glyphicon glyphicon-step-backward do-previous" title="Go back to the previous track"></button>'+
-				'<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>'+
-				'<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>'+
-				'<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>'+
-				'<button class="btn btn-default glyphicon glyphicon-cloud do-add-netmedia"></button>'+
-			'</div>'+
-		'</div>'+
+			<div class="player-controls">
+				<button class="btn btn-default glyphicon glyphicon-step-backward do-previous" title="Go back to the previous track"></button>
+				<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>
+				<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>
+				<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>
+				<button class="btn btn-default glyphicon glyphicon-cloud do-add-netmedia"></button>
+			</div>
+		</div>
 
-		'<ul class="player-playlist player-future"></ul>'
-	),
-	playlistTemplate: _.template(
-		'<li class="queuedby-<%= queuedby %>">'+
-			'<button class="do-remove glyphicon glyphicon-remove"></button>'+
-			'<span class="track-artist"><%- artist %></span><span class="track-title"><%- title %></span>'+
-		'</li>'
-	),
+		<ul class="player-playlist player-future"></ul>
+	`),
+	playlistTemplate: _.template(`
+		<li class="queuedby-<%= queuedby %>">
+			<button class="do-remove glyphicon glyphicon-remove"></button>
+			<span class="track-artist"><%- artist %></span><span class="track-title"><%- title %></span>
+		</li>
+	`),
 
 });

@@ -44,11 +44,10 @@ var TabView = Backbone.View.extend({
 		return this.escapeNameTemplate({ name: name });
 	},
 
-	tabTemplate: _.template(
-		'<div '+
-			'class="tab <%- name ? \'tab-name-\'+name : \'\' %>" '+
-			'data-name="<%- name %>"></div>'
-	),
+	tabTemplate: _.template(`
+		<div
+			class="tab <%- name ? 'tab-name-'+name : '' %>"
+			data-name="<%- name %>"></div>
+	`),
 	escapeNameTemplate: _.template('<%- name %>'),
-
 });

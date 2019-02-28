@@ -189,24 +189,24 @@ var BrowserFilesView = BrowserView.extend({
 		return this.trimSlashes(Array.prototype.join.call(arguments, '/'));
 	},
 
-	template: _.template(
-		'<div class="browser-files-header">'+
-			'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
-			'<h2 class="do-queue-all"><%- name %>/</h2>'+
-		'</div>'+
-		'<ul class="result-list">'+
-			'<% dirs.forEach(function(file) { %>'+
-				'<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>'+
-			'<% }) %>'+
-			'<% tracks.forEach(function(file, i) { %>'+
-				'<li class="type-track" data-path-"<%- file.path %>" data-index="<%= i %>" title="<%- formatTrackTitle(file.track) %>">'+
-					'<span class="track-artist"><%- file.track.artist %></span>'+
-					'<span class="track-title"><%- file.track.title %></span>'+
-					'<span class="track-duration"><%- durationToString(file.track.duration) %></span>'+
-					'<span class="track-album"><%- file.track.album %></span>'+
-					'<span class="glyphicon glyphicon-plus"></span>'+
-				'</li>'+
-			'<% }) %>'+
-		'</ul>'
-	),
+	template: _.template(`
+		<div class="browser-files-header">
+			<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>
+			<h2 class="do-queue-all"><%- name %>/</h2>
+		</div>
+		<ul class="result-list">
+			<% dirs.forEach(function(file) { %>
+				<li class="type-dir" data-path="<%- file.path %>"><%- file.name %></li>
+			<% }) %>
+			<% tracks.forEach(function(file, i) { %>
+				<li class="type-track" data-path-"<%- file.path %>" data-index="<%= i %>" title="<%- formatTrackTitle(file.track) %>">
+					<span class="track-artist"><%- file.track.artist %></span>
+					<span class="track-title"><%- file.track.title %></span>
+					<span class="track-duration"><%- durationToString(file.track.duration) %></span>
+					<span class="track-album"><%- file.track.album %></span>
+					<span class="glyphicon glyphicon-plus"></span>
+				</li>
+			<% }) %>
+		</ul>
+	`),
 });

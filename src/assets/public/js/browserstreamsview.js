@@ -89,48 +89,48 @@ var BrowserStreamsView = BrowserView.extend({
 		this.showEditDialog(null);
 	},
 
-	template: _.template(
-		'<h2>'+
-			'Network Streams '+
-			'<span class="glyphicon glyphicon-plus do-add-stream"></span>'+
-		'</h2>'+
-		'<ul class="result-list grid-list"></ul>'
-	),
-	streamTemplate: _.template(
-		'<li title="<%- title %>">'+
-			'<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />'+
-			'<div class="track-art">'+
-				'<span class="stream-title">'+
-					'<%- title %>'+
-				'</span>'+
-				'<span class="glyphicon glyphicon-plus do-add"></span>'+
-				'<button class="glyphicon glyphicon-remove do-remove"></button>'+
-				'<button class="glyphicon glyphicon-edit do-edit"></button>'+
-			'</div>'+
-		'</li>'
-	),
-	editStreamDialog: _.template(
-		'<div class="modal fade">'+
-			'<div class="modal-dialog">'+
-				'<form class="modal-content dialog-add-stream">'+
-					'<div class="modal-header">'+
-						'<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>'+
-						'<h4 class="modal-title">Add Stream</h4>'+
-					'</div>'+
-					'<div class="modal-body">'+
-						'<div class="input-group">'+
-							'<input class="form-control" type="text" name="url" value="<%- url %>" placeholder="URL" required />'+
-							'<input class="form-control" type="text" name="title" value="<%- title %>" placeholder="Title" required />'+
-							'<input class="form-control" type="text" name="arturi" placeholder="<%- hasart ? "Keep current image URL" : "Image URL" %>" />'+
-						'</div>'+
-						'<div class="art-preview track-art"></div>'+
-					'</div>'+
-					'<div class="modal-footer">'+
-						'<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>'+
-						'<input type="submit" class="btn btn-default do-add" value="Add" />'+
-					'</div>'+
-				'</form>'+
-			'</div>'+
-		'</div>'
-	),
+	template: _.template(`
+		<h2>
+			Network Streams
+			<span class="glyphicon glyphicon-plus do-add-stream"></span>
+		</h2>
+		<ul class="result-list grid-list"></ul>
+	`),
+	streamTemplate: _.template(`
+		<li title="<%- title %>">
+			<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />
+			<div class="track-art">
+				<span class="stream-title">
+					<%- title %>
+				</span>
+				<span class="glyphicon glyphicon-plus do-add"></span>
+				<button class="glyphicon glyphicon-remove do-remove"></button>
+				<button class="glyphicon glyphicon-edit do-edit"></button>
+			</div>
+		</li>
+	`),
+	editStreamDialog: _.template(`
+		<div class="modal fade">
+			<div class="modal-dialog">
+				<form class="modal-content dialog-add-stream">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+						<h4 class="modal-title">Add Stream</h4>
+					</div>
+					<div class="modal-body">
+						<div class="input-group">
+							<input class="form-control" type="text" name="url" value="<%- url %>" placeholder="URL" required />
+							<input class="form-control" type="text" name="title" value="<%- title %>" placeholder="Title" required />
+							<input class="form-control" type="text" name="arturi" placeholder="<%- hasart ? "Keep current image URL" : "Image URL" %>" />
+						</div>
+						<div class="art-preview track-art"></div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+						<input type="submit" class="btn btn-default do-add" value="Add" />
+					</div>
+				</form>
+			</div>
+		</div>
+	`),
 });

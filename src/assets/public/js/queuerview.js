@@ -236,59 +236,59 @@ var QueuerView = Backbone.View.extend({
 		this.updateRules();
 	},
 
-	template: _.template(
-		'<div>'+
-			'<h2>AutoQueuer Rules</h2>'+
-			'<p class="error-message"></p>'+
-			'<ul class="queuer-rules"></ul>'+
-			'<button class="glyphicon glyphicon-plus do-add-rule"></ul>'+
-		'</div>'
-	),
-	ruleTemplate: _.template(
-		'<li class="form-inline">'+
-			'<div class="input-group">'+
-				'<label class="input-group-addon queuer-invert">'+
-					'<input type="checkbox" <%= rule.invert ? \'checked\' : \'\' %> />'+
-					'if <span>not</span>'+
-				'</label>'+
+	template: _.template(`
+		<div>
+			<h2>AutoQueuer Rules</h2>
+			<p class="error-message"></p>
+			<ul class="queuer-rules"></ul>
+			<button class="glyphicon glyphicon-plus do-add-rule"></ul>
+		</div>
+	`),
+	ruleTemplate: _.template(`
+		<li class="form-inline">
+			<div class="input-group">
+				<label class="input-group-addon queuer-invert">
+					<input type="checkbox" <%= rule.invert ? 'checked' : '' %> />
+					if <span>not</span>
+				</label>
 
-				'<select class="form-control queuer-attribute">'+
-				'<% attrs.forEach(function(attr) { %>'+
-					'<option '+
-						'value="<%= attr.name %>" '+
-						'<%= rule.attribute === attr.name ? \'selected\' : \'\' %>'+
-						'><%- attr.name %></option>'+
-				'<% }) %>'+
-				'</select>'+
-			'</div>'+
+				<select class="form-control queuer-attribute">
+				<% attrs.forEach(function(attr) { %>
+					<option
+						value="<%= attr.name %>"
+						<%= rule.attribute === attr.name ? 'selected' : '' %>
+						><%- attr.name %></option>
+				<% }) %>
+				</select>
+			</div>
 
-			'<select class="form-control queuer-operation">'+
-			'<% ops.forEach(function(op) { %>'+
-				'<option '+
-					'value="<%= op.name %>" '+
-					'<%= rule.operation === op.name ? \'selected\' : \'\' %>'+
-					'><%- op.name %></option>'+
-			'<% }) %>'+
-			'</select>'+
+			<select class="form-control queuer-operation">
+			<% ops.forEach(function(op) { %>
+				<option
+					value="<%= op.name %>"
+					<%= rule.operation === op.name ? 'selected' : '' %>
+					><%- op.name %></option>
+			<% }) %>
+			</select>
 
-			'<div class="input-group">'+
-				'<input '+
-					'class="form-control queuer-value" '+
-					'type="text" '+
-					'placeholder="value" '+
-					'value="<%- renderVal(rule.value) %>" />'+
-				'<span class="input-group-addon field-modified">*</span>'+
-				'<span class="input-group-addon addon-and">and</span>'+
-			'</div>'+
+			<div class="input-group">
+				<input
+					class="form-control queuer-value"
+					type="text"
+					placeholder="value"
+					value="<%- renderVal(rule.value) %>" />
+				<span class="input-group-addon field-modified">*</span>
+				<span class="input-group-addon addon-and">and</span>
+			</div>
 
-			'<button class="glyphicon glyphicon-remove do-remove"></button>'+
-		'</li>'
-	),
-	ruleErrorTemplate: _.template(
-		'<div class="tooltip rule-error" role="tooltip">'+
-			'<div class="glyphicon glyphicon-warning-sign"></div>'+
-			'<div class="tooltip-inner"></div>'+
-			'<div class="tooltip-arrow"></div>'+
-		'</div>'
-	),
+			<button class="glyphicon glyphicon-remove do-remove"></button>
+		</li>
+	`),
+	ruleErrorTemplate: _.template(`
+		<div class="tooltip rule-error" role="tooltip">
+			<div class="glyphicon glyphicon-warning-sign"></div>
+			<div class="tooltip-inner"></div>
+			<div class="tooltip-arrow"></div>
+		</div>
+	`),
 });

@@ -97,18 +97,18 @@ function durationToString(seconds) {
 	}).join(':');
 }
 
-var _formatTrackTitleTemplate = _.template(
-	'<% if (albumtrack) {%>'+
-		'<%= albumtrack %>. '+
-	'<% } %>'+
-	'<% if (artist) {%>'+
-		'<%= artist %> - '+
-	'<% } %>'+
-	'<%= title %>'+
-	'<% if (duration) {%>'+
-	' (<%= durationToString(duration) %>)'+
-	'<% } %>'
-);
+var _formatTrackTitleTemplate = _.template(`
+	<% if (albumtrack) {%>
+		<%= albumtrack %>.
+	<% } %>
+	<% if (artist) {%>
+		<%= artist %> -
+	<% } %>
+	<%= title %>
+	<% if (duration) {%>
+		(<%= durationToString(duration) %>)
+	<% } %>
+`);
 
 function formatTrackTitle(track) {
 	return  _formatTrackTitleTemplate({

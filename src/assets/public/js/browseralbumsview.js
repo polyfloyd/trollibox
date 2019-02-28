@@ -135,44 +135,44 @@ var BrowserAlbumsView = BrowserView.extend({
 		}, 0);
 	},
 
-	albumListTemplate: _.template(
-		'<h2>Albums</h2>'+
-		'<ul class="result-list grid-list"></ul>'
-	),
-	albumPreviewTemplate:_.template(
-		'<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">'+
-			'<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />'+
-			'<div class="track-art">'+
-				'<span class="album-artist"><%- artist %></span>'+
-				'<span class="album-title"><%- title %></span>'+
-			'</div>'+
-		'</li>'
-	),
-	albumTemplate: _.template(
-		'<div class="album-art"></div>'+
-		'<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>'+
-		'<p class="album-info">'+
-			'<span class="album-title"><%- title %></span>'+
-			'<span class="album-duration track-duration"><%- durationToString(duration) %></span>'+
-			'<span class="album-artist"><%- artist %></span>'+
-		'</p>'+
-		'<div class="album-content">'+
-			'<% discs.forEach(function(disc, di) { %>'+
-				'<% if (disc.title) { %>'+
-					'<p class="album-disc-title" data-index="<%= di %>"><%- disc.title %></p>'+
-				'<% } %>'+
-				'<ul class="result-list">'+
-					'<% disc.tracks.forEach(function(track) { %>'+
-						'<li class="track" data-index="<%= track.selectionIndex %>" title="<%- formatTrackTitle(track) %>">'+
-							'<span class="track-num"><%- track.albumtrack %></span>'+
-							'<span class="track-artist"><%- track.artist %></span>'+
-							'<span class="track-title"><%- track.title %></span>'+
-							'<span class="track-duration"><%- durationToString(track.duration) %></span>'+
-							'<span class="glyphicon glyphicon-plus"></span>'+
-						'</li>'+
-					'<% }) %>'+
-				'</ul>'+
-			'<% }) %>'+
-		'</div>'
-	),
+	albumListTemplate: _.template(`
+		<h2>Albums</h2>
+		<ul class="result-list grid-list"></ul>
+	`),
+	albumPreviewTemplate:_.template(`
+		<li title="<%- artist %> - <%- title %> (<%- durationToString(duration) %>)">
+			<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />
+			<div class="track-art">
+				<span class="album-artist"><%- artist %></span>
+				<span class="album-title"><%- title %></span>
+			</div>
+		</li>
+	`),
+	albumTemplate: _.template(`
+		<div class="album-art"></div>
+		<a class="glyphicon glyphicon-arrow-left do-pop-tab"></a>
+		<p class="album-info">
+			<span class="album-title"><%- title %></span>
+			<span class="album-duration track-duration"><%- durationToString(duration) %></span>
+			<span class="album-artist"><%- artist %></span>
+		</p>
+		<div class="album-content">
+			<% discs.forEach(function(disc, di) { %>
+				<% if (disc.title) { %>
+					<p class="album-disc-title" data-index="<%= di %>"><%- disc.title %></p>
+				<% } %>
+				<ul class="result-list">
+					<% disc.tracks.forEach(function(track) { %>
+						<li class="track" data-index="<%= track.selectionIndex %>" title="<%- formatTrackTitle(track) %>">
+							<span class="track-num"><%- track.albumtrack %></span>
+							<span class="track-artist"><%- track.artist %></span>
+							<span class="track-title"><%- track.title %></span>
+							<span class="track-duration"><%- durationToString(track.duration) %></span>
+							<span class="glyphicon glyphicon-plus"></span>
+						</li>
+					<% }) %>
+				</ul>
+			<% }) %>
+		</div>
+	`),
 });

@@ -97,27 +97,27 @@ var BrowserSearchView = BrowserView.extend({
 		return $el;
 	},
 
-	template: _.template(
-		'<div class="search-input">'+
-			'<div class="input-group">'+
-				'<span class="input-group-addon">'+
-					'<span class="glyphicon glyphicon-search"></span>'+
-				'</span>'+
-				'<input '+
-					'class="form-control input-lg" '+
-					'type="text" '+
-					'placeholder="Search the Library" />'+
-			'</div>'+
-		'</div>'+
-		'<ul class="result-list search-results"></ul>'
-	),
-	resultTemplate: _.template(
-		'<li title="<%- formatTrackTitle(result) %>">'+
-			'<span class="track-artist"><%= highlight(result, \'artist\') %></span>'+
-			'<span class="track-title"><%= highlight(result, \'title\') %></span>'+
-			'<span class="track-duration"><%- durationToString(result.track.duration) %></span>'+
-			'<span class="track-album"><%= highlight(result, \'album\') %></span>'+
-			'<span class="glyphicon glyphicon-plus"></span>'+
-		'</li>'
-	),
+	template: _.template(`
+		<div class="search-input">
+			<div class="input-group">
+				<span class="input-group-addon">
+					<span class="glyphicon glyphicon-search"></span>
+				</span>
+				<input
+					class="form-control input-lg"
+					type="text"
+					placeholder="Search the Library" />
+			</div>
+		</div>
+		<ul class="result-list search-results"></ul>
+	`),
+	resultTemplate: _.template(`
+		<li title="<%- formatTrackTitle(result) %>">
+			<span class="track-artist"><%= highlight(result, 'artist') %></span>
+			<span class="track-title"><%= highlight(result, 'title') %></span>
+			<span class="track-duration"><%- durationToString(result.track.duration) %></span>
+			<span class="track-album"><%= highlight(result, 'album') %></span>
+			<span class="glyphicon glyphicon-plus"></span>
+		</li>
+	`),
 });
