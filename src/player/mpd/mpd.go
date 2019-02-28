@@ -493,16 +493,12 @@ func (pl *Player) Volume() (float32, error) {
 		}
 
 		volInt, ok := statusAttrInt(status, "volume")
-		if !ok {
-			// Volume should always be present.
-			return fmt.Errorf("no volume property is present in the MPD status")
-		}
-
-		vol = float32(volInt) / 100
-		if vol < 0 {
-			// Happens sometimes when nothing is playing.
+		if !ok || volInt < 0 {
+			// Volume is not present when the playback is stopped.
 			vol = pl.lastVolume
+			return nil
 		}
+		vol = float32(volInt) / 100
 		return nil
 	})
 	return vol, err
