@@ -11,6 +11,10 @@ var NetModel = Backbone.Model.extend({
 		}
 		var url = `${window.location.protocol}//${path}data${args.eventSourcePath}`;
 		this.eventSource = new EventSource(url);
+		this.eventSource.onopen = function() {
+			// Reload all state to ensure that we are in sync.
+			this.reload();
+		}.bind(this);
 	},
 
 	callServer: function(path, method, body) {
