@@ -71,7 +71,7 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	initialize: function() {
-		this.listenTo(this.model, 'change:filters', function(obj, value, options) {
+		this.listenTo(this.model, 'change:filters', (obj, value, options) => {
 			this.copyRules();
 			this.render();
 			this.removeRuleErrors();
@@ -90,7 +90,7 @@ var QueuerView = Backbone.View.extend({
 		}
 
 		// Map to prevent modifying the array contained in the model.
-		this.rules = ft.value.rules.map(function(rule) {
+		this.rules = ft.value.rules.map((rule) => {
 			var mutRule = {};
 			for (var k in rule) mutRule[k] = rule[k];
 			return mutRule;
@@ -101,9 +101,9 @@ var QueuerView = Backbone.View.extend({
 		var self = this;
 
 		this.$el.html(this.template());
-		this.$('.queuer-rules').append(this.rules.map(function(rule, ruleIndex) {
+		this.$('.queuer-rules').append(this.rules.map((rule, ruleIndex) => {
 			var attr = this.ruleAttr(rule);
-			var ops = this.OP.filter(function(op) {
+			var ops = this.OP.filter((op) => {
 				return op.types.indexOf(attr.type) !== -1;
 			});
 
@@ -111,15 +111,15 @@ var QueuerView = Backbone.View.extend({
 				attrs:     this.ATTRS,
 				ops:       ops,
 				rule:      rule,
-				renderVal: this.ruleAttr(rule).renderVal || function(v) { return v; },
+				renderVal: this.ruleAttr(rule).renderVal || (v => v),
 			}));
 
-			$el.find('.queuer-invert').on('change', function() {
+			$el.find('.queuer-invert').on('change', () => {
 				rule.invert = $(this).find('input').prop('checked');
 				self.updateRules();
 			});
 
-			$el.find('.queuer-attribute').on('change', function() {
+			$el.find('.queuer-attribute').on('change', () => {
 				rule.attribute = $(this).val();
 				var type = self.ruleAttr(rule).type;
 				if (self.ruleOp(rule).types.indexOf(type) === -1) {
@@ -131,15 +131,15 @@ var QueuerView = Backbone.View.extend({
 				self.updateRules();
 			});
 
-			$el.find('.queuer-operation').on('change', function() {
+			$el.find('.queuer-operation').on('change', () => {
 				rule.operation = $(this).val();
 				self.updateRules();
 			});
 
-			$el.find('.queuer-value').on('input', function() {
+			$el.find('.queuer-value').on('input', () => {
 				$(this).addClass('modified');
 			});
-			$el.find('.queuer-value').on('change', function() {
+			$el.find('.queuer-value').on('change', () => {
 				var $input = $(this)
 				if (self.ruleAttr(rule).type === 'int') {
 					var strVal = $(this).val();
@@ -158,7 +158,7 @@ var QueuerView = Backbone.View.extend({
 				$input.removeClass('modified');
 				self.updateRules();
 			});
-			$el.find('.do-remove').on('click', function() {
+			$el.find('.do-remove').on('click', () => {
 				self.rules.splice(ruleIndex, 1);
 				self.updateRules();
 			});
@@ -186,7 +186,7 @@ var QueuerView = Backbone.View.extend({
 
 	stringToInt: function(str) {
 		if (str.match(/^(\d+:)?(\d{1,2}:)?\d{1,2}$/)) { // [[hh:]mm:]ss time
-			return str.match(/(\d+)/g).reduce(function(time, num, i, arr) {
+			return str.match(/(\d+)/g).reduce((time, num, i, arr) => {
 				return time + Math.pow(60, (arr.length - i - 1)) * parseInt(num, 10);
 			}, 0);
 
@@ -207,13 +207,13 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	ruleAttr: function(rule) {
-		return this.ATTRS.filter(function(attr) {
+		return this.ATTRS.filter((attr) => {
 			return attr.name === rule.attribute;
 		})[0];
 	},
 
 	ruleOp: function(rule) {
-		return this.OP.filter(function(op) {
+		return this.OP.filter((op) => {
 			return op.name === rule.operation;
 		})[0];
 	},

@@ -15,7 +15,7 @@ var TabView = Backbone.View.extend({
 		options || (options = {});
 
 		var $tab = $(this.tabTemplate(options)).append(content);
-		$tab.find('.do-pop-tab').on('click', function(event) {
+		$tab.find('.do-pop-tab').on('click', (event) => {
 			event.stopPropagation();
 			self.popTab();
 		});

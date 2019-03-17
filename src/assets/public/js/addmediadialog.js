@@ -11,22 +11,22 @@ var AddMediaDialog = Backbone.View.extend({
 	render: function() {
 		this.$el.html(this.template()).modal();
 
-		this.$('.do-add-netmedia').on('click', function(event) {
+		this.$('.do-add-netmedia').on('click', (event) => {
 			var url = this.$('.mediadialog-value-netmedia').val();
-			this.model.playFromNetwork(url).then(function() {
+			this.model.playFromNetwork(url).then(() => {
 				this.$el.modal('hide');
-			}.bind(this)).catch(function(err) {
+			}).catch((err) => {
 				this.$('.error-message').text(err.message);
-			}.bind(this));
-		}.bind(this));
-		this.$('.do-add-files').on('click', function(event) {
+			});
+		});
+		this.$('.do-add-files').on('click', (event) => {
 			var files = this.$('.mediadialog-value-files')[0].files;
-			this.model.playRawTracks(files).then(function() {
+			this.model.playRawTracks(files).then(() => {
 				this.$el.modal('hide');
-			}.bind(this)).catch(function(err) {
+			}).catch((err) => {
 				this.$('.error-message').text(err.message);
-			}.bind(this));
-		}.bind(this));
+			});
+		});
 	},
 
 	template: _.template(`

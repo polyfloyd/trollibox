@@ -9,7 +9,7 @@ jQuery.fn.toggleAttr = function(attr, value, toggle) {
 		value = attr;
 	}
 
-	return this.each(function() {
+	return this.each(() => {
 		var $this = $(this);
 		if (toggle) {
 			$this.attr(attr, value);
@@ -24,7 +24,7 @@ $.fn.lazyLoad = function(list, render, thisArg, overrideElemSize) {
 	$list.off('scroll.lazy mousewheel.lazy DOMMouseScroll.lazy');
 	$list.attr('lazy-index', '0');
 	$list.empty();
-	var handler = function() {
+	var handler = () => {
 		var elemSize = overrideElemSize || $list.children().last().outerHeight();
 		while ($list.scrollTop() >= $list[0].scrollHeight - $list.innerHeight() - elemSize) {
 			var listIndex = parseInt($list.attr('lazy-index'), 10);
@@ -41,23 +41,6 @@ $.fn.lazyLoad = function(list, render, thisArg, overrideElemSize) {
 	handler();
 };
 
-function promiseAjax() {
-	var ajaxArgs = arguments;
-	return new Promise(function(resolve, reject) {
-		$.ajax.apply($, ajaxArgs).done(function(responseJSON) {
-			resolve(responseJSON);
-		}).fail(function(req, status, statusText) {
-			if (req.responseJSON) {
-				var err = new Error(req.responseJSON.error);
-				err.data = req.responseJSON.data;
-				reject(err);
-			} else {
-				reject(new Error('Error sending request'));
-			}
-		});
-	});
-}
-
 function durationToString(seconds) {
 	var parts = [];
 	for (var i = 1; i <= 3; i++) {
@@ -70,7 +53,7 @@ function durationToString(seconds) {
 		parts.pop();
 	}
 
-	return parts.reverse().map(function(p) {
+	return parts.reverse().map((p) => {
 		return (p<10 ? '0' : '')+p;
 	}).join(':');
 }
@@ -93,13 +76,13 @@ function showTrackArt($elem, player, track) {
 	}
 
 	return fetch(URLROOT+'data/player/'+player.name+'/tracks/art?track='+encodeURIComponent(track.uri))
-		.then(function(res) {
+		.then((res) => {
 			if (res.status >= 400) {
 				throw new Error('could not fetch track art for '+track.uri);
 			}
 			return res.blob();
 		})
-		.then(function(blob) {
+		.then((blob) => {
 			let url = URL.createObjectURL(blob);
 			$elem.css('background-image', 'url(\''+url+'\')');
 		});
@@ -109,14 +92,14 @@ function showTrackArt($elem, player, track) {
  * Shows an animation to indicate that a track was added to the playlist.
  */
 function showInsertionAnimation($elems) {
-	$elems.each(function(i, el) {
-		setTimeout(function() {
+	$elems.each((i, el) => {
+		setTimeout(() => {
 			var $elem = $(el);
 			var $anim = $('<div class="insertion-animation glyphicon glyphicon-plus"></div>');
 			$anim.css($elem.offset());
 
 			$('body').prepend($anim);
-			setTimeout(function() {
+			setTimeout(() => {
 				$anim.remove();
 			}, 1500);
 		}, i * 40);

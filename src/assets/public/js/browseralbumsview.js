@@ -16,13 +16,13 @@ var BrowserAlbumsView = BrowserView.extend({
 		var $tab = this.tabs.pushTab($(this.albumListTemplate()), { name: 'list' });
 
 		// Get a list of tracks which belong to an album.
-		var albumTracks = this.model.get('tracks').filter(function(track) {
+		var albumTracks = this.model.get('tracks').filter((track) => {
 			return !!track.album && !!track.albumartist;
 		});
 
 		// Sort tracks into an artist/album tree structure.
 		var artistAlbums = {};
-		albumTracks.forEach(function(track) {
+		albumTracks.forEach((track) => {
 			var artist = artistAlbums[track.albumartist] || (artistAlbums[track.albumartist] = {});
 			var album = artist[track.album] || (artist[track.album] = []);
 			album.push(track);
@@ -31,10 +31,10 @@ var BrowserAlbumsView = BrowserView.extend({
 		// Flatten the tree into a list.
 		var albums = Object.keys(artistAlbums)
 			.sort(stringCompareCaseInsensitive)
-			.reduce(function(albums, artistName) {
+			.reduce((albums, artistName) => {
 				return Object.keys(artistAlbums[artistName])
 					.sort(stringCompareCaseInsensitive)
-					.reduce(function(albums, albumTitle) {
+					.reduce((albums, albumTitle) => {
 						var album = artistAlbums[artistName][albumTitle];
 						// Showing albums is pretty pointless and wastes screen
 						// space with libraries that are not tagged very well.
@@ -51,33 +51,33 @@ var BrowserAlbumsView = BrowserView.extend({
 		}, []);
 
 		var $list = $tab.find('ul');
-		$list.append(albums.map(function(album) {
+		$list.append(albums.map((album) => {
 			var $el = $(this.albumPreviewTemplate({
 				artist:   album.artist,
 				title:    album.title,
 				duration: this.albumDuration(album.tracks),
 			}));
 			showTrackArt($el.find('.track-art'), this.model, album.tracks[0])
-				.then(function(hasArt) {
+				.then((hasArt) => {
 					$el.toggleClass('show-details', !hasArt);
 				})
-				.catch(function(err) {
+				.catch((err) => {
 					$el.toggleClass('show-details', true);
 					console.error(err);
 				});
-			$el.on('click', function() {
+			$el.on('click', () => {
 				$list.find('.active').removeClass('active');
 				$el.addClass('active');
 				this.renderAlbum(album.tracks);
-			}.bind(this));
+			});
 			return $el;
-		}.bind(this)));
+		}));
 	},
 
 	renderAlbum: function(album) {
 		var self = this;
 
-		album.sort(function(a, b) {
+		album.sort((a, b) => {
 			var at = a.albumtrack;
 			var bt = b.albumtrack;
 			// Add a zero padding to make sure '12' > '4'.
@@ -88,7 +88,7 @@ var BrowserAlbumsView = BrowserView.extend({
 
 		// Sort tracks into discs. If no disc data is available, all tracks are
 		// stuffed into one disc.
-		var discsObj = album.reduce(function(discs, track, i) {
+		var discsObj = album.reduce((discs, track, i) => {
 			var disc = discs[track.albumdisc || ''] || (discs[track.albumdisc || ''] = []);
 			var mutTrack = Object.create(track);
 			mutTrack.selectionIndex = i; // Used for queueing the track when clicked.
@@ -97,7 +97,7 @@ var BrowserAlbumsView = BrowserView.extend({
 		}, {});
 
 		// Make the disc data easier to process.
-		var discs = Object.keys(discsObj).map(function(discTitle, i, discTitles) {
+		var discs = Object.keys(discsObj).map((discTitle, i, discTitles) => {
 			return {
 				// If only one disc is detected, why even bother showing the label?
 				title:  discTitles.length > 1 ? discTitle : null,
@@ -113,16 +113,16 @@ var BrowserAlbumsView = BrowserView.extend({
 		})), { name: 'album' });
 
 		showTrackArt($tab.find('.album-art'), this.model, album[0]);
-		$tab.find('.album-info').on('click', function() {
+		$tab.find('.album-info').on('click', () => {
 			showInsertionAnimation($tab.find('.result-list > li'));
 			Hotkeys.playerInsert(self.model, album);
 		});
-		$tab.find('.album-disc-title').on('click', function() {
+		$tab.find('.album-disc-title').on('click', () => {
 			var $discTitle = $(this);
 			showInsertionAnimation($discTitle.next().find('> li'));
 			Hotkeys.playerInsert(self.model, discs[$discTitle.attr('data-index')].tracks);
 		});
-		$tab.find('.result-list li.track').on('click', function() {
+		$tab.find('.result-list li.track').on('click', () => {
 			var $el = $(this);
 			showInsertionAnimation($el);
 			Hotkeys.playerInsert(self.model, album[$el.attr('data-index')]);
@@ -130,9 +130,7 @@ var BrowserAlbumsView = BrowserView.extend({
 	},
 
 	albumDuration: function(tracks) {
-		return tracks.reduce(function(total, track) {
-			return total + track.duration;
-		}, 0);
+		return tracks.reduce((total, track) => total + track.duration, 0);
 	},
 
 	albumListTemplate: _.template(`
@@ -157,12 +155,12 @@ var BrowserAlbumsView = BrowserView.extend({
 			<span class="album-artist"><%- artist %></span>
 		</p>
 		<div class="album-content">
-			<% discs.forEach(function(disc, di) { %>
+			<% discs.forEach((disc, di) => { %>
 				<% if (disc.title) { %>
 					<p class="album-disc-title" data-index="<%= di %>"><%- disc.title %></p>
 				<% } %>
 				<ul class="result-list">
-					<% disc.tracks.forEach(function(track) { %>
+					<% disc.tracks.forEach((track) => { %>
 						<li class="track" data-index="<%= track.selectionIndex %>" title="<%- formatTrackTitle(track) %>">
 							<span class="track-num"><%- track.albumtrack %></span>
 							<span class="track-artist"><%- track.artist %></span>

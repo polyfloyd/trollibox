@@ -41,7 +41,7 @@ var BrowserSearchView = BrowserView.extend({
 		}
 		this.trigger('search-begin');
 		this.searchInProgress = true;
-		this.model.searchTracks(query, ['artist', 'title', 'album']).then(function(results) {
+		this.model.searchTracks(query, ['artist', 'title', 'album']).then((results) => {
 			this.searchInProgress = false;
 			if (query != this.query()) {
 				this.doSearch();
@@ -50,7 +50,7 @@ var BrowserSearchView = BrowserView.extend({
 
 			this.trigger('search-complete');
 			this.$('.result-list').lazyLoad(results, this.renderResult, this, 200);
-		}.bind(this));
+		});
 	},
 
 	query: function() {
@@ -90,10 +90,10 @@ var BrowserSearchView = BrowserView.extend({
 			result:    result,
 			highlight: highlight,
 		}));
-		$el.on('click', function() {
+		$el.on('click', () => {
 			showInsertionAnimation($el);
 			Hotkeys.playerInsert(this.model, [result.track]);
-		}.bind(this));
+		});
 		return $el;
 	},
 

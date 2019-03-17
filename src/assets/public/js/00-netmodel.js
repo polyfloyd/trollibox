@@ -11,33 +11,41 @@ var NetModel = Backbone.Model.extend({
 		}
 		var url = `${window.location.protocol}//${path}data${args.eventSourcePath}`;
 		this.eventSource = new EventSource(url);
-		this.eventSource.onopen = function() {
+		this.eventSource.onopen = () => {
 			// Reload all state to ensure that we are in sync.
 			this.reload();
-		}.bind(this);
+		};
 	},
 
 	callServer: function(path, method, body) {
-		return promiseAjax({
-			url:      URLROOT+'data'+path,
-			method:   method,
-			dataType: 'json',
-			data:     body ? JSON.stringify(body) : null,
-		}).catch(function(err) {
+		return fetch(`${URLROOT}data${path}`, {
+			method: method,
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body: body ? JSON.stringify(body) : null,
+		})
+		.then((resp) => {
+			if (resp.status >= 200 && resp.status < 300) {
+				return Promise.resolve(resp.json());
+			}
+			return Promise.reject(new Error(resp.statusText));
+		})
+		.catch((err) => {
 			this.trigger('error', method+' '+path+': '+err);
-		}.bind(this));
+		});
 	},
 
 	attachServerReloader: function(event, path, handler) {
 		this.reloaders = this.reloaders || {};
 		var property = event.split(':')[1];
-		var reload = function() {
+		var reload = () => {
 			if (!this.updating[property]) {
 				this.callServer(path, 'GET', null).then(handler.bind(this));
 			}
-		}.bind(this);
+		};
 		if (this.eventSource) {
-			this.eventSource.addEventListener(property, function() { reload(); });
+			this.eventSource.addEventListener(property, () => reload());
 		} else {
 			this.on(event, reload, this);
 		}
@@ -51,20 +59,20 @@ var NetModel = Backbone.Model.extend({
 
 		function update(value) {
 			this.updating[property] = true;
-			this.callServer(path, 'POST', getUpdateData.call(this, value)).then(function(data) {
-				setTimeout(function() {
+			this.callServer(path, 'POST', getUpdateData.call(this, value)).then((data) => {
+				setTimeout(() => {
 					this.updating[property] = false;
 					if (typeof nextValue !== 'undefined') {
 						update.call(this, nextValue);
 						nextValue = undefined;
 					}
-				}.bind(this), 200);
-			}.bind(this)).catch(function() {
+				}, 200);
+			}).catch(() => {
 				this.updating[property] = false;
 			});
 		}
 
-		this.on('change:'+property, function(obj, value, options) {
+		this.on('change:'+property, (obj, value, options) => {
 			if (options.sender === this) {
 				return;
 			}
