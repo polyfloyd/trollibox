@@ -280,27 +280,27 @@ func (pl *Player) SetState(state player.PlayState) error {
 }
 
 // Volume implements the player.Player interface.
-func (pl *Player) Volume() (float32, error) {
+func (pl *Player) Volume() (int, error) {
 	res, err := pl.Serv.request(pl.ID, "mixer", "volume", "?")
 	if err != nil {
 		return 0, err
 	}
-	vol, _ := strconv.ParseInt(res[3], 10, 32)
+	vol, _ := strconv.Atoi(res[3])
 	if vol < 0 {
 		// The volume is negative if the player is muted.
 		return 0, nil
 	}
-	return float32(vol) / 100, nil
+	return vol, nil
 }
 
 // SetVolume implements the player.Player interface.
-func (pl *Player) SetVolume(vol float32) error {
+func (pl *Player) SetVolume(vol int) error {
 	// Also unmute the in case the player was muted.
 	_, err := pl.Serv.request(pl.ID, "mixer", "muting", "0")
 	if err != nil {
 		return err
 	}
-	_, err = pl.Serv.request(pl.ID, "mixer", "volume", strconv.Itoa(int(vol*100)))
+	_, err = pl.Serv.request(pl.ID, "mixer", "volume", strconv.Itoa(vol))
 	return err
 }
 

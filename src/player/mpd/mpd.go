@@ -76,7 +76,7 @@ type Player struct {
 
 	// Sometimes, the volume returned by MPD is invalid, so we have to take
 	// care of that ourselves.
-	lastVolume float32
+	lastVolume int
 }
 
 // Connect connects to MPD with an optional username and password.
@@ -484,8 +484,8 @@ func (pl *Player) SetState(state player.PlayState) error {
 }
 
 // Volume implements the player.Player interface.
-func (pl *Player) Volume() (float32, error) {
-	var vol float32
+func (pl *Player) Volume() (int, error) {
+	var vol int
 	err := pl.withMpd(func(mpdc *mpd.Client) error {
 		status, err := mpdc.Status()
 		if err != nil {
@@ -498,23 +498,23 @@ func (pl *Player) Volume() (float32, error) {
 			vol = pl.lastVolume
 			return nil
 		}
-		vol = float32(volInt) / 100
+		vol = volInt
 		return nil
 	})
 	return vol, err
 }
 
 // SetVolume implements the player.Player interface.
-func (pl *Player) SetVolume(vol float32) error {
+func (pl *Player) SetVolume(vol int) error {
 	return pl.withMpd(func(mpdc *mpd.Client) error {
-		if vol > 1 {
-			vol = 1
+		if vol > 100 {
+			vol = 100
 		} else if vol < 0 {
 			vol = 0
 		}
 
 		pl.lastVolume = vol
-		return mpdc.SetVolume(int(vol * 100))
+		return mpdc.SetVolume(vol)
 	})
 }
 

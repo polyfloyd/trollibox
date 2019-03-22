@@ -145,7 +145,7 @@ func (jb *Jukebox) SetPlayerState(ctx context.Context, playerName string, state 
 	return pl.SetState(state)
 }
 
-func (jb *Jukebox) PlayerVolume(ctx context.Context, playerName string) (float32, error) {
+func (jb *Jukebox) PlayerVolume(ctx context.Context, playerName string) (int, error) {
 	pl, err := jb.player(playerName)
 	if err != nil {
 		return 0, err
@@ -153,7 +153,7 @@ func (jb *Jukebox) PlayerVolume(ctx context.Context, playerName string) (float32
 	return pl.Volume()
 }
 
-func (jb *Jukebox) SetPlayerVolume(ctx context.Context, playerName string, vol float32) error {
+func (jb *Jukebox) SetPlayerVolume(ctx context.Context, playerName string, vol int) error {
 	pl, err := jb.player(playerName)
 	if err != nil {
 		return err

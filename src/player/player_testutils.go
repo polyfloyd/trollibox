@@ -182,8 +182,8 @@ func testPlaystateEvent(t *testing.T, pl Player) {
 }
 
 func testVolume(t *testing.T, pl Player) {
-	const volA = 0.2
-	const volB = 0.4
+	const volA = 20
+	const volB = 40
 	if err := pl.SetState(PlayStatePlaying); err != nil {
 		t.Fatal(err)
 	}
@@ -208,28 +208,32 @@ func testVolume(t *testing.T, pl Player) {
 		t.Fatalf("Volume does not match expected value, %v != %v", volB, vol)
 	}
 
-	if err := pl.SetVolume(2.0); err != nil {
+	if err := pl.SetVolume(200); err != nil {
 		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
 		t.Fatal(err)
-	} else if vol != 1.0 {
+	} else if vol != 100 {
 		t.Fatalf("Volume was not clamped: %v", vol)
 	}
 
-	if err := pl.SetVolume(-1.0); err != nil {
+	if err := pl.SetVolume(-100); err != nil {
 		t.Fatal(err)
 	}
 	if vol, err := pl.Volume(); err != nil {
 		t.Fatal(err)
-	} else if vol != 0.0 {
+	} else if vol != 0 {
 		t.Fatalf("Volume was not clamped: %v", vol)
 	}
 }
 
 func testVolumeEvent(t *testing.T, pl Player) {
+	if err := pl.SetVolume(40); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Second)
 	util.TestEventEmission(t, pl, VolumeEvent, func() {
-		if err := pl.SetVolume(0.2); err != nil {
+		if err := pl.SetVolume(20); err != nil {
 			t.Fatal(err)
 		}
 	})

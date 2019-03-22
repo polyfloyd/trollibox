@@ -85,12 +85,12 @@ type Player interface {
 	// playlist is empty, a playlist-end event is emitted.
 	SetState(state PlayState) error
 
-	// Gets the set volume as a uniform float value between 0 and 1.
-	Volume() (float32, error)
+	// Gets the set volume as a value between 0 and 100.
+	Volume() (int, error)
 
 	// Sets the volume of the player. The volume should be updated even when
-	// nothing is playing. The value is clamped between 0 and 1.
-	SetVolume(vol float32) error
+	// nothing is playing. The value is clamped between 0 and 100.
+	SetVolume(vol int) error
 
 	// Retrieves the custom finite playlists that are stored by the player and
 	// maps them by their unique name.

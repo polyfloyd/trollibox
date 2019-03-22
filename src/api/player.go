@@ -193,7 +193,7 @@ func (api *API) playerGetVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"volume": volume,
+		"volume": float32(volume) / 100.0,
 	})
 }
 
@@ -207,7 +207,7 @@ func (api *API) playerSetVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := api.jukebox.SetPlayerVolume(r.Context(), chi.URLParam(r, "playerName"), data.Volume); err != nil {
+	if err := api.jukebox.SetPlayerVolume(r.Context(), chi.URLParam(r, "playerName"), int(data.Volume*100)); err != nil {
 		WriteError(w, r, err)
 		return
 	}
