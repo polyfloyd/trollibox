@@ -24,25 +24,34 @@ const (
 	PlayStatePaused = PlayState("paused")
 )
 
-// Event is the type of event emitted by the player.
-type Event string
-
-const (
+type (
+	// Event is the type of event emitted by the player.
+	Event interface{}
 	// PlaylistEvent is emitted after the playlist or the current playlist was
 	// changed.
-	PlaylistEvent = Event("playlist")
-	// PlaystateEvent is emitted after the playstate was changed.
-	PlaystateEvent = Event("playstate")
+	PlaylistEvent struct {
+		Index int
+	}
+	// PlayStateEvent is emitted after the playstate was changed.
+	PlayStateEvent struct {
+		State PlayState
+	}
 	// TimeEvent is emitted after the playback offset of the currently playing
 	// track was changed.
-	TimeEvent = Event("time")
+	TimeEvent struct {
+		Time time.Duration
+	}
 	// VolumeEvent is emitted after the volume was changed.
-	VolumeEvent = Event("volume")
+	VolumeEvent struct {
+		Volume int
+	}
 	// ListEvent is emitted after a stored playlist was changed.
-	ListEvent = Event("list")
+	ListEvent struct{}
 	// AvailabilityEvent is emitted after the player comes online or goes
 	// offline.
-	AvailabilityEvent = Event("availability")
+	AvailabilityEvent struct {
+		Available bool
+	}
 )
 
 // The Player is the heart of Trollibox. This interface provides all common

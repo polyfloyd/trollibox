@@ -62,9 +62,12 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 		for {
 			select {
 			case event := <-events:
-				if event != PlaystateEvent && event != PlaylistEvent {
+				_, okA := event.(PlayStateEvent)
+				_, okB := event.(PlaylistEvent)
+				if !okA && !okB {
 					continue
 				}
+
 				plist := pl.Playlist()
 				trackIndex, err := pl.TrackIndex()
 				if err != nil {

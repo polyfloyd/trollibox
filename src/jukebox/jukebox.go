@@ -253,7 +253,7 @@ func (jb *Jukebox) removeRawTrack(playerName string, track library.Track, rawSer
 	defer emitter.Unlisten(events)
 outer:
 	for event := range events {
-		if event != player.PlaylistEvent {
+		if _, ok := event.(player.PlaylistEvent); !ok {
 			continue
 		}
 		plist, err := jb.PlayerPlaylist(context.Background(), playerName)

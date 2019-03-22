@@ -24,35 +24,94 @@ const trackTags = "uAglitdc"
 
 var eventTranslations = []struct {
 	Exp   *regexp.Regexp
-	Event interface{}
+	Event func(*Player, []string) (player.Event, error)
 	// If the global bit is not set, the expression is ignored if the event
 	// line does not start with the player's ID.
 	Global bool
 }{
 	{
-		Exp:    regexp.MustCompile("^rescan done"),
-		Event:  library.UpdateEvent{},
+		Exp: regexp.MustCompile("^rescan done"),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			return library.UpdateEvent{}, nil
+		},
 		Global: true,
 	},
 	{
-		Exp:   regexp.MustCompile(`^\S+ mixer (?:volume|muting)`),
-		Event: player.VolumeEvent,
+		Exp: regexp.MustCompile(`^\S+ mixer volume (\d+)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			volume, _ := strconv.Atoi(m[1])
+			if volume > 100 {
+				volume = 100
+			}
+			return player.VolumeEvent{Volume: volume}, nil
+		},
 	},
 	{
-		Exp:   regexp.MustCompile(`^\S+ playlist`),
-		Event: player.PlaylistEvent,
+		Exp: regexp.MustCompile(`^\S+ prefset server volume (\d+)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			volume, _ := strconv.Atoi(m[1])
+			return player.VolumeEvent{Volume: volume}, nil
+		},
 	},
 	{
-		Exp:   regexp.MustCompile(`^\S+ (?:play|stop|pause)`),
-		Event: player.PlaystateEvent,
+		Exp: regexp.MustCompile(`^\S+ prefset server currentSong (\d+)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			index, _ := strconv.Atoi(m[1])
+			return player.PlaylistEvent{Index: index}, nil
+		},
 	},
 	{
-		Exp:   regexp.MustCompile(`^\S+ time`),
-		Event: player.TimeEvent,
+		Exp: regexp.MustCompile(`^\S+ prefset server currentSong (\d+)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			return player.PlayStateEvent{State: player.PlayStatePlaying}, nil
+		},
 	},
 	{
-		Exp:   regexp.MustCompile(`^\S+ client`),
-		Event: player.AvailabilityEvent,
+		Exp: regexp.MustCompile(`^\S+ playlist (?:delete|newsong)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			index, err := pl.TrackIndex()
+			if err != nil {
+				return nil, err
+			}
+			return player.PlaylistEvent{Index: index}, nil
+		},
+	},
+	{
+		Exp: regexp.MustCompile(`^\S+ playlist pause (0|1)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			var state player.PlayState
+			if m[1] == "0" {
+				state = player.PlayStatePlaying
+			} else {
+				state = player.PlayStatePaused
+			}
+			return player.PlayStateEvent{State: state}, nil
+		},
+	},
+	{
+		Exp: regexp.MustCompile(`^\S+ playlist play`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			return player.PlayStateEvent{State: player.PlayStatePlaying}, nil
+		},
+	},
+	{
+		Exp: regexp.MustCompile(`^\S+ playlist stop`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			return player.PlayStateEvent{State: player.PlayStateStopped}, nil
+		},
+	},
+	{
+		Exp: regexp.MustCompile(`^\S+ time (\d+)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			secs, _ := strconv.Atoi(m[1])
+			return player.TimeEvent{Time: time.Second * time.Duration(secs)}, nil
+		},
+	},
+	{
+		Exp: regexp.MustCompile(`^\S+ client (?:reconnect|disconnect)`),
+		Event: func(pl *Player, m []string) (player.Event, error) {
+			return player.AvailabilityEvent{Available: m[1] == "reconnect"}, nil
+		},
 	},
 }
 
@@ -75,7 +134,7 @@ func (pl *Player) eventLoop() {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
 			log.Debugf("Could not start event loop: %v", err)
-			pl.Emit(player.AvailabilityEvent)
+			pl.Emit(player.AvailabilityEvent{Available: false})
 			time.Sleep(time.Second)
 			continue
 		}
@@ -95,8 +154,14 @@ func (pl *Player) eventLoop() {
 				if !evtr.Global && !strings.HasPrefix(line, pl.ID) {
 					continue
 				}
-				if evtr.Exp.MatchString(line) {
-					pl.Emit(evtr.Event)
+				if m := evtr.Exp.FindStringSubmatch(line); m != nil {
+					event, err := evtr.Event(pl, m)
+					if err != nil {
+						log.WithField("line", scanner.Text()).
+							Errorf("Could build event: %v", err)
+						break
+					}
+					pl.Emit(event)
 				}
 			}
 		}
@@ -251,7 +316,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 		for {
 			select {
 			case e := <-events:
-				if e == player.PlaystateEvent {
+				if _, ok := e.(player.PlayStateEvent); ok {
 					ack <- nil
 					break outer
 				}

@@ -142,7 +142,7 @@ func (pl *Player) eventLoop() {
 			continue
 		}
 		defer watcher.Close()
-		pl.Emit(player.AvailabilityEvent)
+		pl.Emit(player.AvailabilityEvent{Available: true})
 
 	loop:
 		for {
@@ -150,7 +150,7 @@ func (pl *Player) eventLoop() {
 			case event := <-watcher.Event:
 				pl.Emit(Event(event))
 			case <-watcher.Error:
-				pl.Emit(player.AvailabilityEvent)
+				pl.Emit(player.AvailabilityEvent{Available: false})
 				break loop
 			}
 		}
@@ -165,8 +165,9 @@ func (pl *Player) mainLoop() {
 	// not changed.
 	eventDedup := map[player.Event]interface{}{}
 	dedupEmit := func(event player.Event, newValue interface{}) {
-		prevValue, ok := eventDedup[event]
-		eventDedup[event] = newValue
+		eventName := fmt.Sprintf("%T", event)
+		prevValue, ok := eventDedup[eventName]
+		eventDedup[eventName] = newValue
 		if !ok || !reflect.DeepEqual(prevValue, newValue) {
 			pl.Emit(event)
 		}
@@ -177,31 +178,35 @@ func (pl *Player) mainLoop() {
 		if !ok {
 			continue
 		}
-		switch string(mpdEvent) {
-		case "player":
+		switch mpdEvent {
+		case PlayerEvent:
 			if state, err := pl.State(); err != nil {
 				log.Error(err)
 			} else {
-				dedupEmit(player.PlaystateEvent, state)
+				dedupEmit(player.PlayStateEvent{State: state}, state)
 			}
 			if time, err := pl.Time(); err != nil {
 				log.Error(err)
 			} else {
-				dedupEmit(player.TimeEvent, time)
+				dedupEmit(player.TimeEvent{Time: time}, time)
 			}
 			fallthrough
 
-		case "playlist":
-			pl.Emit(player.PlaylistEvent)
+		case PlaylistEvent:
+			if index, err := pl.TrackIndex(); err != nil {
+				log.Error(err)
+			} else {
+				pl.Emit(player.PlaylistEvent{Index: index})
+			}
 
-		case "mixer":
+		case MixerEvent:
 			if volume, err := pl.Volume(); err != nil {
 				log.Error(err)
 			} else {
-				dedupEmit(player.VolumeEvent, volume)
+				dedupEmit(player.VolumeEvent{Volume: volume}, volume)
 			}
 
-		case "update":
+		case UpdateEvent:
 			err := pl.withMpd(func(mpdc *mpd.Client) error {
 				status, err := mpdc.Status()
 				if err != nil {
@@ -449,7 +454,7 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 		if plistLen, err := pl.Playlist().Len(); err != nil {
 			return fmt.Errorf("error getting playlist length: %v", err)
 		} else if plistLen == 0 {
-			pl.Emit(player.PlaystateEvent)
+			pl.Emit(player.PlayStateEvent{State: state})
 			return nil
 		}
 

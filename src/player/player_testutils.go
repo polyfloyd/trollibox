@@ -51,10 +51,10 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 		testTrackIndexEvent(t, pl)
 	})
 	t.Run("playstate", func(t *testing.T) {
-		testPlaystate(t, pl)
+		testPlayState(t, pl)
 	})
 	t.Run("playstate_event", func(t *testing.T) {
-		testPlaystateEvent(t, pl)
+		testPlayStateEvent(t, pl)
 	})
 	t.Run("volume", func(t *testing.T) {
 		testVolume(t, pl)
@@ -89,11 +89,12 @@ func testTime(t *testing.T, pl Player) {
 }
 
 func testTimeEvent(t *testing.T, pl Player) {
-	util.TestEventEmission(t, pl, TimeEvent, func() {
+	newTime := time.Second * 2
+	util.TestEventEmission(t, pl, TimeEvent{Time: newTime}, func() {
 		if err := pl.SetState(PlayStatePlaying); err != nil {
 			t.Fatal(err)
 		}
-		if err := pl.SetTime(time.Second * 2); err != nil {
+		if err := pl.SetTime(newTime); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -134,14 +135,14 @@ func testTrackIndex(t *testing.T, pl Player) {
 }
 
 func testTrackIndexEvent(t *testing.T, pl Player) {
-	util.TestEventEmission(t, pl, PlaylistEvent, func() {
+	util.TestEventEmission(t, pl, PlaylistEvent{Index: 1}, func() {
 		if err := pl.SetTrackIndex(1); err != nil {
 			t.Fatal(err)
 		}
 	})
 }
 
-func testPlaystate(t *testing.T, pl Player) {
+func testPlayState(t *testing.T, pl Player) {
 	if err := pl.SetState(PlayStatePlaying); err != nil {
 		t.Fatal(err)
 	}
@@ -170,11 +171,11 @@ func testPlaystate(t *testing.T, pl Player) {
 	}
 }
 
-func testPlaystateEvent(t *testing.T, pl Player) {
-	util.TestEventEmission(t, pl, PlaystateEvent, func() {
-		if err := pl.SetState(PlayStatePlaying); err != nil {
-			t.Fatal(err)
-		}
+func testPlayStateEvent(t *testing.T, pl Player) {
+	if err := pl.SetState(PlayStatePlaying); err != nil {
+		t.Fatal(err)
+	}
+	util.TestEventEmission(t, pl, PlayStateEvent{State: PlayStateStopped}, func() {
 		if err := pl.SetState(PlayStateStopped); err != nil {
 			t.Fatal(err)
 		}
@@ -232,7 +233,7 @@ func testVolumeEvent(t *testing.T, pl Player) {
 		t.Fatal(err)
 	}
 	time.Sleep(time.Second)
-	util.TestEventEmission(t, pl, VolumeEvent, func() {
+	util.TestEventEmission(t, pl, VolumeEvent{Volume: 20}, func() {
 		if err := pl.SetVolume(20); err != nil {
 			t.Fatal(err)
 		}
