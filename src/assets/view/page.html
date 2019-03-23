@@ -174,15 +174,7 @@
 			var player = new Player('{{ .player }}');
 			var streamdb = new StreamDB();
 			var filterdb = new FilterDB();
-			var playerView = window.playerView = new PlayerView({ model: player });
-
-			// Scroll to the current track, but only if the player is the
-			// initialy selected view.
-			playerView.on('render:playlist', function() {
-				if ($(window).width() >= 992) {
-					playerView.showCurrent();
-				}
-			});
+			var playerView = window.playerView = new PlayerView(player);
 
 			function handleError(err) {
 				console.error(err);

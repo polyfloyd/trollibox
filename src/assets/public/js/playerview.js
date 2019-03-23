@@ -1,199 +1,194 @@
-'use strict';
-
-var PlayerView = Backbone.View.extend({
-	tagName:   'div',
-	className: 'player',
-
-	events: {
-		'click .do-previous':      'doPrevious',
-		'click .do-next':          'doNext',
-		'click .do-toggle-state':  'doToggleState',
-		'click .do-clear':         'doClear',
-		'click .do-add-netmedia':  'showNetmediaDialog',
-		'input .do-set-volume':    'doSetVolume',
-		'input .do-set-time':      'doSetProgress',
-		'dragover':                'doMakeDroppable',
-		'dragenter':               'doMakeDroppable',
-		'drop':                    'doAcceptRawFiles',
-	},
-
-	initialize: function() {
-		this.model.addEventListener('change:index',    this.renderCurrent.bind(this));
-		this.model.addEventListener('change:index',    this.renderPlaylist.bind(this));
-		this.model.addEventListener('change:index',    this.renderProgress.bind(this));
-		this.model.addEventListener('change:playlist', this.renderPlaylist.bind(this));
-		this.model.addEventListener('change:time',     this.renderProgress.bind(this));
-		this.model.addEventListener('change:state',    this.renderState.bind(this));
-		this.model.addEventListener('change:volume',   this.renderVolume.bind(this));
+class PlayerView {
+	constructor(player) {
+		this.player = player;
+		this.player.addEventListener('change:index', () => this.renderCurrent());
+		this.player.addEventListener('change:index', () => this.renderPlaylist());
+		this.player.addEventListener('change:index', () => this.renderProgress());
+		this.player.addEventListener('change:playlist', () => this.renderPlaylist());
+		this.player.addEventListener('change:time', () => this.renderProgress());
+		this.player.addEventListener('change:state', () => this.renderState());
+		this.player.addEventListener('change:volume',  () => this.renderVolume());
 		this.render();
-	},
+	}
 
-	render: function() {
-		this.$el.html(this.template());
+	render() {
+		this.$el = $(playerViewTemplate());
 		this.renderCurrent();
 		this.renderPlaylist();
 		this.renderProgress();
 		this.renderState();
 		this.renderVolume();
 
-		var sortables = window.sortable(this.$('.player-playlist'), {
+		this.$el.find('.do-previous').on('click', () => this.doPrevious());
+		this.$el.find('.do-next').on('click', () => this.doNext());
+		this.$el.find('.do-toggle-state').on('click', () => this.doToggleState());
+		this.$el.find('.do-clear').on('click', () => this.doClear());
+		this.$el.find('.do-add-netmedia').on('click', () => this.showNetmediaDialog());
+		this.$el.find('.do-set-volume').on('click', () => this.doSetVolume());
+		this.$el.find('.do-set-time').on('click', () => this.doSetProgress());
+		this.$el.on('dragover', () => this.doMakeDroppable());
+		this.$el.on('dragenter', () => this.doMakeDroppable());
+		this.$el.on('drop', () => this.doAcceptRawFiles());
+
+		const sortables = window.sortable(this.$el.find('.player-playlist'), {
 			forcePlaceholderSize: true,
 			items:                'li',
 			acceptFrom:           '.player-playlist',
 		});
-		sortables.forEach((s) => {
-			s.addEventListener('sortupdate', (event) => {
+		sortables.forEach(s => {
+			s.addEventListener('sortupdate', event => {
 				this.doReorderPlaylist(event);
 			});
 		});
-	},
+	}
 
-	renderCurrent: function() {
-		var cur = this.model.getCurrentTrack() || {};
+	renderCurrent() {
+		const cur = this.player.getCurrentTrack() || {};
 
-		showTrackArt(this.$('.track-art'), this.model, cur);
-		this.$('.player-current .track-album').text(cur.album || '');
-		this.$('.player-current .track-artist').text(cur.artist || '');
-		this.$('.player-current .track-title').text(cur.title || '');
-		this.$('.player-current')
+		showTrackArt(this.$el.find('.track-art'), this.player, cur);
+		this.$el.find('.player-current .track-album').text(cur.album || '');
+		this.$el.find('.player-current .track-artist').text(cur.artist || '');
+		this.$el.find('.player-current .track-title').text(cur.title || '');
+		this.$el.find('.player-current')
 			.removeClass('queuedby-system queuedby-user')
-			.addClass('queuedby-'+cur.queuedby)
+			.addClass(`queuedby-${cur.queuedby}`)
 			.toggleClass('track-infinite', cur.duration == 0);
-		this.$('.track-time-total')
+		this.$el.find('.track-time-total')
 			.text(cur.duration ? durationToString(cur.duration) : '');
-		this.$('.do-set-time').attr('max', cur.duration || 0);
-	},
+		this.$el.find('.do-set-time').attr('max', cur.duration || 0);
+	}
 
-	renderProgress: function() {
-		var pr = this.model.time || 0;
-		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
-		this.$('.track-time-current').text(text);
-		this.$('.do-set-time').val(pr);
-	},
+	renderProgress() {
+		const pr = this.player.time || 0;
+		const text = this.player.getCurrentTrack() ? durationToString(pr) : '';
+		this.$el.find('.track-time-current').text(text);
+		this.$el.find('.do-set-time').val(pr);
+	}
 
-	renderState: function() {
-		var state = this.model.state;
-		this.$el.toggleClass('player-paused',  state === 'paused');
-		this.$el.toggleClass('player-playing', state === 'playing');
-		this.$el.toggleClass('player-stopped', state === 'stopped');
+	renderState() {
+		this.$el.toggleClass('player-paused',  this.player.state === 'paused');
+		this.$el.toggleClass('player-playing', this.player.state === 'playing');
+		this.$el.toggleClass('player-stopped', this.player.state === 'stopped');
 
-		this.$('.do-toggle-state')
-			.toggleClass('glyphicon-pause', state === 'playing')
-			.toggleClass('glyphicon-play',  state !== 'playing');
-	},
+		this.$el.find('.do-toggle-state')
+			.toggleClass('glyphicon-pause', this.player.state === 'playing')
+			.toggleClass('glyphicon-play',  this.player.state !== 'playing');
+	}
 
-	renderVolume: function() {
-		var vol = this.model.volume;
-		var $setVol = this.$('.do-set-volume');
-		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
-	},
+	renderVolume() {
+		const $setVol = this.$el.find('.do-set-volume');
+		$setVol.val(this.player.volume * parseInt($setVol.attr('max'), 10));
+	}
 
-	renderPlaylist: function() {
-		var playlist = this.model.playlist;
-		var ci = this.model.index;
+	renderPlaylist() {
 		[
 			{
-				$pl: this.$('.player-playlist.player-past'),
-				tracks: playlist.slice(0, ci),
+				$pl: this.$el.find('.player-playlist.player-past'),
+				tracks: this.player.playlist.slice(0, this.player.index),
 			},
 			{
-				$pl: this.$('.player-playlist.player-future'),
-				tracks: playlist.slice(ci + 1),
+				$pl: this.$el.find('.player-playlist.player-future'),
+				tracks: this.player.playlist.slice(this.player.index + 1),
 			},
 		].forEach((opt, l) => {
 			opt.$pl.empty();
-			opt.$pl.append(opt.tracks.map(function(track, i) {
-				var $li = $(this.playlistTemplate(track));
-				var offset = l == 1 ? this.model.index + 1 : 0;
-				$li.find('.do-remove').on('click', (event) => {
+			opt.$pl.append(opt.tracks.map((track, i) => {
+				const $li = $(playerViewPlaylistTemplate(track));
+				const offset = l == 1 ? this.player.index + 1 : 0;
+				$li.find('.do-remove').on('click', event => {
 					event.preventDefault();
-					this.model.removeFromPlaylist(offset + i);
+					this.player.removeFromPlaylist(offset + i);
 				});
 				$li.on('click', () => {
 					if (Hotkeys.state.ctrl) {
-						var cur = this.model.index;
-						this.model.moveInPlaylist(offset + i, cur);
+						this.player.moveInPlaylist(offset + i, this.player.index);
 					}
 				});
 				return $li;
-			}, this));
+			}));
 			window.sortable(opt.$pl); // Reload sortable
 		});
 
-		this.trigger('render:playlist');
-	},
+		// Scroll to the current track, but only if the player is the
+		// initialy selected view.
+		if ($(window).width() >= 992) {
+			this.showCurrent();
+		}
+	}
 
 	// Aligns the player to the top of the container.
-	showCurrent: function() {
-		this.$('.player-current')[0].scrollIntoView();
-	},
+	showCurrent() {
+		this.$el.find('.player-current')[0].scrollIntoView();
+	}
 
-	doToggleState: function() {
-		this.model.setState(this.model.state !== 'playing' ? 'playing' : 'paused');
-	},
+	doToggleState() {
+		this.player.setState(this.player.state !== 'playing' ? 'playing' : 'paused');
+	}
 
-	doPrevious: function() {
-		this.model.setIndex(-1, true);
-	},
+	doPrevious() {
+		this.player.setIndex(-1, true);
+	}
 
-	doNext: function() {
-		this.model.setIndex(1, true);
-	},
+	doNext() {
+		this.player.setIndex(1, true);
+	}
 
-	doClear: function() {
-		var pl = this.model.playlist;
-		if (pl.length > this.model.index+1) {
-			var rem = [];
-			for (var i = this.model.index+1; i < pl.length; i++) {
+	doClear() {
+		if (this.player.playlist.length > this.player.index + 1) {
+			let rem = [];
+			for (let i = this.player.index+1; i < this.player.playlist.length; i++) {
 				rem.push(i);
 			}
-			this.model.removeFromPlaylist(rem);
+			this.player.removeFromPlaylist(rem);
 		}
-	},
+	}
 
-	showNetmediaDialog: function() {
-		var dialog = new AddMediaDialog({ model: this.model });
-	},
+	showNetmediaDialog() {
+		new AddMediaDialog({ model: this.player });
+	}
 
-	doSetProgress: function() {
-		this.model.setTime(parseInt(this.$('.do-set-time').val(), 10));
-	},
+	doSetProgress() {
+		this.player.setTime(parseInt(this.$el.find('.do-set-time').val(), 10));
+	}
 
-	doSetVolume: function() {
-		var $input = this.$('.do-set-volume');
-		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
-		this.model.setVolume(vol)
-	},
+	doSetVolume() {
+		const $input = this.$el.find('.do-set-volume');
+		const vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
+		this.player.setVolume(vol)
+	}
 
-	doReorderPlaylist: function(event) {
-		var data = sortable(event.target, 'serialize');
-		var offset = ($parent) => {
-			var ci = this.model.index;
-			return $parent.classList.contains('player-future') ? ci + 1 : 0;
+	doReorderPlaylist(event) {
+		const data = sortable(event.target, 'serialize');
+		const offset = $parent => {
+			return $parent.classList.contains('player-future')
+				? this.player.index + 1
+				: 0;
 		};
 
-		var from = offset(event.detail.origin.container) + event.detail.origin.index;
-		var to = offset(event.detail.destination.container) + event.detail.destination.index;
-		var fromPast = !event.detail.origin.container.classList.contains('player-future');
-		var toFuture = event.detail.destination.container.classList.contains('player-future');
+		let from = offset(event.detail.origin.container) + event.detail.origin.index;
+		let to = offset(event.detail.destination.container) + event.detail.destination.index;
+		let fromPast = !event.detail.origin.container.classList.contains('player-future');
+		let toFuture = event.detail.destination.container.classList.contains('player-future');
 		if (fromPast && toFuture) {
 			to -= 1;
 		}
-		this.model.moveInPlaylist(from, to);
-	},
+		this.player.moveInPlaylist(from, to);
+	}
 
-	doMakeDroppable: function(event) {
+	doMakeDroppable(event) {
 		event.preventDefault();
 		return false;
-	},
+	}
 
-	doAcceptRawFiles: function(event) {
+	doAcceptRawFiles(event) {
 		event.preventDefault();
-		this.model.playRawTracks(event.originalEvent.dataTransfer.files);
+		this.player.playRawTracks(event.originalEvent.dataTransfer.files);
 		return false;
-	},
+	}
+}
 
-	template: _.template(`
+const playerViewTemplate = _.template(`
+	<div class="player">
 		<ul class="player-playlist player-past"></ul>
 
 		<div class="player-current">
@@ -224,12 +219,12 @@ var PlayerView = Backbone.View.extend({
 		</div>
 
 		<ul class="player-playlist player-future"></ul>
-	`),
-	playlistTemplate: _.template(`
-		<li class="queuedby-<%= queuedby %>">
-			<button class="do-remove glyphicon glyphicon-remove"></button>
-			<span class="track-artist"><%- artist %></span><span class="track-title"><%- title %></span>
-		</li>
-	`),
+	</div>
+`);
 
-});
+const playerViewPlaylistTemplate = _.template(`
+	<li class="queuedby-<%= queuedby %>">
+		<button class="do-remove glyphicon glyphicon-remove"></button>
+		<span class="track-artist"><%- artist %></span><span class="track-title"><%- title %></span>
+	</li>
+`);
