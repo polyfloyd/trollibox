@@ -7,12 +7,12 @@ var BrowserBrowseView = BrowserView.extend({
 	initialize: function(options) {
 		this.tabs = new TabView();
 		this.$el.append(this.tabs.$el);
-		this.listenTo(this.model, 'change:tracks', this.updateTree);
+		this.model.addEventListener('change:tracks', this.updateTree.bind(this));
 		this.updateTree();
 	},
 
 	updateTree: function() {
-		this.genreTree = this.model.get('tracks').reduce(function(genres, track) {
+		this.genreTree = this.model.tracks.reduce(function(genres, track) {
 			var genreTitle = track.genre || 'Unknown';
 			var artists = genres[genreTitle] || (genres[genreTitle] = {});
 			var trackList =  artists[track.artist] || (artists[track.artist] = []);

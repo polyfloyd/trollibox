@@ -7,11 +7,10 @@ var StreamDB = NetModel.extend({
 		NetModel.prototype.initialize.call(this, {
 			eventSourcePath: '/streams/events',
 		});
-		this.player = args.player;
 		this.attachServerReloader('server-event:tracks', '/streams', (data) => {
 			this.setInternal('streams', data.streams.map((stream) => {
 				stream.uri = stream.url;
-				return this.player.fillMissingTrackFields(stream);
+				return Player.fillMissingTrackFields(stream);
 			}, this));
 		});
 	},

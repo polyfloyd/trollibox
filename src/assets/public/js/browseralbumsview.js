@@ -7,7 +7,7 @@ var BrowserAlbumsView = BrowserView.extend({
 	initialize: function(options) {
 		this.tabs = new TabView();
 		this.$el.append(this.tabs.$el);
-		this.listenTo(this.model, 'change:tracks', this.render);
+		this.model.addEventListener('change:tracks', this.render.bind(this));
 		this.render();
 	},
 
@@ -16,7 +16,7 @@ var BrowserAlbumsView = BrowserView.extend({
 		var $tab = this.tabs.pushTab($(this.albumListTemplate()), { name: 'list' });
 
 		// Get a list of tracks which belong to an album.
-		var albumTracks = this.model.get('tracks').filter((track) => {
+		var albumTracks = this.model.tracks.filter((track) => {
 			return !!track.album && !!track.albumartist;
 		});
 

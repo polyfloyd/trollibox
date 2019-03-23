@@ -18,13 +18,13 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	initialize: function() {
-		this.listenTo(this.model, 'change:current',  this.renderCurrent);
-		this.listenTo(this.model, 'change:current',  this.renderPlaylist);
-		this.listenTo(this.model, 'change:current',  this.renderProgress);
-		this.listenTo(this.model, 'change:playlist', this.renderPlaylist);
-		this.listenTo(this.model, 'change:time',     this.renderProgress);
-		this.listenTo(this.model, 'change:state',    this.renderState);
-		this.listenTo(this.model, 'change:volume',   this.renderVolume);
+		this.model.addEventListener('change:index',    this.renderCurrent.bind(this));
+		this.model.addEventListener('change:index',    this.renderPlaylist.bind(this));
+		this.model.addEventListener('change:index',    this.renderProgress.bind(this));
+		this.model.addEventListener('change:playlist', this.renderPlaylist.bind(this));
+		this.model.addEventListener('change:time',     this.renderProgress.bind(this));
+		this.model.addEventListener('change:state',    this.renderState.bind(this));
+		this.model.addEventListener('change:volume',   this.renderVolume.bind(this));
 		this.render();
 	},
 
@@ -65,14 +65,14 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	renderProgress: function() {
-		var pr = this.model.get('time') || 0;
+		var pr = this.model.time || 0;
 		var text = this.model.getCurrentTrack() ? durationToString(pr) : '';
 		this.$('.track-time-current').text(text);
 		this.$('.do-set-time').val(pr);
 	},
 
 	renderState: function() {
-		var state = this.model.get('state');
+		var state = this.model.state;
 		this.$el.toggleClass('player-paused',  state === 'paused');
 		this.$el.toggleClass('player-playing', state === 'playing');
 		this.$el.toggleClass('player-stopped', state === 'stopped');
@@ -83,14 +83,14 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	renderVolume: function() {
-		var vol = this.model.get('volume');
+		var vol = this.model.volume;
 		var $setVol = this.$('.do-set-volume');
 		$setVol.val(vol * parseInt($setVol.attr('max'), 10));
 	},
 
 	renderPlaylist: function() {
-		var playlist = this.model.get('playlist');
-		var ci = this.model.get('current');
+		var playlist = this.model.playlist;
+		var ci = this.model.index;
 		[
 			{
 				$pl: this.$('.player-playlist.player-past'),
@@ -104,14 +104,14 @@ var PlayerView = Backbone.View.extend({
 			opt.$pl.empty();
 			opt.$pl.append(opt.tracks.map(function(track, i) {
 				var $li = $(this.playlistTemplate(track));
-				var offset = l == 1 ? this.model.get('current') + 1 : 0;
+				var offset = l == 1 ? this.model.index + 1 : 0;
 				$li.find('.do-remove').on('click', (event) => {
 					event.preventDefault();
 					this.model.removeFromPlaylist(offset + i);
 				});
 				$li.on('click', () => {
 					if (Hotkeys.state.ctrl) {
-						var cur = this.model.get('current');
+						var cur = this.model.index;
 						this.model.moveInPlaylist(offset + i, cur);
 					}
 				});
@@ -129,22 +129,22 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	doToggleState: function() {
-		this.model.set('state', this.model.get('state') !== 'playing' ? 'playing' : 'paused');
+		this.model.setState(this.model.state !== 'playing' ? 'playing' : 'paused');
 	},
 
 	doPrevious: function() {
-		this.model.setCurrent(-1, true);
+		this.model.setIndex(-1, true);
 	},
 
 	doNext: function() {
-		this.model.setCurrent(1, true);
+		this.model.setIndex(1, true);
 	},
 
 	doClear: function() {
-		var pl = this.model.get('playlist');
-		if (pl.length > this.model.get('current')+1) {
+		var pl = this.model.playlist;
+		if (pl.length > this.model.index+1) {
 			var rem = [];
-			for (var i = this.model.get('current')+1; i < pl.length; i++) {
+			for (var i = this.model.index+1; i < pl.length; i++) {
 				rem.push(i);
 			}
 			this.model.removeFromPlaylist(rem);
@@ -156,19 +156,19 @@ var PlayerView = Backbone.View.extend({
 	},
 
 	doSetProgress: function() {
-		this.model.set('time', parseInt(this.$('.do-set-time').val(), 10));
+		this.model.setTime(parseInt(this.$('.do-set-time').val(), 10));
 	},
 
 	doSetVolume: function() {
 		var $input = this.$('.do-set-volume');
 		var vol = parseInt($input.val(), 10) / parseInt($input.attr('max'), 10);
-		this.model.set('volume', vol);
+		this.model.setVolume(vol)
 	},
 
 	doReorderPlaylist: function(event) {
 		var data = sortable(event.target, 'serialize');
 		var offset = ($parent) => {
-			var ci = this.model.get('current');
+			var ci = this.model.index;
 			return $parent.classList.contains('player-future') ? ci + 1 : 0;
 		};
 

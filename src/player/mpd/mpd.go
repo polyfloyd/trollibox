@@ -476,7 +476,7 @@ func (pl *Player) setStateWith(mpdc *mpd.Client, state player.PlayState) error {
 			return fmt.Errorf("error stopping: %v", err)
 		}
 	default:
-		return fmt.Errorf("unknown play state %v", state)
+		return fmt.Errorf("unknown play state %q", state)
 	}
 	return nil
 }

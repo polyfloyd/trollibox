@@ -9,43 +9,43 @@ var Hotkeys = {
 
 	player: function(player, $scope) {
 		$scope.bind('keydown', 'space', function() {
-			switch (player.get('state')) {
+			switch (player.state) {
 				case 'paused':
 				case 'stopped':
-					player.set('state', 'playing');
+					player.setState('playing');
 					break;
 				case 'playing':
-					player.set('state', 'paused');
+					player.setState('paused');
 					break;
 			}
 		});
 
 		$scope.bind('keydown', 'esc', function() {
-			player.setCurrent(1, true);
+			player.setIndex(1, true);
 		});
 
 		var SEEK_STEP = 4;
 		$scope.bind('keydown', 'right', function() {
-			var cur = player.get('current');
+			var cur = player.getCurrentTrack();
 			if (!cur) return;
-			var pr = player.get('time') + SEEK_STEP;
-			player.set('time', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
+			var pr = player.time + SEEK_STEP;
+			player.setTime(pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
 		});
 		$scope.bind('keydown', 'left', function() {
-			var cur = player.get('current');
+			var cur = player.getCurrentTrack();
 			if (!cur) return;
-			var pr = player.get('time') - SEEK_STEP;
-			player.set('time', pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
+			var pr = player.time - SEEK_STEP;
+			player.setTime(pr > cur.duration ? cur.duration : pr < 0 ? 0 : pr);
 		});
 
 		var VOL_STEP = 0.05;
 		$scope.bind('keydown', 'up', function() {
-			var vol = player.get('volume') + VOL_STEP;
-			player.set('volume',  vol > 100 ? 100 : vol < 0 ? 0 : vol);
+			var vol = player.volume + VOL_STEP;
+			player.setVolume(vol > 100 ? 100 : vol < 0 ? 0 : vol);
 		});
 		$scope.bind('keydown', 'down', function() {
-			var vol = player.get('volume') - VOL_STEP;
-			player.set('volume',  vol > 100 ? 100 : vol < 0 ? 0 : vol);
+			var vol = player.volume - VOL_STEP;
+			player.setVolume(vol > 100 ? 100 : vol < 0 ? 0 : vol);
 		});
 	},
 
@@ -58,9 +58,8 @@ var Hotkeys = {
 	},
 
 	playerInsert: function(player, tracks) {
-		var cur = player.get('current');
-		if (Hotkeys.state.ctrl && cur >= 0) {
-			player.insertIntoPlaylist(tracks, cur + 1);
+		if (Hotkeys.state.ctrl && player.index >= 0) {
+			player.insertIntoPlaylist(tracks, player.index + 1);
 		} else {
 			player.appendToPlaylist(tracks);
 		}

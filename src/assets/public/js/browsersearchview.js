@@ -9,7 +9,7 @@ var BrowserSearchView = BrowserView.extend({
 	},
 
 	initialize: function(options) {
-		this.listenTo(this.model, 'change:tracks', this.doSearch);
+		this.model.addEventListener('change:tracks', this.doSearch.bind(this));
 		this.on('search-begin', function() {
 			this.$el.addClass('search-busy');
 		});
