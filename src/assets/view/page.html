@@ -192,7 +192,7 @@
 				browse:  new BrowserBrowseView({ model: player }),
 				files:   new BrowserFilesView({ model: player }),
 				streams: new BrowserStreamsView({ model: streamdb, player }),
-				queuer:  new QueuerView({ model: filterdb }),
+				queuer:  new QueuerView(filterdb),
 			};
 			var app = new Backbone.Router({
 				routes: {
