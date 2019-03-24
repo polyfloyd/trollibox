@@ -10,7 +10,7 @@ var BrowserStreamsView = BrowserView.extend({
 
 	initialize: function(args) {
 		this.player = args.player;
-		this.listenTo(this.model, 'change:streams', this.render);
+		this.model.addEventListener('change:streams', () => this.render());
 		this.render();
 	},
 
@@ -18,7 +18,7 @@ var BrowserStreamsView = BrowserView.extend({
 		this.$el.html(this.template());
 
 		var $list = this.$('.result-list');
-		$list.append(this.model.get('streams').sort(function(a, b) {
+		$list.append(this.model.streams.sort(function(a, b) {
 			return stringCompareCaseInsensitive(a.title, b.title);
 		}).map(function(stream) {
 			var self = this;

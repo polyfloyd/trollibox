@@ -134,6 +134,7 @@ func htEvents(emitter *util.Emitter) http.Handler {
 				})
 			case library.UpdateEvent:
 				eventStr = "library:tracks"
+				eventMsg = []byte("{}")
 			case filter.UpdateEvent:
 				eventStr = "filter:update"
 				eventMsg, err = json.Marshal(map[string]interface{}{
