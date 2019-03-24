@@ -71,19 +71,18 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	initialize: function() {
-		this.listenTo(this.model, 'change:filters', (obj, value, options) => {
+		this.model.addEventListener('change:queuer', () => {
 			this.copyRules();
 			this.render();
 			this.removeRuleErrors();
 		});
 		this.listenTo(this, 'error', this.renderError);
-		this.listenTo(this.model, 'error', this.renderError);
 		this.copyRules();
 		this.render();
 	},
 
 	copyRules: function() {
-		var ft = this.model.get('filters').queuer;
+		var ft = this.model.filters.queuer;
 		if (!ft) {
 			this.rules = [];
 			return
@@ -98,8 +97,6 @@ var QueuerView = Backbone.View.extend({
 	},
 
 	render: function() {
-		var self = this;
-
 		this.$el.html(this.template());
 		this.$('.queuer-rules').append(this.rules.map((rule, ruleIndex) => {
 			var attr = this.ruleAttr(rule);
@@ -114,40 +111,40 @@ var QueuerView = Backbone.View.extend({
 				renderVal: this.ruleAttr(rule).renderVal || (v => v),
 			}));
 
-			$el.find('.queuer-invert').on('change', () => {
-				rule.invert = $(this).find('input').prop('checked');
-				self.updateRules();
+			$el.find('.queuer-invert')[0].addEventListener('change', event => {
+				rule.invert = event.target.checked;
+				this.updateRules();
 			});
 
-			$el.find('.queuer-attribute').on('change', () => {
-				rule.attribute = $(this).val();
-				var type = self.ruleAttr(rule).type;
-				if (self.ruleOp(rule).types.indexOf(type) === -1) {
+			$el.find('.queuer-attribute').on('change', (event) => {
+				rule.attribute = $(event.target).val();
+				var type = this.ruleAttr(rule).type;
+				if (this.ruleOp(rule).types.indexOf(type) === -1) {
 					rule.operation = 'equals';
 				}
-				if (type === 'int' && Number.isNaN(self.stringToInt(rule.value))) {
+				if (type === 'int' && Number.isNaN(this.stringToInt(rule.value))) {
 					rule.value = 0;
 				}
-				self.updateRules();
+				this.updateRules();
 			});
 
-			$el.find('.queuer-operation').on('change', () => {
-				rule.operation = $(this).val();
-				self.updateRules();
+			$el.find('.queuer-operation').on('change', event => {
+				rule.operation = $(event.target).val();
+				this.updateRules();
 			});
 
-			$el.find('.queuer-value').on('input', () => {
-				$(this).addClass('modified');
+			$el.find('.queuer-value')[0].addEventListener('input', (event) => {
+				$(event.target).addClass('modified');
 			});
-			$el.find('.queuer-value').on('change', () => {
-				var $input = $(this)
-				if (self.ruleAttr(rule).type === 'int') {
-					var strVal = $(this).val();
-					var val = self.stringToInt(strVal);
+			$el.find('.queuer-value').on('change', (event) => {
+				var $input = $(event.target)
+				if (this.ruleAttr(rule).type === 'int') {
+					var strVal = $input.val();
+					var val = this.stringToInt(strVal);
 					if (Number.isNaN(val)) {
 						var err = new Error('"'+strVal+'" can not be interpreted as an integer')
 						err.data = { index: ruleIndex, };
-						self.trigger('error', err);
+						this.trigger('error', err);
 						return;
 					}
 					rule.value = val;
@@ -156,11 +153,11 @@ var QueuerView = Backbone.View.extend({
 				}
 
 				$input.removeClass('modified');
-				self.updateRules();
+				this.updateRules();
 			});
 			$el.find('.do-remove').on('click', () => {
-				self.rules.splice(ruleIndex, 1);
-				self.updateRules();
+				this.rules.splice(ruleIndex, 1);
+				this.updateRules();
 			});
 			return $el;
 		}, this));
@@ -170,7 +167,7 @@ var QueuerView = Backbone.View.extend({
 		if (err.data && typeof err.data.index == 'number') {
 			var $li = this.$('.queuer-rules > li:nth-child('+(err.data.index+1)+') .queuer-value');
 			$li.tooltip({
-				title:    err.message,
+				title:    err.error,
 				template: this.ruleErrorTemplate(),
 				trigger:  'manual',
 			}).tooltip('show');
@@ -223,7 +220,10 @@ var QueuerView = Backbone.View.extend({
 		this.model.store('queuer', {
 			type:  'ruled',
 			value: { rules: this.rules },
-		});
+		})
+			.catch(err => {
+				this.trigger('error', err);
+			});
 	},
 
 	doAddRule: function() {

@@ -1,41 +1,74 @@
-'use strict';
+class FilterChangedEvent extends Event {
+	constructor(name) {
+		super(`change:${name}`);
+		this.name = name;
+	}
+}
 
-var FilterDB = NetModel.extend({
-	defaults: {
-		'filters': {},
-	},
+class FilterDB extends EventTarget {
+	constructor(args) {
+		super();
+		this.filters = {};
 
-	initialize: function(args) {
-		NetModel.prototype.initialize.call(this, {
-			eventSourcePath: '/filters/events',
+		this._ev = new EventSource(`${URLROOT}data/filters/events`);
+		this._ev.onopen = () => {
+			// Reload all state to ensure that we are in sync.
+			this._reload();
+		};
+		this._ev.addEventListener('filter:update', async event => {
+			const name = JSON.parse(event.data).filter;
+			this.filters[name] = await this._loadFilter(name);
+			this.dispatchEvent(new FilterChangedEvent(name));
 		});
-		var self = this;
-		this.attachServerReloader('server-event:update', '/filters/', function(data) {
-			var filters = {};
-			function next(index) {
-				if (index == Object.keys(data.filters).length) {
-					self.setInternal('filters', filters);
-					return;
-				}
-				var name = data.filters[index];
-				self.callServer('/filters/'+name+'/', 'GET', null).then(function(filterData) {
-					filters[name] = filterData.filter;
-					next(index + 1);
-				});
-			}
-			next(0);
-		});
-	},
+		this._reload();
+	}
 
-	store: function(name, filter) {
-		this.callServer('/filters/'+name+'/', 'PUT', {
-			filter: filter,
+	async store(name, filter) {
+		const res = await fetch(`${URLROOT}data/filters/${name}`, {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+				// Trigger a an error response in JSON format.
+				'X-Requested-With': 'fetch',
+			},
+			body: JSON.stringify({ filter }),
 		});
-//		this.filters.trigger('change:filters', this.model, this.rules);
-	},
+		if (res.status == 400) {
+			throw await res.json();
+		} else if (res.status >= 400) {
+			throw new Error('could not store filter');
+		}
+	}
 
-	remove: function(name) {
-		this.callServer('/filters/'+name+'/', 'DELETE');
-//		this.filters.trigger('change:filters', this.model, this.rules);
-	},
-});
+	async remove(name) {
+		const res = await fetch(`${URLROOT}data/filters/${name}`, {
+			method: 'DELETE',
+		});
+		if (res.status >= 400) {
+			throw new Error('could not remove filter');
+		}
+	}
+
+	async _loadFilter(name) {
+		const res = await fetch(`${URLROOT}data/filters/${name}`);
+		if (res.status == 404) {
+			return null;
+		} else if (res.status >= 400) {
+			throw new Error('could not load filter');
+		}
+		const { filter } = await res.json();
+		return filter;
+	}
+
+	async _reload() {
+		const res = await fetch(`${URLROOT}data/filters`);
+		if (res.status >= 400) {
+			throw new Error('could not list filters');
+		}
+		const { filters } = await res.json();
+		for (const name of filters) {
+			this.filters[name] = await this._loadFilter(name);
+			this.dispatchEvent(new FilterChangedEvent(name));
+		}
+	}
+}
