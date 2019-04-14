@@ -144,7 +144,7 @@ class PlayerView {
 	}
 
 	showNetmediaDialog() {
-		new AddMediaDialog({ model: this.player });
+		new AddMediaDialog(this.player);
 	}
 
 	doSetProgress() {
