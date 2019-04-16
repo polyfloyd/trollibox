@@ -109,8 +109,6 @@ A track must match all keywords in order to end up in the results.
 The search string is split on each space, unless you escape it with a
 backslash: `foo\ bar`.
 
-You can use wildcards too: `foo*bar`.
-
 You can annotate the keywords in your query to search other fields,
 You can limit a keyword to a single attribute by annotating them like this:
 ```
@@ -128,6 +126,15 @@ Available attributes are:
 * albumartist
 * albumtrack
 * albumdisc
+
+You can also use the `duration` attribute with relational operators to filter
+on whether a track's length is less, greater than or equal to some reference
+integer.
+```
+duration<120
+duration>120
+duration=120
+```
 
 ## Q & A
 

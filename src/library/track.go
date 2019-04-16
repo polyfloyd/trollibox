@@ -56,7 +56,7 @@ func (track *Track) Attr(attr string) interface{} {
 	case "albumdisc":
 		return track.AlbumDisc
 	case "duration":
-		return track.Duration
+		return int64(track.Duration / time.Second)
 	case "hasart":
 		return track.HasArt
 	}

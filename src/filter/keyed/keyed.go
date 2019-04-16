@@ -4,17 +4,210 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/library"
 )
 
-var (
-	regexControlRe = regexp.MustCompile(`([\.\^\$\?\+\[\]\{\}\(\)\|\\])`)
-	escapedWhite   = regexp.MustCompile(`\\(\s)`)
-	queryRe        = regexp.MustCompile(`(?:(\w+):)?((?:(?:\\\s)|[^:\s])+)`)
-)
+// parser returns the grammar of the query as a parser combinator.
+// The grammar is curried with so some arguments required by mapping functions
+// can be compiled in.
+func parser(untaggedFields []string) ParseFunc {
+	digit := pAny(pLiterals("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")...)
+
+	strKey := pAny(pLiterals("uri", "artist", "title", "album")...)
+	strOperation := pAny(pLiterals("=", ":")...)
+	strMatchValue := pApply(pAtLeastOne(pAny(pWordLit(), pLast(pLiterals("\\", " ")...))), gJoinStrings)
+
+	ordKey := pLit("duration")
+	ordOperation := pAny(pLiterals("=", "<", ">")...)
+	ordMatchValue := pApply(pAtLeastOne(digit), gJoinStrings)
+
+	keyedMatch := pAny(
+		pApply(pAll(strKey, strOperation, strMatchValue), gMapStringRule),
+		pApply(pAll(ordKey, ordOperation, ordMatchValue), gMapOrdRule),
+	)
+
+	unkeyedMatch := pApply(strMatchValue, gMapUnkeyedRule(untaggedFields))
+
+	condition := pAny(keyedMatch, unkeyedMatch)
+	//	query := pApply(pAtLeastOne(condition), gMapRuleSet) // TODO: repetition
+
+	query := pApply(pAtLeastOne(pAny(condition, pLit(" "))), gMapRuleSet)
+
+	return query
+}
+
+func pWordLit() ParseFunc {
+	re := regexp.MustCompile(`\w`)
+	return func(source string) (interface{}, int) {
+		if len(source) > 0 && re.MatchString(source[:1]) {
+			return source[:1], 1
+		}
+		return nil, -1
+	}
+}
+
+type rule interface {
+	Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch
+}
+
+type stringContainsRule struct {
+	property string
+	needle   string
+}
+
+func (rule stringContainsRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	s, ok := obj.Attr(rule.property).(string)
+	if !ok {
+		return nil
+	}
+	i := strings.Index(strings.ToLower(s), rule.needle)
+	if i == -1 {
+		return nil
+	}
+	return map[string][]filter.SearchMatch{
+		rule.property: {filter.SearchMatch{Start: i, End: i + len(rule.needle)}},
+	}
+}
+
+type stringEqualsRule struct {
+	property string
+	needle   string
+}
+
+func (rule stringEqualsRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	s, ok := obj.Attr(rule.property).(string)
+	if !ok || strings.ToLower(s) != rule.needle {
+		return nil
+	}
+	return map[string][]filter.SearchMatch{
+		rule.property: {filter.SearchMatch{Start: 0, End: len(rule.needle)}},
+	}
+}
+
+type ordEqualsRule struct {
+	property string
+	ref      int64
+}
+
+func (rule ordEqualsRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	i, ok := obj.Attr(rule.property).(int64)
+	if !ok || i != rule.ref {
+		return nil
+	}
+	return map[string][]filter.SearchMatch{
+		rule.property: {filter.SearchMatch{Start: 0, End: 1}},
+	}
+}
+
+type ordLessThanRule struct {
+	property string
+	ref      int64
+}
+
+func (rule ordLessThanRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	i, ok := obj.Attr(rule.property).(int64)
+	if !ok || i >= rule.ref {
+		return nil
+	}
+	return map[string][]filter.SearchMatch{
+		rule.property: {filter.SearchMatch{Start: 0, End: 1}},
+	}
+}
+
+type ordGreaterThanRule struct {
+	property string
+	ref      int64
+}
+
+func (rule ordGreaterThanRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	i, ok := obj.Attr(rule.property).(int64)
+	if !ok || i <= rule.ref {
+		return nil
+	}
+	return map[string][]filter.SearchMatch{
+		rule.property: {filter.SearchMatch{Start: 0, End: 1}},
+	}
+}
+
+type unkeyedRule struct {
+	properties []string
+	needle     string
+}
+
+func (rule unkeyedRule) Match(obj interface{ Attr(string) interface{} }) map[string][]filter.SearchMatch {
+	m := map[string][]filter.SearchMatch{}
+	for _, prop := range rule.properties {
+		s, ok := obj.Attr(prop).(string)
+		if !ok {
+			continue
+		}
+		i := strings.Index(strings.ToLower(s), rule.needle)
+		if i >= 0 {
+			m[prop] = append(m[prop], filter.SearchMatch{Start: i, End: i + len(rule.needle)})
+		}
+	}
+	return m
+}
+
+func gJoinStrings(v interface{}) interface{} {
+	str := ""
+	for _, s := range v.([]interface{}) {
+		str += s.(string)
+	}
+	return str
+}
+
+func gMapUnkeyedRule(untaggedFields []string) ApplyFunc {
+	return func(v interface{}) interface{} {
+		return unkeyedRule{
+			properties: untaggedFields,
+			needle:     strings.ToLower(v.(string)),
+		}
+	}
+}
+
+func gMapStringRule(v interface{}) interface{} {
+	property := v.([]interface{})[0].(string)
+	operation := v.([]interface{})[1].(string)
+	argument := v.([]interface{})[2].(string)
+	switch operation {
+	case ":":
+		return stringContainsRule{property: property, needle: strings.ToLower(argument)}
+	case "=":
+		return stringEqualsRule{property: property, needle: strings.ToLower(argument)}
+	}
+	panic("unreachable")
+}
+
+func gMapOrdRule(v interface{}) interface{} {
+	property := v.([]interface{})[0].(string)
+	operation := v.([]interface{})[1].(string)
+	argument, _ := strconv.ParseInt(v.([]interface{})[2].(string), 10, 64)
+	switch operation {
+	case "=":
+		return ordEqualsRule{property: property, ref: argument}
+	case "<":
+		return ordLessThanRule{property: property, ref: argument}
+	case ">":
+		return ordGreaterThanRule{property: property, ref: argument}
+	}
+	panic("unreachable")
+}
+
+func gMapRuleSet(vv interface{}) interface{} {
+	rules := []rule{}
+	for _, v := range vv.([]interface{}) {
+		rule, ok := v.(rule)
+		if ok {
+			rules = append(rules, rule)
+		}
+	}
+	return rules
+}
 
 func init() {
 	filter.RegisterFactory(func() filter.Filter {
@@ -26,7 +219,7 @@ type nojsonQuery struct {
 	Query    string   `json:"query"`
 	Untagged []string `json:"untagged"`
 
-	patterns map[string][]*regexp.Regexp
+	rules []rule
 }
 
 // A Query is a compiled query string.
@@ -47,17 +240,24 @@ type Query nojsonQuery
 // The query could look something like this:
 //   foo bar baz title:something album:one\ two artist:foo*ar
 func CompileQuery(query string, untaggedFields []string) (*Query, error) {
-	pat, err := compilePatterns(query)
-	if err != nil {
-		return nil, err
+	v, r := parser(untaggedFields)(query)
+	if r < 0 {
+		return nil, fmt.Errorf("parse error")
 	}
-	if len(pat[""]) > 0 && len(untaggedFields) == 0 {
-		return nil, fmt.Errorf("keywords without property indicators require untaggedFields to be set")
+	rules := v.([]rule)
+
+	if len(untaggedFields) == 0 {
+		for _, rule := range rules {
+			if _, ok := rule.(unkeyedRule); ok {
+				return nil, fmt.Errorf("untaggedFields is required for unkeyed rules")
+			}
+		}
 	}
+
 	return &Query{
 		Query:    query,
 		Untagged: untaggedFields,
-		patterns: pat,
+		rules:    rules,
 	}, nil
 }
 
@@ -66,17 +266,17 @@ func (sq *Query) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, (*nojsonQuery)(sq)); err != nil {
 		return err
 	}
-	pat, err := compilePatterns(sq.Query)
+	q, err := CompileQuery(sq.Query, sq.Untagged)
 	if err != nil {
 		return err
 	}
-	sq.patterns = pat
+	*sq = *q
 	return nil
 }
 
 // Filter implements the filter.Filter interface.
 func (sq *Query) Filter(track library.Track) (filter.SearchResult, bool) {
-	if sq == nil || len(sq.patterns) == 0 {
+	if sq == nil || len(sq.rules) == 0 {
 		return filter.SearchResult{}, false
 	}
 
@@ -84,59 +284,10 @@ func (sq *Query) Filter(track library.Track) (filter.SearchResult, bool) {
 		Track:   track,
 		Matches: map[string][]filter.SearchMatch{},
 	}
-	for property, patterns := range sq.patterns {
-		for _, re := range patterns {
-			if property == "" {
-				foundMatch := false
-				for _, prop := range sq.Untagged {
-					if val, ok := track.Attr(prop).(string); ok {
-						if match := re.FindStringIndex(val); match != nil {
-							result.AddMatch(prop, match[0], match[1])
-							foundMatch = true
-						}
-					}
-				}
-				if !foundMatch {
-					return filter.SearchResult{}, false
-				}
-
-			} else {
-				if val, ok := track.Attr(property).(string); ok {
-					if match := re.FindStringIndex(val); match != nil {
-						result.AddMatch(property, match[0], match[1])
-						continue
-					}
-				}
-				return filter.SearchResult{}, false
-			}
+	for _, rule := range sq.rules {
+		for property, m := range rule.Match(&track) {
+			result.AddMatches(property, m...)
 		}
 	}
 	return result, len(result.Matches) > 0
-}
-
-func compilePatterns(query string) (map[string][]*regexp.Regexp, error) {
-	if query == "" {
-		return nil, fmt.Errorf("query is empty")
-	}
-
-	matches := queryRe.FindAllStringSubmatch(query, -1)
-	if len(matches) == 0 {
-		return nil, fmt.Errorf("query does not match the expected format")
-	}
-
-	patterns := map[string][]*regexp.Regexp{}
-	for _, group := range matches {
-		property := group[1]
-		value := group[2]
-		value = escapedWhite.ReplaceAllString(value, "$1")
-		value = regexControlRe.ReplaceAllString(value, "\\$1")
-		value = strings.Replace(value, "*", ".*", -1)
-		re, err := regexp.Compile("(?i)" + value)
-		if err != nil {
-			return nil, fmt.Errorf("unable to compile %q for property %q: %v", value, property, err)
-		}
-
-		patterns[property] = append(patterns[property], re)
-	}
-	return patterns, nil
 }

@@ -8,11 +8,83 @@ import (
 	"github.com/polyfloyd/trollibox/src/library"
 )
 
+func TestParser(t *testing.T) {
+	testcases := []struct {
+		query  string
+		expect []rule
+	}{
+		{
+			"artist:foo",
+			[]rule{stringContainsRule{property: "artist", needle: "foo"}},
+		},
+		{
+			"title=foo",
+			[]rule{stringEqualsRule{property: "title", needle: "foo"}},
+		},
+		{
+			"duration=42",
+			[]rule{ordEqualsRule{property: "duration", ref: 42}},
+		},
+		{
+			"duration<1",
+			[]rule{ordLessThanRule{property: "duration", ref: 1}},
+		},
+		{
+			"duration>1337",
+			[]rule{ordGreaterThanRule{property: "duration", ref: 1337}},
+		},
+		{
+			"foo",
+			[]rule{unkeyedRule{properties: []string{"property"}, needle: "foo"}},
+		},
+		{
+			"foo\\ bar",
+			[]rule{unkeyedRule{properties: []string{"property"}, needle: "foo bar"}},
+		},
+		{
+			"artist:foo\\ bar",
+			[]rule{stringContainsRule{property: "artist", needle: "foo bar"}},
+		},
+		{
+			"foo bar",
+			[]rule{
+				unkeyedRule{properties: []string{"property"}, needle: "foo"},
+				unkeyedRule{properties: []string{"property"}, needle: "bar"},
+			},
+		},
+		{
+			"foo artist:bar",
+			[]rule{
+				unkeyedRule{properties: []string{"property"}, needle: "foo"},
+				stringContainsRule{property: "artist", needle: "bar"},
+			},
+		},
+	}
+	p := parser([]string{"property"})
+	for _, tt := range testcases {
+		t.Run(tt.query, func(t *testing.T) {
+			vv, r := p(tt.query)
+			if r < 0 && tt.expect != nil {
+				t.Fatalf("Expected a match")
+			} else if r >= 0 && tt.expect == nil {
+				t.Fatalf("Expected no match")
+			}
+			rules := vv.([]rule)
+			if !reflect.DeepEqual(rules, tt.expect) {
+				t.Logf("exp %#v", tt.expect)
+				t.Logf("got %#v", rules)
+				t.Fatalf("Unexpected rules")
+			}
+		})
+	}
+}
+
 func TestCompileQuery(t *testing.T) {
 	query, err := CompileQuery("foo bar baz", []string{"artist", "title"})
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("%#v", query.rules)
 	if !reflect.DeepEqual(query.Untagged, []string{"artist", "title"}) {
 		t.Fatalf("Unexpected untagged: %#v", query.Untagged)
 	} else if query.Query != "foo bar baz" {
@@ -45,6 +117,7 @@ func TestFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("%#v", query.rules)
 	result, ok := query.Filter(library.Track{
 		Artist: "asdffootest123",
 	})
@@ -67,6 +140,7 @@ func TestFilter(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("%#v", query.rules)
 	result, ok = query.Filter(library.Track{
 		Artist: "foo bar baz",
 	})
@@ -82,6 +156,7 @@ func TestJSON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Logf("%#v", query.rules)
 
 	encoded, err := json.Marshal(query)
 	if err != nil {
