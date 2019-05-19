@@ -285,7 +285,11 @@ func (sq *Query) Filter(track library.Track) (filter.SearchResult, bool) {
 		Matches: map[string][]filter.SearchMatch{},
 	}
 	for _, rule := range sq.rules {
-		for property, m := range rule.Match(&track) {
+		matches := rule.Match(&track)
+		if len(matches) == 0 {
+			return filter.SearchResult{}, false
+		}
+		for property, m := range matches {
 			result.AddMatches(property, m...)
 		}
 	}
