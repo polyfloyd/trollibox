@@ -26,29 +26,29 @@ func getTemplate() *template.Template {
 	return pageTemplate
 }
 
-func htBrowserPage(config *config, players player.List) func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
+func htBrowserPage(config *config, players player.List) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		params := baseParamMap(config, players)
-		params["player"] = chi.URLParam(req, "player")
+		params["player"] = chi.URLParam(r, "player")
 
-		res.Header().Set("Content-Type", "text/html")
-		if err := getTemplate().Execute(res, params); err != nil {
+		w.Header().Set("Content-Type", "text/html")
+		if err := getTemplate().Execute(w, params); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func htRedirectToDefaultPlayer(config *config, players player.List) func(res http.ResponseWriter, req *http.Request) {
-	return func(res http.ResponseWriter, req *http.Request) {
+func htRedirectToDefaultPlayer(config *config, players player.List) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		defaultPlayer := ""
 		if pl, err := players.PlayerByName(config.DefaultPlayer); err == nil && pl != nil {
 			defaultPlayer = config.DefaultPlayer
 		} else if names, err := players.PlayerNames(); err == nil && len(names) > 0 {
 			defaultPlayer = names[0]
 		} else {
-			api.WriteError(req, res, fmt.Errorf("error finding a player to redirect to: %v", err))
+			api.WriteError(w, r, fmt.Errorf("error finding a player to redirect to: %v", err))
 			return
 		}
-		http.Redirect(res, req, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)
 	}
 }

@@ -11,30 +11,26 @@ import (
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
 )
 
-type filterAPI struct {
-	db *filter.DB
-}
-
-func (api *filterAPI) list(res http.ResponseWriter, req *http.Request) {
-	names, err := api.db.Names()
+func (api *API) filterList(w http.ResponseWriter, r *http.Request) {
+	names, err := api.jukebox.FilterDB().Names()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"filters": names,
 	})
 }
 
-func (api *filterAPI) get(res http.ResponseWriter, req *http.Request) {
-	filter, err := api.db.Get(chi.URLParam(req, "name"))
+func (api *API) filterGet(w http.ResponseWriter, r *http.Request) {
+	filter, err := api.jukebox.FilterDB().Get(chi.URLParam(r, "name"))
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
 	if filter == nil {
 		// TODO: Return a proper response code.
-		WriteError(req, res, fmt.Errorf("not found"))
+		WriteError(w, r, fmt.Errorf("not found"))
 		return
 	}
 
@@ -45,10 +41,10 @@ func (api *filterAPI) get(res http.ResponseWriter, req *http.Request) {
 	case *keyed.Query:
 		typ = "keyed"
 	default:
-		WriteError(req, res, fmt.Errorf("unknown filter type %T", filter))
+		WriteError(w, r, fmt.Errorf("unknown filter type %T", filter))
 		return
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"filter": map[string]interface{}{
 			"type":  typ,
 			"value": filter,
@@ -56,24 +52,24 @@ func (api *filterAPI) get(res http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func (api *filterAPI) remove(res http.ResponseWriter, req *http.Request) {
-	name := chi.URLParam(req, "name")
-	if err := api.db.Remove(name); err != nil {
-		WriteError(req, res, err)
+func (api *API) filterRemove(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	if err := api.jukebox.FilterDB().Remove(name); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *filterAPI) set(res http.ResponseWriter, req *http.Request) {
+func (api *API) filterSet(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Filter struct {
 			Type  string          `json:"type"`
 			Value json.RawMessage `json:"value"`
 		} `json:"filter"`
 	}
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
@@ -84,18 +80,18 @@ func (api *filterAPI) set(res http.ResponseWriter, req *http.Request) {
 	case "keyed":
 		filter = &keyed.Query{}
 	default:
-		WriteError(req, res, fmt.Errorf("unknown filter type %q", data.Filter.Type))
+		WriteError(w, r, fmt.Errorf("unknown filter type %q", data.Filter.Type))
 		return
 	}
 
 	if err := json.Unmarshal([]byte(data.Filter.Value), filter); err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	name := chi.URLParam(req, "name")
-	if err := api.db.Set(name, filter); err != nil {
-		WriteError(req, res, err)
+	name := chi.URLParam(r, "name")
+	if err := api.jukebox.FilterDB().Set(name, filter); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }

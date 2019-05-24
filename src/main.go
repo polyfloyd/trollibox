@@ -23,6 +23,7 @@ import (
 	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
+	"github.com/polyfloyd/trollibox/src/jukebox"
 	"github.com/polyfloyd/trollibox/src/library/netmedia"
 	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
@@ -192,6 +193,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	jukebox := jukebox.NewJukebox(players, netServer, filterdb, streamdb, rawServer)
+
 	service := chi.NewRouter()
 	service.Use(util.LogHandler)
 	service.Use(middleware.DefaultCompress)
@@ -207,7 +210,7 @@ func main() {
 	service.Get("/", htRedirectToDefaultPlayer(&config, players))
 	service.Get("/player/{player}", htBrowserPage(&config, players))
 	service.Route("/data", func(r chi.Router) {
-		api.InitRouter(r, players, netServer, filterdb, streamdb, rawServer)
+		api.InitRouter(r, jukebox)
 	})
 
 	log.Infof("Now accepting HTTP connections on %v", config.Address)

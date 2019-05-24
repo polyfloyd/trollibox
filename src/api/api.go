@@ -10,25 +10,17 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/filter"
+	"github.com/polyfloyd/trollibox/src/jukebox"
 	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/library/netmedia"
-	"github.com/polyfloyd/trollibox/src/library/raw"
-	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
 // InitRouter attaches all API routes to the specified router.
-func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) {
+func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
+	api := API{jukebox: jukebox}
 	r.Route("/player/{playerName}", func(r chi.Router) {
-		api := playerAPI{
-			players:   players,
-			libs:      []library.Library{streamdb, rawServer},
-			netServer: netServer,
-			rawServer: rawServer,
-		}
 		r.Use(jsonCtx)
-		r.Use(api.playerCtx)
 		r.Route("/playlist", func(r chi.Router) {
 			r.Get("/", api.playlistContents)
 			r.Put("/", api.playlistInsert)
@@ -37,53 +29,49 @@ func InitRouter(r chi.Router, players player.List, netServer *netmedia.Server, f
 			r.Post("/appendraw", api.rawTrackAdd)
 			r.Post("/appendnet", api.netTrackAdd)
 		})
-		r.Post("/current", api.setCurrent)
-		r.Post("/next", api.next) // Deprecated
-		r.Get("/time", api.getTime)
-		r.Post("/time", api.setTime)
-		r.Get("/playstate", api.getPlaystate)
-		r.Post("/playstate", api.setPlaystate)
-		r.Get("/volume", api.getVolume)
-		r.Post("/volume", api.setVolume)
-		r.Get("/list/", api.listStoredPlaylists)
-		r.Get("/list/{name}/", api.storedPlaylistTracks)
-		r.Get("/tracks", api.tracks)
-		r.Get("/tracks/search", api.trackSearch)
-		r.Get("/tracks/art", api.trackArt)
-		r.Mount("/events", api.events())
+		r.Post("/current", api.playerSetCurrent)
+		r.Post("/next", api.playerNext) // Deprecated
+		r.Get("/time", api.playerGetTime)
+		r.Post("/time", api.playerSetTime)
+		r.Get("/playstate", api.playerGetPlaystate)
+		r.Post("/playstate", api.playerSetPlaystate)
+		r.Get("/volume", api.playerGetVolume)
+		r.Post("/volume", api.playerSetVolume)
+		r.Get("/tracks", api.playerTracks)
+		r.Get("/tracks/search", api.playerTrackSearch)
+		r.Get("/tracks/art", api.playerTrackArt)
+		r.Mount("/events", api.playerEvents())
 	})
 
 	r.Route("/filters/", func(r chi.Router) {
-		api := filterAPI{db: filterdb}
-		r.Get("/", api.list)
+		r.Get("/", api.filterList)
 		r.Route("/{name}", func(r chi.Router) {
-			r.Get("/", api.get)
-			r.Delete("/", api.remove)
-			r.Put("/", api.set)
+			r.Get("/", api.filterGet)
+			r.Delete("/", api.filterRemove)
+			r.Put("/", api.filterSet)
 		})
-		r.Mount("/events", htEvents(&filterdb.Emitter))
+		r.Mount("/events", htEvents(&jukebox.FilterDB().Emitter))
 	})
 
 	r.Route("/streams", func(r chi.Router) {
-		api := streamsAPI{db: streamdb}
-		r.Get("/", api.list)
-		r.Post("/", api.add)
-		r.Delete("/", api.remove)
-		r.Mount("/events", htEvents(&streamdb.Emitter))
+		r.Get("/", api.streamsList)
+		r.Post("/", api.streamsAdd)
+		r.Delete("/", api.streamsRemove)
+		r.Mount("/events", htEvents(&jukebox.FilterDB().Emitter))
 	})
 
-	r.Mount("/raw", rawServer)
+	r.Mount("/raw", jukebox.RawServer())
 }
 
 // WriteError writes an error to the client or an empty object if err is nil.
 //
 // An attempt is made to tune the response format to the requestor.
-func WriteError(req *http.Request, res http.ResponseWriter, err error) {
-	log.Errorf("Error serving %s: %v", req.RemoteAddr, err)
-	res.WriteHeader(http.StatusBadRequest)
+func WriteError(w http.ResponseWriter, r *http.Request, err error) {
+	log.Errorf("Error serving %s: %v", r.RemoteAddr, err)
+	w.WriteHeader(http.StatusBadRequest)
 
-	if req.Header.Get("X-Requested-With") == "" {
-		res.Write([]byte(err.Error()))
+	if r.Header.Get("X-Requested-With") == "" {
+		w.Write([]byte(err.Error()))
 		return
 	}
 
@@ -91,7 +79,7 @@ func WriteError(req *http.Request, res http.ResponseWriter, err error) {
 	if data == nil {
 		data = []byte("{}")
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 		"data":  (*json.RawMessage)(&data),
 	})
@@ -99,7 +87,7 @@ func WriteError(req *http.Request, res http.ResponseWriter, err error) {
 
 func htEvents(emitter *util.Emitter) http.Handler {
 	conf := eventsource.DefaultSettings()
-	events := eventsource.New(conf, func(req *http.Request) [][]byte {
+	events := eventsource.New(conf, func(r *http.Request) [][]byte {
 		return [][]byte{
 			[]byte("X-Accel-Buffering: no"),
 		}
@@ -131,8 +119,8 @@ func htEvents(emitter *util.Emitter) http.Handler {
 }
 
 func jsonCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		res.Header().Set("Content-Type", "application/json")
-		next.ServeHTTP(res, req)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
 	})
 }

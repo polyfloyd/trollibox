@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"path"
@@ -14,18 +13,15 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
+	"github.com/polyfloyd/trollibox/src/jukebox"
 	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/library/netmedia"
-	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/player"
 )
 
 var httpCacheSince = time.Now()
-var playerContextKey = playerContextType{}
 
 type playerContextType struct{}
 
@@ -103,210 +99,179 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 	return outList, nil
 }
 
-type playerAPI struct {
-	players   player.List
-	libs      []library.Library
-	netServer *netmedia.Server
-	rawServer *raw.Server
-}
-
-func (api *playerAPI) playerCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		name := chi.URLParam(req, "playerName")
-		pl, err := api.players.PlayerByName(name)
-		if err != nil {
-			WriteError(req, res, fmt.Errorf("error looking up %q: %v", name, err))
-			return
-		} else if !pl.Available() {
-			WriteError(req, res, fmt.Errorf("player %q is not active", name))
-			return
-		}
-		playerCtx := context.WithValue(req.Context(), playerContextKey, pl)
-		next.ServeHTTP(res, req.WithContext(playerCtx))
-	})
+type API struct {
+	jukebox *jukebox.Jukebox
 }
 
 // Deprecated, use setCurrent instead.
-func (api *playerAPI) next(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	trackIndex, err := pl.TrackIndex()
-	if err != nil {
-		WriteError(req, res, err)
+func (api *API) playerNext(w http.ResponseWriter, r *http.Request) {
+	if err := api.jukebox.SetPlayerTrackIndex(r.Context(), chi.URLParam(r, "playerName"), 1, true); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	if err := pl.SetTrackIndex(trackIndex + 1); err != nil {
-		WriteError(req, res, err)
-		return
-	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) setCurrent(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playerSetCurrent(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Current  int  `json:"current"`
 		Relative bool `json:"relative"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	trackIndex := data.Current
-	if data.Relative {
-		currentTrackIndex, err := pl.TrackIndex()
-		if err != nil {
-			WriteError(req, res, err)
-			return
-		}
-		trackIndex += currentTrackIndex
-	}
-	if err := pl.SetTrackIndex(trackIndex); err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.SetPlayerTrackIndex(r.Context(), chi.URLParam(r, "playerName"), data.Current, data.Relative); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) setTime(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playerSetTime(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Time int `json:"time"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	if err := pl.SetTime(time.Duration(data.Time) * time.Second); err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.SetPlayerTime(r.Context(), chi.URLParam(r, "playerName"), time.Duration(data.Time)*time.Second); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) getTime(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	tim, err := pl.Time()
+func (api *API) playerGetTime(w http.ResponseWriter, r *http.Request) {
+	tim, err := api.jukebox.PlayerTime(r.Context(), chi.URLParam(r, "playerName"))
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"time": int(tim / time.Second),
 	})
 }
 
-func (api *playerAPI) getPlaystate(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	playstate, err := pl.State()
+func (api *API) playerGetPlaystate(w http.ResponseWriter, r *http.Request) {
+	playstate, err := api.jukebox.PlayerState(r.Context(), chi.URLParam(r, "playerName"))
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"playstate": playstate,
 	})
 }
 
-func (api *playerAPI) setPlaystate(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playerSetPlaystate(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		State string `json:"playstate"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	if err := pl.SetState(player.PlayState(data.State)); err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.SetPlayerState(r.Context(), chi.URLParam(r, "playerName"), player.PlayState(data.State)); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) getVolume(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	volume, err := pl.Volume()
+func (api *API) playerGetVolume(w http.ResponseWriter, r *http.Request) {
+	volume, err := api.jukebox.PlayerVolume(r.Context(), chi.URLParam(r, "playerName"))
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"volume": volume,
 	})
 }
 
-func (api *playerAPI) setVolume(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playerSetVolume(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Volume float32 `json:"volume"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	if err := pl.SetVolume(data.Volume); err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.SetPlayerVolume(r.Context(), chi.URLParam(r, "playerName"), data.Volume); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) playlistContents(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	tracks, err := pl.Playlist().Tracks()
+func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	meta, err := pl.Playlist().Meta()
+	tracks, err := plist.Tracks()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	trackIndex, err := pl.TrackIndex()
+	meta, err := plist.Meta()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	tim, err := pl.Time()
+	trackIndex, err := api.jukebox.PlayerTrackIndex(r.Context(), playerName)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	trJSON, err := plTrackJSONList(tracks, meta, append(api.libs, pl.Library()), trackIndex)
+	tim, err := api.jukebox.PlayerTime(r.Context(), playerName)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
+		return
+	}
+	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	trJSON, err := plTrackJSONList(tracks, meta, libs, trackIndex)
+	if err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	err = json.NewEncoder(res).Encode(map[string]interface{}{
+	err = json.NewEncoder(w).Encode(map[string]interface{}{
 		"time":    int(tim / time.Second),
 		"current": trackIndex,
 		"tracks":  trJSON,
 	})
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
 }
 
-func (api *playerAPI) playlistInsert(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
 	var data struct {
 		Pos    int      `json:"position"`
 		Tracks []string `json:"tracks"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
@@ -318,186 +283,152 @@ func (api *playerAPI) playlistInsert(res http.ResponseWriter, req *http.Request)
 	for i := range data.Tracks {
 		meta[i].QueuedBy = "user"
 	}
-	plist := pl.Playlist()
-	if err := plist.InsertWithMeta(data.Pos, tracks, meta); err != nil {
-		WriteError(req, res, err)
+	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
+	if err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	if err := plist.InsertWithMeta(data.Pos, tracks, meta); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) playlistMove(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playlistMove(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
 	var data struct {
 		From int `json:"from"`
 		To   int `json:"to"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	if err := pl.Playlist().Move(data.From, data.To); err != nil {
-		WriteError(req, res, err)
+	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
+	if err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	if err := plist.Move(data.From, data.To); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) playlistRemove(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) playlistRemove(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
 	var data struct {
 		Positions []int `json:"positions"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	if err := pl.Playlist().Remove(data.Positions...); err != nil {
-		WriteError(req, res, err)
+	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
+	if err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	if err := plist.Remove(data.Positions...); err != nil {
+		WriteError(w, r, err)
+		return
+	}
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) listStoredPlaylists(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	playlists, err := pl.Lists()
+func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+	lib, err := api.jukebox.PlayerLibrary(r.Context(), playerName)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	names := make([]string, 0, len(playlists))
-	for name := range playlists {
-		names = append(names, name)
-	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
-		"lists": names,
-	})
-}
-
-func (api *playerAPI) storedPlaylistTracks(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	playlists, err := pl.Lists()
+	tracks, err := lib.Tracks()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	playlist, ok := playlists[chi.URLParam(req, "name")]
-	if !ok {
-		res.WriteHeader(http.StatusNotFound)
-		res.Write([]byte("{}"))
-		return
-	}
-	tracks, err := playlist.Tracks()
-	if err != nil {
-		WriteError(req, res, err)
-		return
-	}
-
-	outList := make([]interface{}, len(tracks))
-	for i, tr := range tracks {
-		outList[i] = trackJSON(&tr, nil)
-	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
-		"tracks": outList,
-	})
-}
-
-func (api *playerAPI) tracks(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	tracks, err := pl.Library().Tracks()
-	if err != nil {
-		WriteError(req, res, err)
-		return
-	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"tracks": trackJSONList(tracks),
 	})
 }
 
-func (api *playerAPI) trackArt(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	uri := req.FormValue("track")
+func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+	uri := r.FormValue("track")
+
+	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
+	if err != nil {
+		WriteError(w, r, err)
+		return
+	}
+
 	var image io.ReadCloser
 	var mime string
-	for _, lib := range append(api.libs, pl.Library()) {
+	for _, lib := range libs {
 		if image, mime = lib.TrackArt(uri); image != nil {
 			break
 		}
 	}
 	if image == nil {
-		http.NotFound(res, req)
+		http.NotFound(w, r)
 		return
 	}
 	defer image.Close()
 
-	res.Header().Set("Content-Type", mime)
+	w.Header().Set("Content-Type", mime)
 	var buf bytes.Buffer
 	// Copy to a buffer so seeking is supported.
 	io.Copy(&buf, image)
-	http.ServeContent(res, req, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
+	http.ServeContent(w, r, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
 }
 
-func (api *playerAPI) trackSearch(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	tracks, err := pl.Library().Tracks()
+func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+	lib, err := api.jukebox.PlayerLibrary(r.Context(), playerName)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
+		return
+	}
+	tracks, err := lib.Tracks()
+	if err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	untaggedFields := strings.Split(req.FormValue("untagged"), ",")
-	compiledQuery, err := keyed.CompileQuery(req.FormValue("query"), untaggedFields)
+	untaggedFields := strings.Split(r.FormValue("untagged"), ",")
+	compiledQuery, err := keyed.CompileQuery(r.FormValue("query"), untaggedFields)
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
-	results := filter.Tracks(compiledQuery, tracks)
-	sort.Sort(filter.ByNumMatches(results))
+	wults := filter.Tracks(compiledQuery, tracks)
+	sort.Sort(filter.ByNumMatches(wults))
 
-	mappedResults := make([]interface{}, len(results))
-	for i, res := range results {
+	mappedResults := make([]interface{}, len(wults))
+	for i, w := range wults {
 		mappedResults[i] = map[string]interface{}{
-			"matches": res.Matches,
-			"track":   trackJSON(&res.Track, nil),
+			"matches": w.Matches,
+			"track":   trackJSON(&w.Track, nil),
 		}
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"tracks": mappedResults,
 	})
 }
 
-func removeRawTrack(pl player.Player, track library.Track, rawServer *raw.Server) {
-	events := pl.Events().Listen()
-	defer pl.Events().Unlisten(events)
-outer:
-	for event := range events {
-		if event != player.PlaylistEvent {
-			continue
-		}
-		tracks, err := pl.Playlist().Tracks()
-		if err != nil {
-			break
-		}
-		for _, plTrack := range tracks {
-			if track.URI == plTrack.URI {
-				continue outer
-			}
-		}
-		break
-	}
-	rawServer.Remove(track.URI)
-}
+func (api *API) rawTrackAdd(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
 
-func (api *playerAPI) rawTrackAdd(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
-	mpReader, err := req.MultipartReader()
+	mpReader, err := r.MultipartReader()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
 
@@ -506,85 +437,57 @@ func (api *playerAPI) rawTrackAdd(res http.ResponseWriter, req *http.Request) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			WriteError(req, res, err)
-			return
-		}
-		// Make the file available through the server.
-		track, errs := api.rawServer.Add(req.Context(), part.FileName(), nil, "", func(ctx context.Context, w io.Writer) error {
-			_, err := io.Copy(w, part)
-			return err
-		})
-		if err := <-errs; err != nil {
-			WriteError(req, res, err)
+			WriteError(w, r, err)
 			return
 		}
 
-		// Launch a goroutine that will check whether the track is still in
-		// the player's playlist. If it is not, the track is removed from
-		// the server.
-		go removeRawTrack(pl, track, api.rawServer)
-
-		err = pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
-			{QueuedBy: "user"},
-		})
-		if err != nil {
-			WriteError(req, res, err)
+		if err := api.jukebox.AppendRawFile(r.Context(), playerName, part, part.FileName()); err != nil {
+			WriteError(w, r, err)
 			return
 		}
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) netTrackAdd(res http.ResponseWriter, req *http.Request) {
-	pl := req.Context().Value(playerContextKey).(player.Player)
+func (api *API) netTrackAdd(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+
 	var data struct {
 		URL string `json:"url"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
-	track, errc := api.netServer.Download(data.URL)
-	go func() {
-		if err := <-errc; err != nil {
-			log.Error(err)
-		}
-	}()
-
-	// Launch a goroutine that will check whether the track is still in
-	// the player's playlist. If it is not, the track is removed from
-	// the server.
-	go removeRawTrack(pl, track, api.netServer.RawServer())
-
-	err := pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
-		{QueuedBy: "user"},
-	})
-	if err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.AppendNetFile(r.Context(), playerName, data.URL); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *playerAPI) events() http.Handler {
+func (api *API) playerEvents() http.Handler {
 	var eventSourcesLock sync.Mutex
 	eventSources := map[string]http.Handler{}
 
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		playerName := chi.URLParam(req, "playerName")
-		pl := req.Context().Value(playerContextKey).(player.Player)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		playerName := chi.URLParam(r, "playerName")
 
 		eventSourcesLock.Lock()
 		ev, ok := eventSources[playerName]
 		if !ok {
-			ev = htEvents(pl.Events())
+			emitter, err := api.jukebox.PlayerEvents(context.Background(), playerName)
+			if err != nil {
+				WriteError(w, r, err)
+				return
+			}
+			ev = htEvents(emitter)
 			eventSources[playerName] = ev
 		}
 		eventSourcesLock.Unlock()
 
-		ev.ServeHTTP(res, req)
+		ev.ServeHTTP(w, r)
 	})
 }

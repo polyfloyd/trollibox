@@ -7,14 +7,10 @@ import (
 	"github.com/polyfloyd/trollibox/src/library/stream"
 )
 
-type streamsAPI struct {
-	db *stream.DB
-}
-
-func (api *streamsAPI) list(res http.ResponseWriter, req *http.Request) {
-	streams, err := api.db.Streams()
+func (api *API) streamsList(w http.ResponseWriter, r *http.Request) {
+	streams, err := api.jukebox.StreamDB().Streams()
 	if err != nil {
-		WriteError(req, res, err)
+		WriteError(w, r, err)
 		return
 	}
 	mapped := make([]interface{}, len(streams))
@@ -26,43 +22,43 @@ func (api *streamsAPI) list(res http.ResponseWriter, req *http.Request) {
 			"hasart":   stream.ArtURI != "",
 		}
 	}
-	json.NewEncoder(res).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"streams": mapped,
 	})
 }
 
-func (api *streamsAPI) add(res http.ResponseWriter, req *http.Request) {
+func (api *API) streamsAdd(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Stream stream.Stream `json:"stream"`
 	}
-	defer req.Body.Close()
-	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-		WriteError(req, res, err)
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		WriteError(w, r, err)
 		return
 	}
 
 	if data.Stream.ArtURI == "" && data.Stream.Filename != "" {
 		// Retain the artwork if no new uri is provided.
-		tmpl, err := api.db.StreamByFilename(data.Stream.Filename)
+		tmpl, err := api.jukebox.StreamDB().StreamByFilename(data.Stream.Filename)
 		if err != nil {
-			WriteError(req, res, err)
+			WriteError(w, r, err)
 			return
 		}
 		data.Stream.ArtURI = tmpl.ArtURI
 	}
 
-	if err := api.db.StoreStream(&data.Stream); err != nil {
-		WriteError(req, res, err)
+	if err := api.jukebox.StreamDB().StoreStream(&data.Stream); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
 
-func (api *streamsAPI) remove(res http.ResponseWriter, req *http.Request) {
-	stream := stream.Stream{Filename: req.FormValue("filename")}
-	if err := api.db.RemoveStream(&stream); err != nil {
-		WriteError(req, res, err)
+func (api *API) streamsRemove(w http.ResponseWriter, r *http.Request) {
+	stream := stream.Stream{Filename: r.FormValue("filename")}
+	if err := api.jukebox.StreamDB().RemoveStream(&stream); err != nil {
+		WriteError(w, r, err)
 		return
 	}
-	res.Write([]byte("{}"))
+	w.Write([]byte("{}"))
 }
