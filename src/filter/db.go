@@ -3,11 +3,13 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -34,12 +36,12 @@ type storageFormat struct {
 type DB struct {
 	util.Emitter
 
+	cache     sync.Map // map[string]Filter
 	directory string
 }
 
 // NewDB constructs a new database for storing filters at the specified
 // directory.
-//
 func NewDB(directory string) (*DB, error) {
 	if err := os.MkdirAll(directory, 0755); err != nil {
 		return nil, err
@@ -75,6 +77,10 @@ func (db *DB) Names() ([]string, error) {
 // An error is returned if the database is not able to instantiate the filter,
 // which could be caused by a missing factory.
 func (db *DB) Get(name string) (Filter, error) {
+	if f, ok := db.cache.Load(name); ok {
+		return f.(Filter), nil
+	}
+
 	fd, err := os.Open(db.filterFile(name))
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -106,23 +112,27 @@ func (db *DB) Set(name string, filter Filter) error {
 		return fmt.Errorf("invalid filter name: %q", name)
 	}
 
+	db.cache.Store(name, filter)
+	defer db.Emit(UpdateEvent{})
+
 	ftVal, err := json.Marshal(filter)
 	if err != nil {
-		return err
+		log.Println(err)
+		return nil
 	}
 
 	fd, err := os.Create(db.filterFile(name))
 	if err != nil {
-		return err
+		log.Println(err)
+		return nil
 	}
 	defer fd.Close()
 	if err := json.NewEncoder(fd).Encode(storageFormat{
 		Type:  filterType(filter),
 		Value: (*json.RawMessage)(&ftVal),
 	}); err != nil {
-		return err
+		log.Println(err)
 	}
-	db.Emit(UpdateEvent{})
 	return nil
 }
 
@@ -130,6 +140,7 @@ func (db *DB) Set(name string, filter Filter) error {
 //
 // Removing a non-existent filter is a no-op.
 func (db *DB) Remove(name string) error {
+	db.cache.Delete(name)
 	if err := os.Remove(db.filterFile(name)); os.IsNotExist(err) {
 		return nil
 	} else if err != nil {

@@ -20,7 +20,7 @@ type dummyFilter struct {
 	Bar string
 }
 
-func (dummyFilter) Filter(library.Track) (SearchResult, bool) {
+func (*dummyFilter) Filter(library.Track) (SearchResult, bool) {
 	return SearchResult{}, true
 }
 
@@ -30,7 +30,7 @@ func TestDBGetSetRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	filter1 := dummyFilter{
+	filter1 := &dummyFilter{
 		Foo: "foo",
 		Bar: "bar",
 	}
@@ -38,7 +38,7 @@ func TestDBGetSetRemove(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	filter2 := dummyFilter{
+	filter2 := &dummyFilter{
 		Foo: "baz",
 		Bar: "bux",
 	}
@@ -64,7 +64,7 @@ func TestDBGetSetRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *loadedFilter1.(*dummyFilter) != filter1 {
+	if *loadedFilter1.(*dummyFilter) != *filter1 {
 		t.Fatalf("Filter 1 was not loaded correctly: %#v", filter1)
 	}
 
@@ -72,7 +72,7 @@ func TestDBGetSetRemove(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if *loadedFilter2.(*dummyFilter) != filter2 {
+	if *loadedFilter2.(*dummyFilter) != *filter2 {
 		t.Fatalf("Filter 2 was not loaded correctly: %#v", filter2)
 	}
 
@@ -126,10 +126,10 @@ func TestDBSetInvalid(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := db.Set("", dummyFilter{}); err == nil {
+	if err := db.Set("", &dummyFilter{}); err == nil {
 		t.Fatalf("An empty filter name was allowed to be set")
 	}
-	if err := db.Set("foo/bar/baz", dummyFilter{}); err == nil {
+	if err := db.Set("foo/bar/baz", &dummyFilter{}); err == nil {
 		t.Fatalf("Slashes were allowed to be set")
 	}
 }
@@ -141,7 +141,7 @@ func TestDBEvents(t *testing.T) {
 	}
 
 	util.TestEventEmission(t, db, UpdateEvent{}, func() {
-		filter := dummyFilter{Foo: "foo"}
+		filter := &dummyFilter{Foo: "foo"}
 		if err := db.Set("filter", filter); err != nil {
 			t.Fatal(err)
 		}
