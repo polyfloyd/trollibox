@@ -30,6 +30,7 @@ before_script:
           mixer_type "software"\n
       }' | sudo tee -a /etc/mpd.conf
   - sudo service mpd restart
+  - sleep 2
   - mpc update --wait
 script:
   - gofmt -s -d ./src/
