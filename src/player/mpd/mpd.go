@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/fhs/gompd/mpd"
@@ -76,7 +77,8 @@ type Player struct {
 
 	// Sometimes, the volume returned by MPD is invalid, so we have to take
 	// care of that ourselves.
-	lastVolume int
+	lastVolumeLock sync.Mutex
+	lastVolume     int
 }
 
 // Connect connects to MPD with an optional username and password.
@@ -500,6 +502,8 @@ func (pl *Player) Volume() (int, error) {
 		volInt, ok := statusAttrInt(status, "volume")
 		if !ok || volInt < 0 {
 			// Volume is not present when the playback is stopped.
+			pl.lastVolumeLock.Lock()
+			defer pl.lastVolumeLock.Unlock()
 			vol = pl.lastVolume
 			return nil
 		}
@@ -518,6 +522,8 @@ func (pl *Player) SetVolume(vol int) error {
 			vol = 0
 		}
 
+		pl.lastVolumeLock.Lock()
+		defer pl.lastVolumeLock.Unlock()
 		pl.lastVolume = vol
 		return mpdc.SetVolume(vol)
 	})
