@@ -99,6 +99,7 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 	return outList, nil
 }
 
+// API contains the state that is accessible over the Trollibox REST API.
 type API struct {
 	jukebox *jukebox.Jukebox
 }

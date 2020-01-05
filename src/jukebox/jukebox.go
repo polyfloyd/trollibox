@@ -19,8 +19,12 @@ import (
 	"github.com/polyfloyd/trollibox/src/util"
 )
 
+// ErrPlayerUnavailable is returned from functions that operate on player state
+// when a player is registered but unreachable for any reason.
 var ErrPlayerUnavailable = fmt.Errorf("the player is not available")
 
+// Jukebox augments one or more players with with filters, streams and other
+// functionality.
 type Jukebox struct {
 	players   player.List
 	netServer *netmedia.Server
