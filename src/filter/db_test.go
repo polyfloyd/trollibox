@@ -141,7 +141,7 @@ func TestDBEvents(t *testing.T) {
 	}
 
 	util.TestEventEmission(t, db, UpdateEvent{Filter: "filter"}, func() {
-		filter := dummyFilter{Foo: "foo"}
+		filter := &dummyFilter{Foo: "foo"}
 		if err := db.Set("filter", filter); err != nil {
 			t.Fatal(err)
 		}
