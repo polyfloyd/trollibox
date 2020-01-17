@@ -1,0 +1,41 @@
+name: CI
+
+on: [push]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      GOPATH: /home/runner/go
+
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-go@v1
+      with:
+        go-version: '1.13'
+
+    - run: git submodule update --init
+    - run: go mod download
+    - run: go get -u golang.org/x/lint/golint
+
+    - run: sudo apt install mpd mpc
+    - run: sudo cp -r ./testdata $(sudo sed -n 's/^music_directory\s\+"\(.\+\)"/\1/p' /etc/mpd.conf)
+    - run: |
+        echo -e '
+        max_connections "100"
+        audio_output {
+            type "null"
+            name "My Null Output"
+            mixer_type "software"
+        }' | sudo tee -a /etc/mpd.conf
+    - run: sudo service mpd restart
+    - run: sleep 2
+    - run: mpc update --wait
+
+    - run: gofmt -s -d ./src/
+    - run: ./just build
+    - run: RELEASE=1 ./just build
+    - run: go test -race -cover ./src/...
+    - run: $GOPATH/bin/golint -min_confidence 0.3 ./src/...
