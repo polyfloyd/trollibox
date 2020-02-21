@@ -58,7 +58,7 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 		r.Get("/", api.streamsList)
 		r.Post("/", api.streamsAdd)
 		r.Delete("/", api.streamsRemove)
-		r.Mount("/events", htEvents(&jukebox.FilterDB().Emitter))
+		r.Mount("/events", htEvents(&jukebox.StreamDB().Emitter))
 	})
 
 	r.Mount("/raw", jukebox.RawServer())
