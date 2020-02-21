@@ -61,7 +61,7 @@ class FilterDB extends EventTarget {
 	}
 
 	async _reload() {
-		const res = await fetch(`${URLROOT}data/filters`);
+		const res = await fetch(`${URLROOT}data/filters/`);
 		if (res.status >= 400) {
 			throw new Error('could not list filters');
 		}
