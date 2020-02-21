@@ -102,51 +102,46 @@ func htEvents(emitter *util.Emitter) http.Handler {
 
 			// TODO: All these events should not all be combined in here.
 			var eventStr string
-			var eventMsg []byte
-			var err error
+			var eventObj interface{}
 			switch t := event.(type) {
 			case player.PlaylistEvent:
-				eventStr = "playlist"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "playlist", map[string]interface{}{
 					"index": t.Index,
-				})
+				}
 			case player.PlayStateEvent:
-				eventStr = "playstate"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "playstate", map[string]interface{}{
 					"state": t.State,
-				})
+				}
 			case player.TimeEvent:
-				eventStr = "time"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "time", map[string]interface{}{
 					"time": int(t.Time / time.Second),
-				})
+				}
 			case player.VolumeEvent:
-				eventStr = "volume"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "volume", map[string]interface{}{
 					"volume": float32(t.Volume) / 100.0,
-				})
+				}
 			case player.ListEvent:
-				eventStr = "list"
+				eventStr, eventObj = "list", struct{}{}
 			case player.AvailabilityEvent:
-				eventStr = "availability"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "availability", map[string]interface{}{
 					"available": t.Available,
-				})
+				}
 			case library.UpdateEvent:
-				eventStr = "library:tracks"
-				eventMsg = []byte("{}")
+				eventStr, eventObj = "library:tracks", struct{}{}
 			case filter.UpdateEvent:
-				eventStr = "filter:update"
-				eventMsg, err = json.Marshal(map[string]interface{}{
+				eventStr, eventObj = "filter:update", map[string]interface{}{
 					"filter": t.Filter,
-				})
+				}
 			default:
+				log.Debugf("Unmapped event %#v", event)
 				continue
 			}
+
+			eventMsg, err := json.Marshal(eventObj)
 			if err != nil {
 				log.Error(err)
+				continue
 			}
-
 			events.SendEventMessage(string(eventMsg), eventStr, fmt.Sprintf("%d", id))
 		}
 	}()
