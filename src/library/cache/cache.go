@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/util"
 )
@@ -105,6 +107,8 @@ func (cache *Cache) run() {
 }
 
 func (cache *Cache) reloadTracks() {
+	log.Infof("%v: Reloading tracks", cache)
+
 	tracks, err := cache.Library.Tracks()
 	if err != nil {
 		cache.err = err
@@ -116,6 +120,8 @@ func (cache *Cache) reloadTracks() {
 	for i, track := range cache.tracks {
 		cache.index[track.URI] = &cache.tracks[i]
 	}
+
+	log.Infof("%v: Done reloading tracks", cache)
 }
 
 func (cache *Cache) String() string {
