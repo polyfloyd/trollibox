@@ -35,7 +35,7 @@ jobs:
     - run: mpc update --wait
 
     - run: gofmt -s -d ./src/
-    - run: ./just build
-    - run: RELEASE=1 ./just build
+    - run: ./build.sh
+    - run: RELEASE=1 ./build.sh
     - run: go test -race -cover ./src/...
     - run: $GOPATH/bin/golint -min_confidence 0.3 ./src/...

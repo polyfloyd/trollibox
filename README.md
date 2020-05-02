@@ -32,7 +32,7 @@ git clone --recurse-submodules -j8 https://github.com/polyfloyd/trollibox.git tr
 cd trollibox
 
 # Build a release version of Trollibox containing all of its assets.
-RELEASE=1 ./just build
+RELEASE=1 ./build.sh
 
 # Copy and edit the configuration
 cp config.example.json config.json
