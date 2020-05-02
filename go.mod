@@ -10,6 +10,7 @@ require (
 	github.com/tmthrgd/go-bindata v0.0.0-20180829002824-c8d03665bae9
 	golang.org/x/net v0.0.0-20190227160552-c95aed5357e7 // indirect
 	golang.org/x/text v0.3.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
 
 go 1.13

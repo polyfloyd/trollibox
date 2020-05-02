@@ -2,15 +2,12 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
 	"path"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -18,6 +15,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
@@ -35,7 +33,7 @@ import (
 
 const (
 	publicDir = "public"
-	confFile  = "config.json"
+	confFile  = "config.yaml"
 )
 
 var (
@@ -48,53 +46,63 @@ var (
 var static = getStaticAssets(assets.AssetNames())
 
 type config struct {
-	Address string `json:"listen-address"`
-	URLRoot string `json:"url-root"`
+	Address string `yaml:"bind"`
+	URLRoot string `yaml:"url_root"`
 
-	StorageDir string `json:"storage-dir"`
+	StorageDir string `yaml:"storage_dir"`
 
-	AutoQueue     bool   `json:"autoqueue"`
-	DefaultPlayer string `json:"default-player"`
+	AutoQueue     bool   `yaml:"autoqueue"`
+	DefaultPlayer string `yaml:"default_player"`
 
 	Colors struct {
-		Background     string `json:"background"`
-		BackgroundElem string `json:"background-elem"`
-		Text           string `json:"text"`
-		TextInactive   string `json:"text-inactive"`
-		Accent         string `json:"accent"`
-	} `json:"colors"`
+		Background     string `yaml:"background"`
+		BackgroundElem string `yaml:"background_elem"`
+		Text           string `yaml:"text"`
+		TextInactive   string `yaml:"text_inactive"`
+		Accent         string `yaml:"accent"`
+	} `yaml:"colors"`
 
-	Mpd []struct {
-		Name     string  `json:"name"`
-		Network  string  `json:"network"`
-		Address  string  `json:"address"`
-		Password *string `json:"password"`
-	} `json:"mpd"`
+	MPD []struct {
+		Name     string  `yaml:"name"`
+		Network  string  `yaml:"network"`
+		Address  string  `yaml:"address"`
+		Password *string `yaml:"password"`
+	} `yaml:"mpd"`
 
 	SlimServer *struct {
-		Network  string  `json:"network"`
-		Address  string  `json:"address"`
-		Username *string `json:"username"`
-		Password *string `json:"password"`
-		WebURL   string  `json:"weburl"`
-	} `json:"slimserver"`
+		Network  string  `yaml:"network"`
+		Address  string  `yaml:"address"`
+		Username *string `yaml:"username"`
+		Password *string `yaml:"password"`
+		WebURL   string  `yaml:"weburl"`
+	} `yaml:"slimserver"`
 }
 
-func (conf *config) Load(filename string) error {
-	content, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("unable to decode config: %v", err)
+func (conf *config) Validate() (errs []error) {
+	if conf.Address == "" {
+		errs = append(errs, fmt.Errorf("config: `bind` is required"))
 	}
-	multilineCommentRe := regexp.MustCompile(`(?s)/\*.*\*/`)
-	content = multilineCommentRe.ReplaceAll(content, []byte{})
-	singlelineCommentRe := regexp.MustCompile("(\"[^\"]*\")|(//.*)")
-	content = singlelineCommentRe.ReplaceAllFunc(content, func(str []byte) []byte {
-		if str[0] == '"' && str[len(str)-1] == '"' {
-			return str
-		}
-		return []byte{}
-	})
-	return json.Unmarshal(content, conf)
+	if len(conf.MPD) == 0 && conf.SlimServer == nil {
+		errs = append(errs, fmt.Errorf("config: no media servers configured"))
+	}
+	return
+}
+
+func LoadConfig(filename string) (*config, error) {
+	fd, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer fd.Close()
+
+	d := yaml.NewDecoder(fd)
+	d.KnownFields(true)
+	var conf config
+	if err := d.Decode(&conf); err != nil {
+		return nil, err
+	}
+
+	return &conf, nil
 }
 
 type assetServeHandler string
@@ -142,9 +150,12 @@ func main() {
 	}
 
 	log.Infof("Version: %v (%v)\n", version, build)
-	var config config
-	if err := config.Load(*configFile); err != nil {
+	config, err := LoadConfig(*configFile)
+	if err != nil {
 		log.Fatalf("Could not load config: %v", err)
+	}
+	if errs := config.Validate(); len(errs) > 0 {
+		log.Fatalf("Could not load config: %v", errs)
 	}
 
 	storeDir := strings.Replace(config.StorageDir, "~", os.Getenv("HOME"), 1)
@@ -163,7 +174,7 @@ func main() {
 		log.Fatalf("Unable to create filterdb: %v", err)
 	}
 
-	players, err := connectToPlayers(&config)
+	players, err := connectToPlayers(config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -205,10 +216,10 @@ func main() {
 		urlPath := strings.TrimPrefix(file, publicDir)
 		service.Get(urlPath, assetServeHandler(file).ServeHTTP)
 	}
-	service.Get("/img/default-album-art.svg", htDefaultAlbumArt(&config))
+	service.Get("/img/default-album-art.svg", htDefaultAlbumArt(config))
 
-	service.Get("/", htRedirectToDefaultPlayer(&config, players))
-	service.Get("/player/{player}", htBrowserPage(&config, players))
+	service.Get("/", htRedirectToDefaultPlayer(config, players))
+	service.Get("/player/{player}", htBrowserPage(config, players))
 	service.Route("/data", func(r chi.Router) {
 		api.InitRouter(r, jukebox)
 	})
@@ -265,7 +276,7 @@ func attachAutoQueuer(players player.List, filterdb *filter.DB) {
 
 func connectToPlayers(config *config) (player.List, error) {
 	mpdPlayers := player.SimpleList{}
-	for _, mpdConf := range config.Mpd {
+	for _, mpdConf := range config.MPD {
 		mpdPlayer, err := mpd.Connect(mpdConf.Network, mpdConf.Address, mpdConf.Password)
 		if err != nil {
 			return nil, fmt.Errorf("unable to connect to MPD: %v", err)
