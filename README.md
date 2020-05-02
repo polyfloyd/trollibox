@@ -27,17 +27,9 @@ The following tools are required to build Trollibox:
 
 To build:
 ```sh
-# Set up a GOPATH if you haven't already, and make sure GOPATH/bin is in your path
-export GOPATH="$PWD/gopath"
-export PATH=$PATH:$GOPATH/bin
-mkdir -p $GOPATH/src/github.com/polyfloyd
-
 # Download Trollibox
-git clone --recurse-submodules -j8 https://github.com/polyfloyd/trollibox.git $GOPATH/src/github.com/polyfloyd/trollibox
-cd $GOPATH/src/github.com/polyfloyd/trollibox
-
-# Install dependencies
-./just install
+git clone --recurse-submodules -j8 https://github.com/polyfloyd/trollibox.git trollibox
+cd trollibox
 
 # Build a release version of Trollibox containing all of its assets.
 RELEASE=1 ./just build
