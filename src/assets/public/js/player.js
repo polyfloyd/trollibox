@@ -54,7 +54,8 @@ class Player extends EventTarget {
 		this._ev = new EventSource(`${URLROOT}data/player/${this.name}/events`);
 		this._ev.onopen = () => {
 			// Reload all state to ensure that we are in sync.
-			this._reload();
+			this._reload()
+				.catch(err => console.error(err));
 		};
 		this._ev.addEventListener('playlist', async event => {
 			const { index, playlist } = await this._loadPlaylist();
@@ -81,7 +82,8 @@ class Player extends EventTarget {
 			this.tracks = await this._loadTrackLibrary();
 			this.dispatchEvent(new LibraryChangedEvent());
 		});
-		this._reload();
+		this._reload()
+			.catch(err => console.error(err));
 	}
 
 	getCurrentTrack() {
