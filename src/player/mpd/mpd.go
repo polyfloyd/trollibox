@@ -249,6 +249,8 @@ func (pl *Player) Tracks() ([]library.Track, error) {
 				filename = f
 			} else if f, ok := rootFile["directory"]; ok {
 				filename = f
+			} else {
+				continue
 			}
 			ls, err := mpdc.ListAllInfo(filename)
 			if err != nil {
