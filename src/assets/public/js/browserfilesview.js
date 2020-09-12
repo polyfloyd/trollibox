@@ -168,9 +168,9 @@ var BrowserFilesView = BrowserView.extend({
 	getTracksInDir: function(path) {
 		var self = this;
 		if (path === '' || path === '/') {
-			return this.model.get('tracks');
+			return this.model.tracks;
 		}
-		return this.model.get('tracks').filter(function(track) {
+		return this.model.tracks.filter(function(track) {
 			return track.uri.substring(self.commonPath.length).indexOf(path) === 0;
 		});
 	},
