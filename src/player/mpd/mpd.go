@@ -401,6 +401,8 @@ func (pl *Player) SetTrackIndex(trackIndex int) error {
 		} else if trackIndex >= plistLen {
 			return pl.setStateWith(mpdc, player.PlayStateStopped)
 		}
+		// Send a event to set the time to zero so that web clients won't keep running on a previous' tracks time
+		pl.Emit(player.TimeEvent{Time: 0})
 		return mpdc.Play(trackIndex)
 	})
 }
