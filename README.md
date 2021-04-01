@@ -35,19 +35,19 @@ cd trollibox
 RELEASE=1 ./build.sh
 
 # Copy and edit the configuration
-cp config.example.json config.json
-vim config.json
+cp config.example.yaml config.yaml
+vim config.yaml
 
 # Let's go!
-./bin/trollibox -conf config.json
+./bin/trollibox -conf config.yaml
 ```
 
 ### Configuring
-Copy the [example configuration](config.example.json) to config.json, its
+Copy the [example configuration](config.example.yaml) to config.yaml, its
 default location. If you want to use a custom location for the config file, you
 should inform Trollibox by using the `-conf` option. Like this:
 ```sh
-trollibox -conf /etc/trollibox.json
+trollibox -conf /etc/trollibox.yaml
 ```
 
 Inside the configuration file, you will find some options you may need to change.
