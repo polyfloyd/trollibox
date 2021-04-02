@@ -263,6 +263,8 @@ class Player extends EventTarget {
 
 		this.tracks = await this._loadTrackLibrary();
 		this.dispatchEvent(new LibraryChangedEvent());
+
+		this._reloadProgressUpdater();
 	}
 
 	async _loadPlaylist() {
