@@ -582,6 +582,10 @@ type mpdPlaylist struct {
 
 func (plist mpdPlaylist) Insert(pos int, tracks ...library.Track) error {
 	return plist.player.withMpd(func(mpdc *mpd.Client) error {
+		length, ok := playlistLength(mpdc)
+		if !ok {
+			return fmt.Errorf("unable to determine playlist length")
+		}
 		if pos == -1 {
 			for _, track := range tracks {
 				if _, err := mpdc.AddID(uriToMpd(track.URI), -1); err != nil {
@@ -594,6 +598,11 @@ func (plist mpdPlaylist) Insert(pos int, tracks ...library.Track) error {
 					return fmt.Errorf("error inserting %q: %v", track.URI, err)
 				}
 			}
+		}
+		if length == 0 {
+			mpdc.Play(0)
+			// Play the 0th track in the playlist if there were no tracks in the playlist before queing the requested track(s)
+			// otherwise the track(s) will be queued before a random autoplayer track
 		}
 		return nil
 	})
