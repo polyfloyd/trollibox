@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
@@ -194,7 +194,7 @@ func main() {
 
 	service := chi.NewRouter()
 	service.Use(util.LogHandler)
-	service.Use(middleware.DefaultCompress)
+	service.Use(middleware.Compress(5))
 	for _, file := range assets.AssetNames() {
 		if !strings.HasPrefix(file, publicDir) {
 			continue

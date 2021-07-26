@@ -10,7 +10,6 @@ LIB="$WORKSPACE/lib"
 ASSETS="$WORKSPACE/src/assets"
 GO_BINDATA="github.com/tmthrgd/go-bindata/go-bindata"
 GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify"
-GO111MODULE=on
 
 mkdir -p "$BIN"
 mkdir -p "$LIB"
