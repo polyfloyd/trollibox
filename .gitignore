@@ -3,7 +3,7 @@
 *.sw*
 
 /bin
-/config.json
+/config.yaml
 /src/assets/**/*.go
 
 /vendor
