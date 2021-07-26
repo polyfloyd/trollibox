@@ -192,7 +192,7 @@ func main() {
 		attachAutoQueuer(players, filterdb)
 	}
 
-	jukebox := jukebox.NewJukebox(players, filterdb, streamdb)
+	jukebox := jukebox.NewJukebox(players, filterdb, streamdb, config.DefaultPlayer)
 
 	service := chi.NewRouter()
 	service.Use(util.LogHandler)
@@ -206,7 +206,7 @@ func main() {
 	}
 	service.Get("/img/default-album-art.svg", htDefaultAlbumArt(config))
 
-	service.Get("/", htRedirectToDefaultPlayer(config, players))
+	service.Get("/", htRedirectToDefaultPlayer(jukebox))
 	service.Get("/player/{player}", htBrowserPage(config, players))
 	service.Route("/data", func(r chi.Router) {
 		api.InitRouter(r, jukebox)

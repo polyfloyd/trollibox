@@ -10,6 +10,7 @@ import (
 
 	"github.com/polyfloyd/trollibox/src/api"
 	"github.com/polyfloyd/trollibox/src/assets"
+	"github.com/polyfloyd/trollibox/src/jukebox"
 	"github.com/polyfloyd/trollibox/src/player"
 )
 
@@ -38,14 +39,10 @@ func htBrowserPage(config *config, players player.List) func(w http.ResponseWrit
 	}
 }
 
-func htRedirectToDefaultPlayer(config *config, players player.List) func(w http.ResponseWriter, r *http.Request) {
+func htRedirectToDefaultPlayer(jukebox *jukebox.Jukebox) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		defaultPlayer := ""
-		if pl, err := players.PlayerByName(config.DefaultPlayer); err == nil && pl != nil {
-			defaultPlayer = config.DefaultPlayer
-		} else if names, err := players.PlayerNames(); err == nil && len(names) > 0 {
-			defaultPlayer = names[0]
-		} else {
+		defaultPlayer, err := jukebox.DefaultPlayer(r.Context())
+		if err != nil {
 			api.WriteError(w, r, fmt.Errorf("error finding a player to redirect to: %v", err))
 			return
 		}

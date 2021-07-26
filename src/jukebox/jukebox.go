@@ -22,21 +22,40 @@ var ErrPlayerUnavailable = fmt.Errorf("the player is not available")
 // Jukebox augments one or more players with with filters, streams and other
 // functionality.
 type Jukebox struct {
-	players  player.List
-	filterdb *filter.DB
-	streamdb *stream.DB
+	players       player.List
+	filterdb      *filter.DB
+	streamdb      *stream.DB
+	defaultPlayer string
 }
 
-func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB) *Jukebox {
+func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB, defaultPlayer string) *Jukebox {
 	return &Jukebox{
-		players:  players,
-		filterdb: filterdb,
-		streamdb: streamdb,
+		players:       players,
+		filterdb:      filterdb,
+		streamdb:      streamdb,
+		defaultPlayer: defaultPlayer,
 	}
 }
 
 func (jb *Jukebox) Players(ctx context.Context) ([]string, error) {
 	return jb.players.PlayerNames()
+}
+
+func (jb *Jukebox) DefaultPlayer(ctx context.Context) (string, error) {
+	if jb.defaultPlayer != "" {
+		if pl, err := jb.players.PlayerByName(jb.defaultPlayer); err == nil && pl != nil {
+			return jb.defaultPlayer, nil
+		}
+	}
+
+	names, err := jb.players.PlayerNames()
+	if err != nil {
+		return "", fmt.Errorf("could not auto select default player: %v", err)
+	}
+	if len(names) == 0 {
+		return "", fmt.Errorf("could not auto select default player: no players present")
+	}
+	return names[0], nil
 }
 
 func (jb *Jukebox) PlayerTrackIndex(ctx context.Context, playerName string) (int, error) {
