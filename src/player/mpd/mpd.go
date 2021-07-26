@@ -1,10 +1,10 @@
 package mpd
 
 import (
-	"encoding/base64"
+	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"net/http"
 	"reflect"
 	"sort"
 	"strconv"
@@ -544,24 +544,12 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 // TrackArt implements the library.Library interface.
 func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
 	pl.withMpd(func(mpdc *mpd.Client) error {
-		id := uriToMpd(track)
-		numChunks := 0
-		if stkNum, err := mpdc.StickerGet(id, "image-nchunks"); err != nil || stkNum == nil {
-			return nil
-		} else if numChunks, err = strconv.Atoi(stkNum.Value); err != nil {
-			return nil
+		bin, err := mpdc.ReadPicture(uriToMpd(track))
+		if err != nil {
+			return err
 		}
-
-		chunks := make([]io.Reader, 0, numChunks)
-		for i := 0; i < numChunks; i++ {
-			stkB64Data, err := mpdc.StickerGet(id, fmt.Sprintf("image-%d", i))
-			if err != nil || stkB64Data == nil {
-				return nil
-			}
-			chunks = append(chunks, strings.NewReader(stkB64Data.Value))
-		}
-		image = ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, io.MultiReader(chunks...)))
-		mime = "image/jpeg"
+		image = io.NopCloser(bytes.NewReader(bin))
+		mime = http.DetectContentType(bin)
 		return nil
 	})
 	return
