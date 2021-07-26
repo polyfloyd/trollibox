@@ -51,7 +51,6 @@ go run $GO_BINDATA \
 
 VERSION="$(git describe --always --dirty)"
 VERSION_DATE="$(date --date="@$(git show -s --format='%ct' HEAD)" '+%F')"
-BUILD_DATE="$(date '+%F_%T_%z')"
 
 cd "$WORKSPACE/src"
 go build \
@@ -59,7 +58,6 @@ go build \
         -X main.build=$BUILD
         -X main.version=$VERSION
         -X main.versionDate=$VERSION_DATE
-        -X main.buildDate=$BUILD_DATE
     " \
     -o "$BIN/$NAME"
 cd "$WORKSPACE"

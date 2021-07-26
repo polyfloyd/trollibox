@@ -38,7 +38,6 @@ var (
 	build       = "%BUILD%"
 	version     = "%VERSION%"
 	versionDate = "%VERSION_DATE%"
-	buildDate   = "%BUILD_DATE%"
 )
 
 var static = getStaticAssets(assets.AssetNames())
@@ -143,7 +142,6 @@ func main() {
 	if *printVersion {
 		fmt.Printf("Version: %v (%v)\n", version, versionDate)
 		fmt.Printf("Build: %v\n", build)
-		fmt.Printf("Build TIme: %v\n", buildDate)
 		return
 	}
 
