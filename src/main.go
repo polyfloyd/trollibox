@@ -22,8 +22,6 @@ import (
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
 	"github.com/polyfloyd/trollibox/src/jukebox"
-	"github.com/polyfloyd/trollibox/src/library/netmedia"
-	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/player/mpd"
@@ -194,17 +192,7 @@ func main() {
 		attachAutoQueuer(players, filterdb)
 	}
 
-	fullURLRoot, err := util.DetermineFullURLRoot(config.URLRoot, config.Address)
-	if err != nil {
-		log.Fatal(err)
-	}
-	rawServer := raw.NewServer(fmt.Sprintf("%sdata/raw", fullURLRoot))
-	netServer, err := netmedia.NewServer(rawServer)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	jukebox := jukebox.NewJukebox(players, netServer, filterdb, streamdb, rawServer)
+	jukebox := jukebox.NewJukebox(players, filterdb, streamdb)
 
 	service := chi.NewRouter()
 	service.Use(util.LogHandler)

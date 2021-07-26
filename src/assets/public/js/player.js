@@ -203,40 +203,6 @@ class Player extends EventTarget {
 		return tracks;
 	}
 
-	async playRawTracks(files) {
-		files = Array.prototype.filter.call(files, file => {
-			return file.type.match(/^audio/);
-		});
-		if (!files.length) {
-			throw new Error('No files specified');
-		}
-
-		var form = new FormData();
-		for (let file of files) {
-			form.append('files', file, file.name);
-		}
-		const res = await fetch(`${URLROOT}data/player/${this.name}/playlist/appendraw`, {
-			method: 'POST',
-			body: form,
-		});
-		if (res.status >= 400) {
-			throw new Error('could not play from network');
-		}
-	}
-
-	async playFromNetwork(url) {
-		if (!url.match(/^https?:\/\/.+/)) {
-			throw new Error('Invalid URL');
-		}
-		const res = await fetch(`${URLROOT}data/player/${this.name}/playlist/appendnet`, {
-			metod: 'POST',
-			url,
-		});
-		if (res.status >= 400) {
-			throw new Error('could not play from network');
-		}
-	}
-
 	async _reload() {
 		const [
 			{ index, playlist },

@@ -27,8 +27,6 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 			r.Put("/", api.playlistInsert)
 			r.Patch("/", api.playlistMove)
 			r.Delete("/", api.playlistRemove)
-			r.Post("/appendraw", api.rawTrackAdd)
-			r.Post("/appendnet", api.netTrackAdd)
 		})
 		r.Post("/current", api.playerSetCurrent)
 		r.Post("/next", api.playerNext) // Deprecated
@@ -60,8 +58,6 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 		r.Delete("/", api.streamsRemove)
 		r.Mount("/events", htEvents(&jukebox.StreamDB().Emitter))
 	})
-
-	r.Mount("/raw", jukebox.RawServer())
 }
 
 // WriteError writes an error to the client or an empty object if err is nil.

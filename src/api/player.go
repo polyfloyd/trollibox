@@ -424,51 +424,6 @@ func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (api *API) rawTrackAdd(w http.ResponseWriter, r *http.Request) {
-	playerName := chi.URLParam(r, "playerName")
-
-	mpReader, err := r.MultipartReader()
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-
-	for {
-		part, err := mpReader.NextPart()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			WriteError(w, r, err)
-			return
-		}
-
-		if err := api.jukebox.AppendRawFile(r.Context(), playerName, part, part.FileName()); err != nil {
-			WriteError(w, r, err)
-			return
-		}
-	}
-	w.Write([]byte("{}"))
-}
-
-func (api *API) netTrackAdd(w http.ResponseWriter, r *http.Request) {
-	playerName := chi.URLParam(r, "playerName")
-
-	var data struct {
-		URL string `json:"url"`
-	}
-	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		WriteError(w, r, err)
-		return
-	}
-
-	if err := api.jukebox.AppendNetFile(r.Context(), playerName, data.URL); err != nil {
-		WriteError(w, r, err)
-		return
-	}
-	w.Write([]byte("{}"))
-}
-
 func (api *API) playerEvents() http.Handler {
 	var eventSourcesLock sync.Mutex
 	eventSources := map[string]http.Handler{}

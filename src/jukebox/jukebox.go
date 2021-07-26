@@ -7,13 +7,9 @@ import (
 	"sort"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/keyed"
 	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/library/netmedia"
-	"github.com/polyfloyd/trollibox/src/library/raw"
 	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/util"
@@ -26,72 +22,21 @@ var ErrPlayerUnavailable = fmt.Errorf("the player is not available")
 // Jukebox augments one or more players with with filters, streams and other
 // functionality.
 type Jukebox struct {
-	players   player.List
-	netServer *netmedia.Server
-	filterdb  *filter.DB
-	streamdb  *stream.DB
-	rawServer *raw.Server
+	players  player.List
+	filterdb *filter.DB
+	streamdb *stream.DB
 }
 
-func NewJukebox(players player.List, netServer *netmedia.Server, filterdb *filter.DB, streamdb *stream.DB, rawServer *raw.Server) *Jukebox {
+func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB) *Jukebox {
 	return &Jukebox{
-		players:   players,
-		netServer: netServer,
-		filterdb:  filterdb,
-		streamdb:  streamdb,
-		rawServer: rawServer,
+		players:  players,
+		filterdb: filterdb,
+		streamdb: streamdb,
 	}
 }
 
 func (jb *Jukebox) Players(ctx context.Context) ([]string, error) {
 	return jb.players.PlayerNames()
-}
-
-func (jb *Jukebox) AppendRawFile(ctx context.Context, playerName string, file io.Reader, filename string) error {
-	pl, err := jb.player(playerName)
-	if err != nil {
-		return err
-	}
-
-	track, errs := jb.rawServer.Add(ctx, filename, nil, "", func(ctx context.Context, w io.Writer) error {
-		_, err := io.Copy(w, file)
-		return err
-	})
-	if err := <-errs; err != nil {
-		return err
-	}
-
-	// Launch a goroutine that will check whether the track is still in
-	// the player's playlist. If it is not, the track is removed from
-	// the server.
-	go jb.removeRawTrack(playerName, track, jb.rawServer)
-
-	return pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
-		{QueuedBy: "user"},
-	})
-}
-
-func (jb *Jukebox) AppendNetFile(ctx context.Context, playerName, url string) error {
-	pl, err := jb.player(playerName)
-	if err != nil {
-		return err
-	}
-
-	track, errc := jb.netServer.Download(url)
-	go func() {
-		if err := <-errc; err != nil {
-			log.Error(err)
-		}
-	}()
-
-	// Launch a goroutine that will check whether the track is still in
-	// the player's playlist. If it is not, the track is removed from
-	// the server.
-	go jb.removeRawTrack(playerName, track, jb.netServer.RawServer())
-
-	return pl.Playlist().InsertWithMeta(-1, []library.Track{track}, []player.TrackMeta{
-		{QueuedBy: "user"},
-	})
 }
 
 func (jb *Jukebox) PlayerTrackIndex(ctx context.Context, playerName string) (int, error) {
@@ -213,11 +158,7 @@ func (jb *Jukebox) PlayerLibraries(ctx context.Context, playerName string) ([]li
 	if err != nil {
 		return nil, err
 	}
-	return []library.Library{
-		jb.streamdb,
-		jb.rawServer,
-		pl.Library(),
-	}, nil
+	return []library.Library{jb.streamdb, pl.Library()}, nil
 }
 
 func (jb *Jukebox) PlayerLibrary(ctx context.Context, playerName string) (library.Library, error) {
@@ -247,47 +188,10 @@ func (jb *Jukebox) player(name string) (player.Player, error) {
 	return pl, nil
 }
 
-func (jb *Jukebox) removeRawTrack(playerName string, track library.Track, rawServer *raw.Server) {
-	emitter, err := jb.PlayerEvents(context.Background(), playerName)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	events := emitter.Listen()
-	defer emitter.Unlisten(events)
-outer:
-	for event := range events {
-		if _, ok := event.(player.PlaylistEvent); !ok {
-			continue
-		}
-		plist, err := jb.PlayerPlaylist(context.Background(), playerName)
-		if err != nil {
-			log.Error(err)
-			break
-		}
-		tracks, err := plist.Tracks()
-		if err != nil {
-			log.Error(err)
-			break
-		}
-		for _, plTrack := range tracks {
-			if track.URI == plTrack.URI {
-				continue outer
-			}
-		}
-		break
-	}
-	rawServer.Remove(track.URI)
-}
-
 func (jb *Jukebox) FilterDB() *filter.DB {
 	return jb.filterdb
 }
 
 func (jb *Jukebox) StreamDB() *stream.DB {
 	return jb.streamdb
-}
-
-func (jb *Jukebox) RawServer() *raw.Server {
-	return jb.rawServer
 }

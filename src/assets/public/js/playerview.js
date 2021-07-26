@@ -23,12 +23,10 @@ class PlayerView {
 		this.$el.find('.do-next').on('click', () => this.doNext());
 		this.$el.find('.do-toggle-state').on('click', () => this.doToggleState());
 		this.$el.find('.do-clear').on('click', () => this.doClear());
-		this.$el.find('.do-add-netmedia').on('click', () => this.showNetmediaDialog());
 		this.$el.find('.do-set-volume').on('click', () => this.doSetVolume());
 		this.$el.find('.do-set-time').on('click', () => this.doSetProgress());
 		this.$el.on('dragover', () => this.doMakeDroppable());
 		this.$el.on('dragenter', () => this.doMakeDroppable());
-		this.$el.on('drop', () => this.doAcceptRawFiles());
 
 		const sortables = window.sortable(this.$el.find('.player-playlist'), {
 			forcePlaceholderSize: true,
@@ -143,10 +141,6 @@ class PlayerView {
 		}
 	}
 
-	showNetmediaDialog() {
-		new AddMediaDialog(this.player);
-	}
-
 	doSetProgress() {
 		this.player.setTime(parseInt(this.$el.find('.do-set-time').val(), 10));
 	}
@@ -179,12 +173,6 @@ class PlayerView {
 		event.preventDefault();
 		return false;
 	}
-
-	doAcceptRawFiles(event) {
-		event.preventDefault();
-		this.player.playRawTracks(event.originalEvent.dataTransfer.files);
-		return false;
-	}
 }
 
 const playerViewTemplate = _.template(`
@@ -214,7 +202,6 @@ const playerViewTemplate = _.template(`
 				<button class="btn btn-default glyphicon glyphicon-play do-toggle-state" title="Pause/play"></button>
 				<button class="btn btn-default glyphicon glyphicon-step-forward do-next" title="Skip to the next track"></button>
 				<button class="btn btn-default glyphicon glyphicon-ban-circle do-clear" title="Clear the playlist"></button>
-				<button class="btn btn-default glyphicon glyphicon-cloud do-add-netmedia"></button>
 			</div>
 		</div>
 
