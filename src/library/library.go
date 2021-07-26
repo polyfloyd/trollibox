@@ -35,7 +35,7 @@ func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
 	// Request track information from all libraries in parallel.
 	accumChannels := make([]<-chan interface{}, 0, len(libs))
 	for _, lib := range libs {
-		ch := make(chan interface{})
+		ch := make(chan interface{}, 1)
 		go func(lib Library) {
 			defer close(ch)
 			tracks, err := lib.TrackInfo(uris...)
