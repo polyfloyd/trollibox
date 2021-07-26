@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fhs/gompd/mpd"
+	"github.com/fhs/gompd/v2/mpd"
 
 	"github.com/polyfloyd/trollibox/src/library"
 	"github.com/polyfloyd/trollibox/src/player"

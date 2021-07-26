@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fhs/gompd/mpd"
+	"github.com/fhs/gompd/v2/mpd"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/polyfloyd/trollibox/src/library"

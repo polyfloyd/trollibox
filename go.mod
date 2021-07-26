@@ -2,7 +2,7 @@ module github.com/polyfloyd/trollibox
 
 require (
 	github.com/antage/eventsource v0.0.0-20190412115600-84b661236871
-	github.com/fhs/gompd v2.0.0+incompatible
+	github.com/fhs/gompd/v2 v2.2.1-0.20210604155103-5f471998a4fb // indirect
 	github.com/go-chi/chi v4.0.3+incompatible
 	github.com/golang/gddo v0.0.0-20181116215533-9bd4a3295021 // indirect
 	github.com/sirupsen/logrus v1.4.2
