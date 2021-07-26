@@ -652,8 +652,7 @@ func playlistLength(mpdc *mpd.Client) (int, bool) {
 // ListAllInfo().
 //
 // ListAllInfo() and ListInfo() look very much the same but they don't return
-// the same thing. Who the fuck thought it was a good idea to mix capitals and
-// lowercase?!
+// the same thing. Why capitals and lowercase are mixed is beyond me.
 func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) error {
 	if _, ok := (*song)["directory"]; ok {
 		return fmt.Errorf("tried to read a directory as local file")
