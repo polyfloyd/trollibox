@@ -4,6 +4,7 @@
 
 /bin
 /config.yaml
-/src/handler/webui/**/*.go
+/src/handler/webui/static/*/app.*
+/src/handler/webui/static/fonts
 
 /vendor

@@ -21,7 +21,7 @@
 	</style>
 
 	{{ with $v := . }}
-		{{ range $v.assets.css }}
+		{{ range $v.assets.CSS }}
 			<link rel="stylesheet" href="{{ $v.urlroot }}{{ . }}" />
 		{{ end }}
 	{{ end }}
@@ -158,7 +158,7 @@
 	</div>
 
 	{{ with $v := . }}
-		{{ range $v.assets.js }}
+		{{ range $v.assets.JS }}
 			<script src="{{ $v.urlroot }}{{ . }}"></script>
 		{{ end }}
 	{{ end }}

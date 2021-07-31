@@ -8,7 +8,6 @@ WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
 ASSETS="$WORKSPACE/src/handler/webui"
-GO_BINDATA="github.com/tmthrgd/go-bindata/go-bindata"
 GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify"
 
 mkdir -p "$BIN"
@@ -16,21 +15,17 @@ mkdir -p "$LIB"
 
 echo "*** Building Project ***"
 if [ ${RELEASE:-} ]; then
-    TEMP=`mktemp -d`
-    INCLUDE_DIR="$TEMP"
-
-    mkdir -p "$TEMP/public/js"
+    rm "$ASSETS/static/js/app.js" || true
     cat `find "$ASSETS" -name "*.js" | sort` \
         | go run $GO_MINIFY --type=js \
-        > "$TEMP/public/js/app.js"
+        > "$ASSETS/static/js/app.js"
 
-    mkdir -p "$TEMP/public/css"
+    rm "$ASSETS/static/css/app.css" || true
     cat `find "$ASSETS" -name "*.css" | sort` \
         | go run $GO_MINIFY --type=css \
-        > "$TEMP/public/css/app.css"
+        > "$ASSETS/static/css/app.css"
 
-    rsync -rL --exclude="*.css" --exclude="*.js" --exclude="/public/00-dep" "$ASSETS/" "$TEMP/"
-    rsync -rL --exclude="*.css" --exclude="*.js" "$ASSETS/public/00-dep/" "$TEMP/public"
+    rsync -rL "$ASSETS/static/00-dep/fonts/" "$ASSETS/static/fonts/"
 
     BUILD="release"
 
@@ -39,14 +34,6 @@ else
     INCLUDE_FLAGS="-debug"
     BUILD="debug"
 fi
-
-go run $GO_BINDATA \
-    ${INCLUDE_FLAGS:-} \
-    -nocompress \
-    -pkg="webui" \
-    -prefix="$INCLUDE_DIR" \
-    -o="$ASSETS/assets.go" \
-    `find "$INCLUDE_DIR" -type d`
 
 VERSION="$(git describe --always --dirty)"
 VERSION_DATE="$(date --date="@$(git show -s --format='%ct' HEAD)" '+%F')"

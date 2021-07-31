@@ -5,11 +5,10 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"mime"
+	"io/fs"
 	"net/http"
-	"path"
+	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -22,10 +21,6 @@ import (
 	"trollibox/src/util"
 )
 
-const publicDir = "public"
-
-var static = getStaticAssets(webui.AssetNames())
-
 type ColorConfig struct {
 	Background     string `yaml:"background"`
 	BackgroundElem string `yaml:"background_elem"`
@@ -34,11 +29,17 @@ type ColorConfig struct {
 	Accent         string `yaml:"accent"`
 }
 
+type staticAssets struct {
+	JS  []string
+	CSS []string
+}
+
 type webUI struct {
 	build, version string
 	colorConfig    ColorConfig
 	urlRoot        string
 	jukebox        *jukebox.Jukebox
+	staticAssets   *staticAssets
 }
 
 func New(build, version string, colorConfig ColorConfig, urlRoot string, jukebox *jukebox.Jukebox) chi.Router {
@@ -49,18 +50,16 @@ func New(build, version string, colorConfig ColorConfig, urlRoot string, jukebox
 		urlRoot:     urlRoot,
 		jukebox:     jukebox,
 	}
+	if err := web.loadStaticAssets(); err != nil {
+		panic(err)
+	}
 
 	service := chi.NewRouter()
 	service.Use(util.LogHandler)
 	service.Use(middleware.Compress(5))
-	for _, file := range webui.AssetNames() {
-		if !strings.HasPrefix(file, publicDir) {
-			continue
-		}
-		urlPath := strings.TrimPrefix(file, publicDir)
-		service.Get(urlPath, assetServeHandler(file).ServeHTTP)
-	}
-	service.Get("/img/default-album-art.svg", web.defaultAlbumArt())
+
+	service.Mount("/static", http.FileServer(http.FS(web.fs())))
+	service.Get("/static/img/default-album-art.svg", web.defaultAlbumArt())
 
 	service.Get("/", web.redirectToDefaultPlayer)
 	service.Get("/player/{player}", web.browserPage)
@@ -71,27 +70,42 @@ func New(build, version string, colorConfig ColorConfig, urlRoot string, jukebox
 	return service
 }
 
-func getStaticAssets(files []string) map[string][]string {
-	static := map[string][]string{
-		"js":  {},
-		"css": {},
-	}
-	for _, file := range files {
-		if !strings.HasPrefix(file, publicDir) {
-			continue
+func (web *webUI) fs() fs.FS {
+	return webui.Files(web.build)
+}
+
+func (web *webUI) loadStaticAssets() error {
+	if web.build == "release" {
+		web.staticAssets = &staticAssets{
+			CSS: []string{"static/css/app.css"},
+			JS:  []string{"static/js/app.js"},
 		}
-		urlPath := strings.TrimPrefix(file, publicDir+"/")
-		switch path.Ext(file) {
-		case ".css":
-			static["css"] = append(static["css"], urlPath)
-		case ".js":
-			static["js"] = append(static["js"], urlPath)
-		}
+		return nil
 	}
-	for _, a := range static {
-		sort.Strings(a)
+
+	globExt := func(fsys fs.FS, dir, ext string) ([]string, error) {
+		files := []string{}
+		err := fs.WalkDir(fsys, dir, func(path string, d fs.DirEntry, err error) error {
+			if filepath.Ext(path) == ext {
+				files = append(files, path)
+			}
+			return nil
+		})
+		return files, err
 	}
-	return static
+
+	cssFiles, err := globExt(web.fs(), ".", ".css")
+	if err != nil {
+		return err
+	}
+	jsFiles, err := globExt(web.fs(), ".", ".js")
+	if err != nil {
+		return err
+	}
+	sort.Strings(cssFiles)
+	sort.Strings(jsFiles)
+	web.staticAssets = &staticAssets{CSS: cssFiles, JS: jsFiles}
+	return nil
 }
 
 func (web *webUI) baseParamMap() map[string]interface{} {
@@ -99,7 +113,7 @@ func (web *webUI) baseParamMap() map[string]interface{} {
 	return map[string]interface{}{
 		"urlroot": web.urlRoot,
 		"version": web.version,
-		"assets":  static,
+		"assets":  web.staticAssets,
 		"time":    time.Now(),
 		"players": playerNames,
 		"colors": map[string]string{
@@ -112,15 +126,19 @@ func (web *webUI) baseParamMap() map[string]interface{} {
 	}
 }
 
-var pageTemplate = mkTemplate()
+var pageTemplate *template.Template
 
-func mkTemplate() *template.Template {
-	return template.Must(template.New("page").Parse(string(webui.MustAsset("view/page.html"))))
+func (web *webUI) mkTemplate() *template.Template {
+	b, _ := fs.ReadFile(web.fs(), "view/page.html")
+	return template.Must(template.New("page").Parse(string(b)))
 }
 
 func (web *webUI) getTemplate() *template.Template {
 	if web.build == "debug" {
-		return mkTemplate()
+		return web.mkTemplate()
+	}
+	if pageTemplate == nil {
+		pageTemplate = web.mkTemplate()
 	}
 	return pageTemplate
 }
@@ -144,26 +162,17 @@ func (web *webUI) redirectToDefaultPlayer(w http.ResponseWriter, r *http.Request
 	http.Redirect(w, r, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)
 }
 
-type assetServeHandler string
-
-func (h assetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	name := string(h)
-	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
-	info, err := webui.AssetInfo(name)
-	if err != nil {
-		log.Errorf("Could not serve %q: %v", name, err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(webui.MustAsset(name)))
-}
-
 func (web *webUI) defaultAlbumArt() http.HandlerFunc {
 	filename := "default-album-art.svg"
-	recolored := bytes.Replace(webui.MustAsset(filename), []byte("#ffffff"), []byte(web.colorConfig.Accent), -1)
+	svg, err := fs.ReadFile(web.fs(), filename)
+	if err != nil {
+		panic(err)
+	}
+	recolored := bytes.Replace(svg, []byte("#ffffff"), []byte(web.colorConfig.Accent), -1)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")
-		info, _ := webui.AssetInfo(filename)
+		info, _ := fs.Stat(web.fs(), filename)
 		http.ServeContent(w, req, filename, info.ModTime(), bytes.NewReader(recolored))
 	})
 }
