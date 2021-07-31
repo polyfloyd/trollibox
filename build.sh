@@ -7,7 +7,7 @@ NAME="trollibox"
 WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
-ASSETS="$WORKSPACE/src/assets"
+ASSETS="$WORKSPACE/src/handler/webui"
 GO_BINDATA="github.com/tmthrgd/go-bindata/go-bindata"
 GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify"
 
@@ -43,7 +43,7 @@ fi
 go run $GO_BINDATA \
     ${INCLUDE_FLAGS:-} \
     -nocompress \
-    -pkg="assets" \
+    -pkg="webui" \
     -prefix="$INCLUDE_DIR" \
     -o="$ASSETS/assets.go" \
     `find "$INCLUDE_DIR" -type d`

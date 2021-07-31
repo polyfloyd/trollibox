@@ -1,46 +1,34 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
-	"mime"
 	"net/http"
 	"os"
 	"path"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
-	"github.com/polyfloyd/trollibox/src/api"
-	"github.com/polyfloyd/trollibox/src/assets"
 	"github.com/polyfloyd/trollibox/src/filter"
 	"github.com/polyfloyd/trollibox/src/filter/ruled"
+	"github.com/polyfloyd/trollibox/src/handler/web"
 	"github.com/polyfloyd/trollibox/src/jukebox"
 	"github.com/polyfloyd/trollibox/src/library/stream"
 	"github.com/polyfloyd/trollibox/src/player"
 	"github.com/polyfloyd/trollibox/src/player/mpd"
 	"github.com/polyfloyd/trollibox/src/player/slimserver"
-	"github.com/polyfloyd/trollibox/src/util"
 )
 
-const (
-	publicDir = "public"
-	confFile  = "config.yaml"
-)
+const confFile = "config.yaml"
 
 var (
 	build       = "%BUILD%"
 	version     = "%VERSION%"
 	versionDate = "%VERSION_DATE%"
 )
-
-var static = getStaticAssets(assets.AssetNames())
 
 type config struct {
 	Address string `yaml:"bind"`
@@ -51,15 +39,8 @@ type config struct {
 	AutoQueue     bool   `yaml:"autoqueue"`
 	DefaultPlayer string `yaml:"default_player"`
 
-	Colors struct {
-		Background     string `yaml:"background"`
-		BackgroundElem string `yaml:"background_elem"`
-		Text           string `yaml:"text"`
-		TextInactive   string `yaml:"text_inactive"`
-		Accent         string `yaml:"accent"`
-	} `yaml:"colors"`
-
-	MPD []struct {
+	Colors web.ColorConfig `yaml:"colors"`
+	MPD    []struct {
 		Name     string  `yaml:"name"`
 		Network  string  `yaml:"network"`
 		Address  string  `yaml:"address"`
@@ -100,25 +81,6 @@ func LoadConfig(filename string) (*config, error) {
 	}
 
 	return &conf, nil
-}
-
-type assetServeHandler string
-
-func (h assetServeHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	name := string(h)
-	w.Header().Set("Content-Type", mime.TypeByExtension(path.Ext(name)))
-	info, _ := assets.AssetInfo(name)
-	http.ServeContent(w, req, name, info.ModTime(), bytes.NewReader(assets.MustAsset(name)))
-}
-
-func htDefaultAlbumArt(config *config) http.HandlerFunc {
-	filename := "default-album-art.svg"
-	recolored := bytes.Replace(assets.MustAsset(filename), []byte("#ffffff"), []byte(config.Colors.Accent), -1)
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "image/svg+xml")
-		info, _ := assets.AssetInfo(filename)
-		http.ServeContent(w, req, filename, info.ModTime(), bytes.NewReader(recolored))
-	})
 }
 
 func main() {
@@ -192,23 +154,7 @@ func main() {
 
 	jukebox := jukebox.NewJukebox(players, filterdb, streamdb, config.DefaultPlayer)
 
-	service := chi.NewRouter()
-	service.Use(util.LogHandler)
-	service.Use(middleware.Compress(5))
-	for _, file := range assets.AssetNames() {
-		if !strings.HasPrefix(file, publicDir) {
-			continue
-		}
-		urlPath := strings.TrimPrefix(file, publicDir)
-		service.Get(urlPath, assetServeHandler(file).ServeHTTP)
-	}
-	service.Get("/img/default-album-art.svg", htDefaultAlbumArt(config))
-
-	service.Get("/", htRedirectToDefaultPlayer(jukebox))
-	service.Get("/player/{player}", htBrowserPage(config, players))
-	service.Route("/data", func(r chi.Router) {
-		api.InitRouter(r, jukebox)
-	})
+	service := web.New(build, version, config.Colors, config.URLRoot, jukebox)
 
 	log.Infof("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
@@ -288,45 +234,4 @@ func connectToPlayers(config *config) (player.List, error) {
 	}
 
 	return mpdPlayers, nil
-}
-
-func getStaticAssets(files []string) map[string][]string {
-	static := map[string][]string{
-		"js":  {},
-		"css": {},
-	}
-	for _, file := range files {
-		if !strings.HasPrefix(file, publicDir) {
-			continue
-		}
-		urlPath := strings.TrimPrefix(file, publicDir+"/")
-		switch path.Ext(file) {
-		case ".css":
-			static["css"] = append(static["css"], urlPath)
-		case ".js":
-			static["js"] = append(static["js"], urlPath)
-		}
-	}
-	for _, a := range static {
-		sort.Strings(a)
-	}
-	return static
-}
-
-func baseParamMap(config *config, players player.List) map[string]interface{} {
-	playerNames, _ := players.PlayerNames()
-	return map[string]interface{}{
-		"urlroot": config.URLRoot,
-		"version": version,
-		"assets":  static,
-		"time":    time.Now(),
-		"players": playerNames,
-		"colors": map[string]string{
-			"bg":           config.Colors.Background,
-			"bgElem":       config.Colors.BackgroundElem,
-			"text":         config.Colors.Text,
-			"textInactive": config.Colors.TextInactive,
-			"accent":       config.Colors.Accent,
-		},
-	}
 }

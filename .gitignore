@@ -4,6 +4,6 @@
 
 /bin
 /config.yaml
-/src/assets/**/*.go
+/src/handler/webui/**/*.go
 
 /vendor
