@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 type userPlaylist struct {

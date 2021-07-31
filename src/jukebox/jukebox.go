@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/filter/keyed"
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/library/stream"
-	"github.com/polyfloyd/trollibox/src/player"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/filter"
+	"trollibox/src/filter/keyed"
+	"trollibox/src/library"
+	"trollibox/src/library/stream"
+	"trollibox/src/player"
+	"trollibox/src/util"
 )
 
 // ErrPlayerUnavailable is returned from functions that operate on player state

@@ -5,7 +5,7 @@ import (
 
 	"github.com/fhs/gompd/v2/mpd"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 type userPlaylist struct {

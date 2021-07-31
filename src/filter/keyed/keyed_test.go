@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 func TestParser(t *testing.T) {

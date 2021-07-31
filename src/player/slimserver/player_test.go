@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/player"
+	"trollibox/src/player"
 )
 
 func connectForTesting() (*Player, error) {

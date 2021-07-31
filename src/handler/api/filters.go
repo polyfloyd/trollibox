@@ -6,9 +6,10 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/filter/keyed"
-	"github.com/polyfloyd/trollibox/src/filter/ruled"
+
+	"trollibox/src/filter"
+	"trollibox/src/filter/keyed"
+	"trollibox/src/filter/ruled"
 )
 
 func (api *API) filterList(w http.ResponseWriter, r *http.Request) {

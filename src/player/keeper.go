@@ -5,7 +5,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 // TrackMeta contains metadata for a track in a playlist.

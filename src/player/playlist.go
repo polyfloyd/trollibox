@@ -1,7 +1,7 @@
 package player
 
 import (
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 // A Playlist is a mutable ordered collection of tracks.

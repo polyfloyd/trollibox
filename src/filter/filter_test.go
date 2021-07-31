@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 func TestFilterTracks(t *testing.T) {

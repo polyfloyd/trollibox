@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 func TestMatchEquals(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/filter"
+	"trollibox/src/library"
 )
 
 // parser returns the grammar of the query as a parser combinator.

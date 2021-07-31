@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/util"
 )
 
 func fillPlaylist(pl Player, numTracks int) error {

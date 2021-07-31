@@ -1,4 +1,4 @@
-module github.com/polyfloyd/trollibox
+module trollibox
 
 require (
 	github.com/antage/eventsource v0.0.0-20190412115600-84b661236871

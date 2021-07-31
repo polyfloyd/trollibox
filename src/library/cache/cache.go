@@ -6,8 +6,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/library"
+	"trollibox/src/util"
 )
 
 // A Cache wraps a Library and keeps a local copy of it's library.

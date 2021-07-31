@@ -3,8 +3,8 @@ package player
 import (
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/library"
+	"trollibox/src/util"
 )
 
 // PlayState enumerates all 3 possible states of playback.

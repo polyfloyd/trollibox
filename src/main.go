@@ -12,14 +12,14 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/filter/ruled"
-	"github.com/polyfloyd/trollibox/src/handler/web"
-	"github.com/polyfloyd/trollibox/src/jukebox"
-	"github.com/polyfloyd/trollibox/src/library/stream"
-	"github.com/polyfloyd/trollibox/src/player"
-	"github.com/polyfloyd/trollibox/src/player/mpd"
-	"github.com/polyfloyd/trollibox/src/player/slimserver"
+	"trollibox/src/filter"
+	"trollibox/src/filter/ruled"
+	"trollibox/src/handler/web"
+	"trollibox/src/jukebox"
+	"trollibox/src/library/stream"
+	"trollibox/src/player"
+	"trollibox/src/player/mpd"
+	"trollibox/src/player/slimserver"
 )
 
 const confFile = "config.yaml"

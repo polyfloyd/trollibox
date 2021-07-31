@@ -3,7 +3,7 @@ package library
 import (
 	"io"
 
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/util"
 )
 
 // An UpdateEvent is emitted when the track collection in the library has

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/filter"
+	"trollibox/src/library"
 )
 
 const (

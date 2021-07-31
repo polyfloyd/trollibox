@@ -3,7 +3,7 @@ package player
 import (
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 func TestDummyPlaylistImplementation(t *testing.T) {

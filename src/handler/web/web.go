@@ -16,10 +16,10 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/polyfloyd/trollibox/src/handler/api"
-	"github.com/polyfloyd/trollibox/src/handler/webui"
-	"github.com/polyfloyd/trollibox/src/jukebox"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/handler/api"
+	"trollibox/src/handler/webui"
+	"trollibox/src/jukebox"
+	"trollibox/src/util"
 )
 
 const publicDir = "public"

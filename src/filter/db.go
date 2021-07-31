@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/util"
 )
 
 // An UpdateEvent is emitted when the database has changed.

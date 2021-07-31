@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/polyfloyd/trollibox/src/library"
+	"trollibox/src/library"
 )
 
 // TestPlaylistImplementation tests the implementation of the playerPlaylist interface.

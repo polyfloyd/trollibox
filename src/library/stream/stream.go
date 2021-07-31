@@ -17,8 +17,8 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/library"
+	"trollibox/src/util"
 )
 
 var dataURIRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")

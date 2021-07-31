@@ -3,7 +3,7 @@ package library
 import (
 	"io"
 
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/util"
 )
 
 // DummyLibrary is used for testing.

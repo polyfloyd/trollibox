@@ -15,10 +15,10 @@ import (
 	"github.com/fhs/gompd/v2/mpd"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/library/cache"
-	"github.com/polyfloyd/trollibox/src/player"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/library"
+	"trollibox/src/library/cache"
+	"trollibox/src/player"
+	"trollibox/src/util"
 )
 
 const uriSchema = "mpd://"

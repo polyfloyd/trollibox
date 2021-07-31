@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/polyfloyd/trollibox/src/library/stream"
+	"trollibox/src/library/stream"
 )
 
 func (api *API) streamsList(w http.ResponseWriter, r *http.Request) {

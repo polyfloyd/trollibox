@@ -10,11 +10,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/jukebox"
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/player"
-	"github.com/polyfloyd/trollibox/src/util"
+	"trollibox/src/filter"
+	"trollibox/src/jukebox"
+	"trollibox/src/library"
+	"trollibox/src/player"
+	"trollibox/src/util"
 )
 
 // InitRouter attaches all API routes to the specified router.

@@ -14,11 +14,11 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/polyfloyd/trollibox/src/filter"
-	"github.com/polyfloyd/trollibox/src/filter/keyed"
-	"github.com/polyfloyd/trollibox/src/jukebox"
-	"github.com/polyfloyd/trollibox/src/library"
-	"github.com/polyfloyd/trollibox/src/player"
+	"trollibox/src/filter"
+	"trollibox/src/filter/keyed"
+	"trollibox/src/jukebox"
+	"trollibox/src/library"
+	"trollibox/src/player"
 )
 
 var httpCacheSince = time.Now()
