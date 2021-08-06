@@ -112,6 +112,7 @@ func (web *webUI) baseParamMap() map[string]interface{} {
 	playerNames, _ := web.jukebox.Players(context.TODO())
 	return map[string]interface{}{
 		"urlroot": web.urlRoot,
+		"build":   web.build,
 		"version": web.version,
 		"assets":  web.staticAssets,
 		"time":    time.Now(),

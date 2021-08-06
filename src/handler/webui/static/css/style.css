@@ -9,7 +9,8 @@
 }
 
 html,
-body {
+body,
+#app {
 	height: 100%;
 }
 
@@ -94,12 +95,12 @@ h2:first-child {
 	border: none;
 }
 
-.player-selector {
+.select-player {
 	background-color: transparent;
 	border: 1px solid var(--color-accent);
 }
 
-.player-selector option {
+.select-player option {
 	background-color: var(--color-bg-elem);
 	color: var(--color-accent);
 }

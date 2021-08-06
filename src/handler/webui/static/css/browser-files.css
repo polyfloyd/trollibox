@@ -11,20 +11,9 @@
 .browser-files-header h2 {
 	flex-grow: 1;
 	margin-top: 0;
-}
-
-.views-container > .view > .tab-view .browser-files-header .do-pop-tab {
-	font-size: 2.2em;
-}
-
-.browser-files .result-list > li.type-dir:after {
-	content: "/";
-}
-
-.browser-files .do-queue-all {
 	cursor: pointer;
 }
 
-.browser-files .do-queue-all:hover {
+.browser-files h2:hover {
 	background-color: var(--color-bg);
 }

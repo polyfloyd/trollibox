@@ -40,34 +40,27 @@
 	background-color: var(--color-bg-elem);
 }
 
-.views-container > .view > .tab-view {
+.views-container .tab-view {
 	height: 100%;
 	padding: 0;
 	background-color: transparent;
 	overflow: hidden; /* Hide the overflowing :after */
 }
 
-.views-container > .view > .tab-view:after {
+.views-container .tab-view:after {
 	background-color: var(--color-bg-elem);
 	margin-right: -15px;
 }
 
-.views-container > .view > .tab-view > .tab {
+.views-container .tab-view > .tab {
 	margin-right: 15px;
 	padding: 15px;
 	background-color: var(--color-bg-elem);
 }
 
-.views-container > .view > .tab-view .do-pop-tab {
-	font-size: 0.8em;
-	padding: 0 0.3em 0 0;
-	color: var(--color-accent);
-	cursor: pointer;
-}
-
 @media (max-width: 991px) {
 
-	.views-container > .view > .tab-view > .tab:not(:nth-last-child(-n+1)) {
+	.views-container .tab-view > .tab:not(:nth-last-child(-n+1)) {
 		display: none !important;
 	}
 
@@ -75,11 +68,11 @@
 
 @media (min-width: 992px) {
 
-	.views-container > .view > .tab-view > .tab:not(:nth-last-child(-n+3)) {
+	.views-container .tab-view > .tab:not(:nth-last-child(-n+3)) {
 		display: none !important;
 	}
 
-	.view > .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
+	.views-container .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
 		display: none !important;
 	}
 

@@ -1,4 +1,8 @@
-.queuer > * {
+.browser-queuer  {
+	flex-flow: column;
+}
+
+.browser-queuer > * {
 	width: 100%;
 }
 
@@ -30,7 +34,7 @@
 	display: none;
 }
 
-.queuer button.glyphicon {
+.browser-queuer button.glyphicon {
 	font-size: 20px;
 	border: none;
 	color: var(--color-accent);
@@ -43,24 +47,5 @@
 }
 
 .queuer-rules .rule-error .glyphicon {
-	position: absolute;
-	top: 8px;
-	left: 6px;
-	font-size: 30px;
 	color: #f00;
-}
-
-.queuer-rules .rule-error .tooltip-inner {
-	padding-left: 42px;
-}
-
-.queuer-rules input.queuer-value ~ .field-modified {
-	padding: 0 2px;
-	font-size: 30px;
-	color: var(--color-accent);
-	background-color: transparent;
-}
-
-.queuer-rules input.queuer-value:not(.modified) ~ .field-modified {
-	display: none;
 }

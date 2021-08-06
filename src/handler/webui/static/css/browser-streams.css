@@ -33,20 +33,20 @@
 	background-color: var(--color-bg);
 }
 
-.browser-streams ul > li .track-art > * {
+.browser-streams ul > li .track-art ~ * {
 	background-color: var(--color-bg);
 	position: absolute;
 	padding: 0 0.2em;
 	overflow: hidden;
 }
 
-.browser-streams ul > li .track-art > .stream-title {
+.browser-streams ul > li .stream-title {
 	top: 0;
 	left: 0;
 	right: 0;
 }
 
-.browser-streams ul > li .track-art > button {
+.browser-streams ul > li button {
 	padding: 0.2em;
 	top: auto;
 	bottom: 0;
@@ -55,25 +55,25 @@
 	color: var(--color-accent);
 }
 
-.browser-streams ul > li:hover .track-art > button {
+.browser-streams ul > li:hover button {
 	opacity: 1;
 }
 
-.browser-streams ul > li .track-art > button.do-remove {
+.browser-streams ul > li button.do-remove {
 	right: 0;
 }
 
-.browser-streams ul > li .track-art > button.do-edit {
+.browser-streams ul > li button.do-edit {
 	left: 0;
 }
 
-.browser-streams ul > li .track-art > .do-add {
+.browser-streams ul > li .do-add {
 	right: 0;
 	color: var(--color-accent);
 	opacity: 0;
 }
 
-.browser-streams ul > li:hover .track-art > .do-add {
+.browser-streams ul > li:hover .do-add {
 	opacity: 1;
 }
 

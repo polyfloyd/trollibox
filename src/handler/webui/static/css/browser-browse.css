@@ -1,17 +1,17 @@
-.browser-browse .tab {
+.browser-genres .tab {
 	display: flex;
 	flex-direction: column;
 }
 
-.browser-browse .tab-name-genre {
+.browser-genres .tab-name-genre {
 	width: 20%;
 }
 
-.browser-browse .tab-name-track,
-.browser-browse .tab-name-artist {
+.browser-genres .tab-name-track,
+.browser-genres .tab-name-artist {
 	width: 40%;
 }
 
-.browser-browse h2 {
+.browser-genres h2 {
 	flex-shrink: 0;
 }

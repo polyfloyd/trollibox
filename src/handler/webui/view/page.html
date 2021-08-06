@@ -7,9 +7,6 @@
 
 	<title>Trollibox{{ if gt (len .players) 1 }} | {{ .player }}{{ end }}</title>
 
-	<script>
-		window.URLROOT = '{{ .urlroot }}';
-	</script>
 	<style>
 		:root {
 			--color-bg: {{ .colors.bg }};
@@ -27,6 +24,7 @@
 	{{ end }}
 </head>
 <body>
+<div id="app">
 	<nav class="navbar navbar-default page-navbar">
 		<div class="container-fluid">
 			<div class="navbar-header">
@@ -37,89 +35,54 @@
 				</button>
 				<span class="navbar-brand" href="/">
 					Trollibox
-					{{ if gt (len .players) 1 }}
-					|
-					<select class="player-selector">
-						{{ with $v := . }}
-							{{ range $v.players }}
-								<option value="{{ . }}" {{ if eq . $v.player }}selected{{ end }}>
-									<a href="{{ $v.urlroot }}player/{{ . }}">{{ . }}</a>
-								</option>
-							{{ end }}
-						{{ end }}
-					</select>
-					{{ end }}
+					<select-player v-if="players.length > 1"
+						:urlroot="urlroot"
+						:players="players"
+						:initial-selected-player="selectedPlayer"
+					></select-player>
 				</span>
 			</div>
 
 			<div class="collapse navbar-collapse">
 				<ul class="nav navbar-nav" role="tablist">
-					<li class="nav-item show-view view-name-search">
-						<a
-							href="#"
-							data-baseurl="/browse/search/"
-							data-state=""
-							title="Search Everything">
+					<li class="nav-item show-view view-name-search" :class="{active: currentView == 'search'}">
+						<a href="#" title="Search Everything" @click="currentView = 'search'">
 							<span class="glyphicon glyphicon-search"></span>
 							<span class="nav-title">Search</span>
 						</a>
 					</li>
-					<li class="nav-item show-view view-name-albums">
-						<a
-							href="#"
-							data-baseurl="/browse/albums/"
-							data-state=""
-							title="Browse Albums">
+					<li class="nav-item show-view view-name-albums" :class="{active: currentView == 'albums'}">
+						<a href="#" title="Browse Albums" @click="currentView = 'albums'">
 							<span class="glyphicon glyphicon-cd"></span>
 							<span class="nav-title">Albums</span>
 						</a>
 					</li>
-					<li class="nav-item show-view view-name-browse">
-						<a
-							href="#"
-							data-baseurl="/browse/browse/"
-							data-state=""
-							title="Browse Artists By Genre">
+					<li class="nav-item show-view view-name-browse" :class="{active: currentView == 'genres'}">
+						<a href="#" title="Browse Artists By Genre" @click="currentView = 'genres'">
 							<span class="glyphicon glyphicon-music"></span>
 							<span class="nav-title">Genres</span>
 						</a>
 					</li>
-					<li class="nav-item show-view view-name-files">
-						<a
-							href="#"
-							data-baseurl="/browse/files/"
-							data-state=""
-							title="Browse Files">
+					<li class="nav-item show-view view-name-files" :class="{active: currentView == 'files'}">
+						<a href="#" title="Browse Files" @click="currentView = 'files'">
 							<span class="glyphicon glyphicon-folder-open"></span>
 							<span class="nav-title">Files</span>
 						</a>
 					</li>
-					<li class="nav-item show-view view-name-streams">
-						<a
-							href="#"
-							data-baseurl="/browse/streams/"
-							data-state=""
-							title="Network Streams">
+					<li class="nav-item show-view view-name-streams" :class="{active: currentView == 'streams'}">
+						<a href="#" title="Network Streams" @click="currentView = 'streams'">
 							<span class="glyphicon glyphicon-globe"></span>
 							<span class="nav-title">Streams</span>
 						</a>
 					</li>
-					<li class="nav-item show-view view-name-queuer">
-						<a
-							href="#"
-							data-baseurl="/queuer"
-							data-state=""
-							title="Configure The AutoQueuer">
+					<li class="nav-item show-view view-name-queuer" :class="{active: currentView == 'queuer'}">
+						<a href="#" title="Configure The AutoQueuer" @click="currentView = 'queuer'">
 							<span class="glyphicon glyphicon-random"></span>
 							<span class="nav-title">AutoQueuer</span>
 						</a>
 					</li>
-					<li class="nav-item view-name-player">
-						<a
-							href="#"
-							data-baseurl="/player"
-							data-state=""
-							title="Expand The Player">
+					<li class="nav-item view-name-player" :class="{active: currentView == 'player'}">
+						<a href="#" title="Expand The Player" @click="currentView = 'player'">
 							<span class="glyphicon glyphicon-play"></span>
 							<span class="nav-title">Player</span>
 						</a>
@@ -152,130 +115,64 @@
 		</div>
 	</template>
 
-	<div class="browser">
-		<div class="views-container"></div>
-		<div class="browser-player"></div>
+	<div class="browser" :class="{'expand-player': currentView == 'player'}">
+		<div class="views-container">
+			<browser-search v-if="currentView == 'search'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"></browser-search>
+			<browser-albums v-else-if="currentView == 'albums'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"
+				:library="library"></browser-albums>
+			<browser-genres v-else-if="currentView == 'genres'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"
+				:library="library"></browser-genres>
+			<browser-files v-else-if="currentView == 'files'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"
+				:library="library"></browser-files>
+			<browser-streams v-else-if="currentView == 'streams'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"></browser-streams>
+			<browser-queuer v-else-if="currentView == 'queuer'" class="view"
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"></browser-queuer>
+		</div>
+		<div class="browser-player">
+			<player
+				:urlroot="urlroot"
+				:selected-player="selectedPlayer"
+				@update:tracks="library = $event" />
+		</div>
 	</div>
+</div>
 
-	{{ with $v := . }}
-		{{ range $v.assets.JS }}
-			<script src="{{ $v.urlroot }}{{ . }}"></script>
-		{{ end }}
+{{ if eq .build "debug" }}
+<script src="//cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
+{{ else }}
+<script src="//cdn.jsdelivr.net/npm/vue@2"></script>
+<script src="//cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
+{{ end }}
+
+{{ with $v := . }}
+	{{ range $v.assets.JS }}
+		<script src="{{ $v.urlroot }}{{ . }}"></script>
 	{{ end }}
+{{ end }}
 
-	<script>
-		$(function() {
-			{{ if gt (len .players) 1 }}
-			$('.player-selector').on('change', function(event) {
-				window.location = URLROOT+'player/'+event.target.value;
-			});
-			{{ end }}
-
-			var player = new Player('{{ .player }}');
-			var streamdb = new StreamDB();
-			var filterdb = new FilterDB();
-			var playerView = window.playerView = new PlayerView(player);
-
-			function handleError(err) {
-				console.error(err);
-				$('body > .modal').modal('hide');
-				var $el = $($('#tmpl-error-modal').html());
-				$el.find('.modal-body p').text(err.message || err);
-				$el.on('hidden.bs.modal', function() { $el.remove(); });
-				$el.modal('show');
-			}
-
-			var views = {
-				search:  new BrowserSearchView({ model: player }),
-				albums:  new BrowserAlbumsView({ model: player }),
-				browse:  new BrowserBrowseView({ model: player }),
-				files:   new BrowserFilesView({ model: player }),
-				streams: new BrowserStreamsView({ model: streamdb, player }),
-				queuer:  new QueuerView(filterdb),
-			};
-			var app = new Backbone.Router({
-				routes: {
-					'browse/search/':  'search',
-					'browse/albums/':  'albums',
-					'browse/browse/':  'browse',
-					'browse/files/':   'files',
-					'browse/streams/': 'streams',
-					'queuer':          'queuer',
-					'player':          'player',
-				},
-			});
-			app.route(/^browse\/files(.*)$/, 'files');
-
-			function routeByName(name) {
-				return Object.keys(app.routes).find(function(route) {
-					return name === app.routes[route];
-				});
-			}
-
-			app.on('route', function(route, args) {
-				var state = decodeURIComponent(args[0] || '');
-				// Toggle visibility of the views.
-				if (route !== 'player') {
-					for (var k in views) {
-						views[k].$el.toggleClass('hidden', k !== route);
-					}
-					$('.browser').removeClass('expand-player');
-				}
-				if (!!routeByName(route).match(/^browse/)) {
-					$('.view-name-'+route+' a').attr('data-state', state);
-					views[route].setState(state);
-				}
-
-				// Toggle the 'active' class of the navigation buttons.
-				$('.nav > .nav-item').removeClass('active');
-				$('.nav > .nav-item.view-name-'+route).addClass('active');
-			});
-			app.on('route:player', function() {
-				$('.browser').addClass('expand-player');
-				playerView.showCurrent();
-			});
-
-			app.once('route', function(initRoute) {
-				Object.keys(views).forEach(function(k) {
-					if (k !== initRoute) {
-						views[k].$el.addClass('hidden');
-					}
-					$('.views-container').append(views[k].$el);
-					// Make sure to focus on the view when it emits a request-focus event.
-					views[k].on('request-focus', function() {
-						app.navigate(routeByName(k), { trigger: true });
-					});
-					// Listen to view state changes.
-					views[k].on('change-state', function(state) {
-						app.navigate(routeByName(k)+encodeURIComponent(state || ''), { trigger: false });
-						$('.view-name-'+k+' a').attr('data-state', state);
-					});
-				});
-				// Enable navigation by clicking one of the naviation buttons.
-				$('.nav > .nav-item > a').each(function(i, el) {
-					var $el = $(el);
-					$el.on('click', function(event) {
-						event.preventDefault();
-						app.navigate($el.attr('data-baseurl') + ($el.attr('data-state') || ''), { trigger: true });
-						// Close the hamburger menu.
-						$('.navbar-toggle:visible').click();
-					});
-				});
-
-				$('.browser-player').append(playerView.$el);
-
-				Hotkeys.player(player, $(document));
-				Hotkeys.browserSearch(views.search, $(document));
-			});
-
-			if (!Backbone.history.start()) {
-				// Go to the search view if the current page mathces no route.
-				app.navigate('browse/search/', {
-					trigger: true,
-					replace: true,
-				});
-			}
-		});
-	</script>
+<script>
+	let data = {
+		urlroot: {{ .urlroot }},
+		players: {{ .players }}.map((name) => { return {name}; }),
+		selectedPlayer: {{ .player }},
+		currentView: 'search',
+		library: [],
+	};
+	new Vue({el: '#app', data});
+</script>
 </body>
 </html>
