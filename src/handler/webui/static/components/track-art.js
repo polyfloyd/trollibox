@@ -1,3 +1,5 @@
+let trackArtImageCache = new Map();
+
 Vue.component('track-art', {
 	mixins: [ApiMixin],
 	props: {
@@ -22,14 +24,25 @@ Vue.component('track-art', {
 	methods: {
 		load: async function() {
 			if (!this.track) return;
+
 			let url = `${this.urlroot}data/player/${this.selectedPlayer}/tracks/art?track=${encodeURIComponent(this.track.uri)}`;
-			try {
-				let response = await fetch(url);
-				if (!response.ok) {
-					throw new Error('could not fetch track art');
+
+			if (!trackArtImageCache.has(url)) {
+				try {
+					let promise = fetch(url)
+						.then(async response => {
+							if (!response.ok) return null;
+							return URL.createObjectURL(await response.blob());
+						});
+					trackArtImageCache.set(url, promise);
+				} catch (e) {
+					trackArtImageCache.delete(url);
 				}
-				this.blobUrl = URL.createObjectURL(await response.blob());
-			} catch { }
+			}
+
+			if (trackArtImageCache.has(url)) {
+				this.blobUrl = await trackArtImageCache.get(url);
+			}
 		},
 	},
 });
