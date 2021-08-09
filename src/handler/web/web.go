@@ -63,6 +63,7 @@ func New(build, version string, colorConfig ColorConfig, urlRoot string, jukebox
 
 	service.Get("/", web.redirectToDefaultPlayer)
 	service.Get("/player/{player}", web.browserPage)
+	service.Get("/player/{player}/{view}", web.browserPage)
 	service.Route("/data", func(r chi.Router) {
 		api.InitRouter(r, web.jukebox)
 	})
@@ -147,6 +148,13 @@ func (web *webUI) getTemplate() *template.Template {
 func (web *webUI) browserPage(w http.ResponseWriter, r *http.Request) {
 	params := web.baseParamMap()
 	params["player"] = chi.URLParam(r, "player")
+	switch view := r.FormValue("view"); view {
+	case "", "search", "albums", "genres", "files", "streams", "queuer", "player":
+		params["view"] = view
+	default:
+		web.redirectToDefaultPlayer(w, r)
+		return
+	}
 
 	w.Header().Set("Content-Type", "text/html")
 	if err := web.getTemplate().Execute(w, params); err != nil {
@@ -160,7 +168,7 @@ func (web *webUI) redirectToDefaultPlayer(w http.ResponseWriter, r *http.Request
 		api.WriteError(w, r, fmt.Errorf("error finding a player to redirect to: %v", err))
 		return
 	}
-	http.Redirect(w, r, "/player/"+defaultPlayer, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, fmt.Sprintf("/player/%s", defaultPlayer), http.StatusTemporaryRedirect)
 }
 
 func (web *webUI) defaultAlbumArt() http.HandlerFunc {

@@ -169,10 +169,19 @@
 		urlroot: {{ .urlroot }},
 		players: {{ .players }}.map((name) => { return {name}; }),
 		selectedPlayer: {{ .player }},
-		currentView: 'search',
+		currentView: {{ .view }} || 'search',
 		library: [],
 	};
-	new Vue({el: '#app', data});
+	let app = new Vue({
+		el: '#app',
+		data,
+		watch: {
+			currentView: function(view) {
+				let url = `${this.urlroot}player/${this.selectedPlayer}?view=${view}`;
+				history.replaceState(null, document.title, url);
+			},
+		},
+	});
 </script>
 </body>
 </html>
