@@ -111,6 +111,12 @@ Vue.component('player', {
 	destroyed: function() {
 		this._ev.close();
 	},
+	mounted: function() {
+		document.body.addEventListener('keypress', this.onKey);
+	},
+	beforeDestroy: function() {
+		document.body.removeEventListener('keypress', this.onKey);
+	},
 	computed: {
 		pastPlaylist: {
 			get: function() {
@@ -216,6 +222,38 @@ Vue.component('player', {
 			}
 			let { tracks } = await res.json();
 			this.$emit('update:tracks', tracks);
+		},
+
+		onKey: function(event) {
+			if (event.target != document.body) return;
+			switch (event.key) {
+			case ' ':
+				this.setState(this.state != 'playing' ? 'playing' : 'paused');
+				break;
+			case '<':
+				this.setIndex(-1, true);
+				break;
+			case '>':
+				this.setIndex(1, true);
+				break;
+			case 'ArrowUp':
+				this.setVolume(this.volume + 0.05);
+				break;
+			case 'ArrowDown':
+				this.setVolume(this.volume - 0.05);
+				break;
+			case 'ArrowLeft':
+				this.setTime(this.time - 5);
+				break;
+			case 'ArrowRight':
+				this.setTime(this.time + 5);
+				break;
+			case 'c':
+				if (confirm('Are you sure you would like to clear the playlist?')) {
+					this.clearPlaylist();
+				}
+				break;
+			}
 		},
 	},
 });
