@@ -111,8 +111,11 @@ Vue.component('browser-search', {
 				}
 				let { tracks } = await response.json();
 				this.results = tracks.slice(0, 200); // TODO: Remove subslice?
+				this.ctx = null;
 
 			} catch (AbortError) {
+				// Do not unset ctx, it has been overwritten by a new search
+				// query.
 				return;
 			}
 		},
