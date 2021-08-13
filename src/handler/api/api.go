@@ -49,7 +49,7 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 			r.Delete("/", api.filterRemove)
 			r.Put("/", api.filterSet)
 		})
-		r.Mount("/events", htEvents(&jukebox.FilterDB().Emitter))
+		r.Get("/events", api.filterEvents)
 	})
 
 	r.Route("/streams", func(r chi.Router) {

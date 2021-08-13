@@ -16,7 +16,8 @@ import (
 
 // An UpdateEvent is emitted when the database has changed.
 type UpdateEvent struct {
-	Filter string
+	Name   string
+	Filter Filter
 }
 
 var factories = map[string]func() Filter{}
@@ -117,7 +118,7 @@ func (db *DB) Set(name string, filter Filter) error {
 	}
 
 	db.cache.Store(name, filter)
-	defer db.Emit(UpdateEvent{})
+	defer db.Emit(UpdateEvent{Name: name, Filter: filter})
 
 	fd, err := os.Create(db.filterFile(name))
 	if err != nil {
@@ -129,7 +130,6 @@ func (db *DB) Set(name string, filter Filter) error {
 		log.Errorf("%v", err)
 		return nil
 	}
-	db.Emit(UpdateEvent{Filter: name})
 	return nil
 }
 
@@ -143,7 +143,7 @@ func (db *DB) Remove(name string) error {
 	} else if err != nil {
 		return err
 	}
-	db.Emit(UpdateEvent{Filter: name})
+	defer db.Emit(UpdateEvent{Name: name, Filter: nil})
 	return nil
 }
 

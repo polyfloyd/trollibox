@@ -80,16 +80,15 @@ Vue.component('browser-queuer', {
 	`,
 	created: function() {
 		this._ev = new EventSource(`${this.urlroot}data/filters/events`);
-		this._ev.onopen = () => {
-			// Reload all state to ensure that we are in sync.
-			this.reload();
-		};
-		this._ev.addEventListener('filter:update', async event => {
-			let name = JSON.parse(event.data).filter;
-			if (name != this.filterName) return;
-			await this.reload();
+		this._ev.addEventListener(`filter:${this.filterName}`, async event => {
+			let { filter } = JSON.parse(event.data);
+			if (filter.type != 'ruled') {
+				console.warning(`Unexpected type for queuer filter: ${filter.type}`);
+				this.rules = [];
+				return;
+			}
+			this.rules = filter && filter.rules || [];
 		});
-		this.reload();
 	},
 	destroyed: function() {
 		this._ev.close();
@@ -141,23 +140,6 @@ Vue.component('browser-queuer', {
 			this.ruleErrors = ruleErrors;
 		},
 
-		reload: async function() {
-			let response = await fetch(`${this.urlroot}data/filters/${this.filterName}`);
-			if (response.status == 404) {
-				console.warning(`Queuer filter ${this.filterName} does not exist on the server`);
-				this.rules = [];
-				return;
-			} else if (!response.ok) {
-				throw new Error('could not load filter');
-			}
-			let { filter } = await response.json();
-			if (filter.type != 'ruled') {
-				console.warning(`Unexpected type for queuer filter: ${filter.type}`);
-				this.rules = [];
-				return;
-			}
-			this.rules = filter.rules;
-		},
 		update: async function() {
 			let response = await fetch(`${this.urlroot}data/filters/${this.filterName}`, {
 				method: 'PUT',
