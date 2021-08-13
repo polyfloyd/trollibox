@@ -215,15 +215,16 @@ func init() {
 	})
 }
 
-type nojsonQuery struct {
-	Query    string   `json:"query"`
-	Untagged []string `json:"untagged"`
+type (
+	// A Query is a compiled query string.
+	Query    rawQuery
+	rawQuery struct {
+		Query    string   `json:"query"`
+		Untagged []string `json:"untagged"`
 
-	rules []rule
-}
-
-// A Query is a compiled query string.
-type Query nojsonQuery
+		rules []rule
+	}
+)
 
 // CompileQuery compiles a search query so that it may be used to discriminate
 // tracks.
@@ -261,9 +262,17 @@ func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 	}, nil
 }
 
+// MarshalJSON implements the json.Unmarshaler interface.
+func (sq *Query) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		rawQuery
+		Type string `json:"type"`
+	}{rawQuery: rawQuery(*sq), Type: "keyed"})
+}
+
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (sq *Query) UnmarshalJSON(data []byte) error {
-	if err := json.Unmarshal(data, (*nojsonQuery)(sq)); err != nil {
+	if err := json.Unmarshal(data, (*rawQuery)(sq)); err != nil {
 		return err
 	}
 	q, err := CompileQuery(sq.Query, sq.Untagged)

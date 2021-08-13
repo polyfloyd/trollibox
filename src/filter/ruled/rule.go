@@ -175,14 +175,15 @@ func (err RuleError) Error() string {
 	return err.OrigErr.Error()
 }
 
-type nojsonRuleFilter struct {
-	Rules []Rule `json:"rules"`
+type (
+	// A RuleFilter is a compiled set of rules.
+	RuleFilter    rawRuleFilter
+	rawRuleFilter struct {
+		Rules []Rule `json:"rules"`
 
-	funcs []func(library.Track) ([]filter.SearchMatch, bool)
-}
-
-// A RuleFilter is a compiled set of rules.
-type RuleFilter nojsonRuleFilter
+		funcs []func(library.Track) ([]filter.SearchMatch, bool)
+	}
+)
 
 // BuildFilter builds a filter from a set of rules.
 func BuildFilter(rules []Rule) (filter.Filter, error) {
@@ -214,9 +215,17 @@ func (ft RuleFilter) Filter(track library.Track) (filter.SearchResult, bool) {
 	return result, true
 }
 
+// MarshalJSON implements the json.Unmarshaler interface.
+func (ft *RuleFilter) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		rawRuleFilter
+		Type string `json:"type"`
+	}{rawRuleFilter: rawRuleFilter(*ft), Type: "ruled"})
+}
+
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (ft *RuleFilter) UnmarshalJSON(data []byte) error {
-	err := json.Unmarshal(data, (*nojsonRuleFilter)(ft))
+	err := json.Unmarshal(data, (*rawRuleFilter)(ft))
 	if err != nil {
 		return err
 	}

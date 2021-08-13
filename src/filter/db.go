@@ -3,13 +3,13 @@ package filter
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path"
-	"reflect"
 	"sort"
 	"strings"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/util"
 )
@@ -26,12 +26,12 @@ var factories = map[string]func() Filter{}
 //
 // The returned value should be the zero value of that type.
 func RegisterFactory(factory func() Filter) {
-	factories[filterType(factory())] = factory
+	t := filterType(factory())
+	factories[t] = factory
 }
 
 type storageFormat struct {
-	Type  string           `json:"type"`
-	Value *json.RawMessage `json:"value"`
+	Type string `json:"type"`
 }
 
 // A DB handles storage of filter implemementations to disk.
@@ -83,16 +83,15 @@ func (db *DB) Get(name string) (Filter, error) {
 		return f.(Filter), nil
 	}
 
-	fd, err := os.Open(db.filterFile(name))
+	b, err := os.ReadFile(db.filterFile(name))
 	if os.IsNotExist(err) {
 		return nil, nil
 	} else if err != nil {
 		return nil, err
 	}
-	defer fd.Close()
 
 	var ft storageFormat
-	if err := json.NewDecoder(fd).Decode(&ft); err != nil {
+	if err := json.Unmarshal(b, &ft); err != nil {
 		return nil, err
 	}
 
@@ -101,7 +100,7 @@ func (db *DB) Get(name string) (Filter, error) {
 		return nil, fmt.Errorf("unknown filter type: %s", ft.Type)
 	}
 	filter := fac()
-	if err := json.Unmarshal(([]byte)(*ft.Value), filter); err != nil {
+	if err := json.Unmarshal(b, filter); err != nil {
 		return nil, err
 	}
 	return filter, nil
@@ -117,23 +116,15 @@ func (db *DB) Set(name string, filter Filter) error {
 	db.cache.Store(name, filter)
 	defer db.Emit(UpdateEvent{})
 
-	ftVal, err := json.Marshal(filter)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
-
 	fd, err := os.Create(db.filterFile(name))
 	if err != nil {
-		log.Println(err)
+		log.Errorf("%v", err)
 		return nil
 	}
 	defer fd.Close()
-	if err := json.NewEncoder(fd).Encode(storageFormat{
-		Type:  filterType(filter),
-		Value: (*json.RawMessage)(&ftVal),
-	}); err != nil {
-		log.Println(err)
+	if err := json.NewEncoder(fd).Encode(filter); err != nil {
+		log.Errorf("%v", err)
+		return nil
 	}
 	db.Emit(UpdateEvent{Filter: name})
 	return nil
@@ -163,9 +154,16 @@ func (db *DB) filterFile(name string) string {
 }
 
 func filterType(filter Filter) string {
-	typ := reflect.TypeOf(filter)
-	if typ.Kind() == reflect.Ptr {
-		return typ.Elem().PkgPath()
+	b, err := json.Marshal(filter)
+	if err != nil {
+		panic(err)
 	}
-	return typ.PkgPath()
+	var data storageFormat
+	if err := json.Unmarshal(b, &data); err != nil {
+		panic(err)
+	}
+	if data.Type == "" {
+		panic("no type in filter JSON")
+	}
+	return data.Type
 }

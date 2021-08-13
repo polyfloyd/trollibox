@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"encoding/json"
 	"os"
 	"path"
 	"testing"
@@ -22,6 +23,14 @@ type dummyFilter struct {
 
 func (*dummyFilter) Filter(library.Track) (SearchResult, bool) {
 	return SearchResult{}, true
+}
+
+func (d *dummyFilter) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		"Foo":  d.Foo,
+		"Bar":  d.Bar,
+		"type": "dummy",
+	})
 }
 
 func TestDBGetSetRemove(t *testing.T) {
