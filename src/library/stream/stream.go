@@ -35,7 +35,7 @@ type Stream struct {
 	Filename string `json:"filename"`
 	URL      string `json:"url"`
 	Title    string `json:"title"`
-	ArtURI   string `json:"arturi"`
+	ArtURI   string `json:"arturi,omitempty"`
 }
 
 func loadM3U(filename string) (*Stream, error) {

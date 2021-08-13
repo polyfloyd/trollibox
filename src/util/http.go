@@ -46,3 +46,7 @@ func (rwi *rwInterceptor) Write(b []byte) (int, error) {
 func (rwi *rwInterceptor) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return rwi.ResponseWriter.(http.Hijacker).Hijack()
 }
+
+func (rwi *rwInterceptor) Flush() {
+	rwi.ResponseWriter.(http.Flusher).Flush()
+}

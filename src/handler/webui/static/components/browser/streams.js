@@ -64,17 +64,11 @@ Vue.component('browser-streams', {
 	`,
 	created: function() {
 		this._ev = new EventSource(`${this.urlroot}data/streams/events`);
-		this._ev.onopen = () => {
-			// Reload all state to ensure that we are in sync.
-			this.reload()
-				.catch(err => console.error(err));
-		};
-		this._ev.addEventListener('library:tracks', async event => {
-			this.reload()
-				.catch(err => console.error(err));
+		this._ev.addEventListener('streams', async event => {
+			this.streams = JSON.parse(event.data).streams
+				.map(stream => { return {...stream, uri: stream.url}; })
+				.sort((a, b) => stringCompareCaseInsensitive(a.title, b.title));
 		});
-		this.reload()
-			.catch(err => console.error(err));
 	},
 	destroyed: function() {
 		this._ev.close();
@@ -82,9 +76,6 @@ Vue.component('browser-streams', {
 	methods: {
 		showEditStreamDialog: function(stream) {
 			this.editStream = stream || {};
-		},
-		reload: async function() {
-			this.streams = await this.loadStreams();
 		},
 
 		removeStream: async function(stream) {
@@ -103,16 +94,6 @@ Vue.component('browser-streams', {
 			if (!response.ok) {
 				throw new Error('Unable to add stream');
 			}
-		},
-		loadStreams: async function() {
-			let response = await fetch(`${this.urlroot}data/streams`);
-			if (!response.ok) {
-				throw new Error('Unable to list streams');
-			}
-			let { streams } = await response.json();
-			return streams
-				.map(stream => { return {...stream, uri: stream.url}; })
-				.sort((a, b) => stringCompareCaseInsensitive(a.title, b.title));
 		},
 	},
 });
