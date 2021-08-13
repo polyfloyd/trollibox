@@ -144,7 +144,7 @@ Vue.component('browser-queuer', {
 		reload: async function() {
 			let response = await fetch(`${this.urlroot}data/filters/${this.filterName}`);
 			if (response.status == 404) {
-				console.warning(`Queuer filter ${filter.type} does not exist on the server`);
+				console.warning(`Queuer filter ${this.filterName} does not exist on the server`);
 				this.rules = [];
 				return;
 			} else if (!response.ok) {
@@ -156,7 +156,7 @@ Vue.component('browser-queuer', {
 				this.rules = [];
 				return;
 			}
-			this.rules = filter.value.rules;
+			this.rules = filter.rules;
 		},
 		update: async function() {
 			let response = await fetch(`${this.urlroot}data/filters/${this.filterName}`, {
@@ -166,7 +166,7 @@ Vue.component('browser-queuer', {
 					// Trigger an error response in JSON format.
 					'X-Requested-With': 'fetch',
 				},
-				body: JSON.stringify({filter: {type: 'ruled', value: {rules: this.rules}}}),
+				body: JSON.stringify({filter: {type: 'ruled', rules: this.rules}}),
 			});
 			if (response.status == 400) {
 				let err = await response.json();

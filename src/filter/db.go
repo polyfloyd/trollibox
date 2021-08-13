@@ -34,6 +34,23 @@ type storageFormat struct {
 	Type string `json:"type"`
 }
 
+func UnmarshalJSON(b []byte) (Filter, error) {
+	var ft storageFormat
+	if err := json.Unmarshal(b, &ft); err != nil {
+		return nil, err
+	}
+
+	fac, ok := factories[ft.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown filter type: %s", ft.Type)
+	}
+	filter := fac()
+	if err := json.Unmarshal(b, filter); err != nil {
+		return nil, err
+	}
+	return filter, nil
+}
+
 // A DB handles storage of filter implemementations to disk.
 type DB struct {
 	util.Emitter
@@ -89,21 +106,7 @@ func (db *DB) Get(name string) (Filter, error) {
 	} else if err != nil {
 		return nil, err
 	}
-
-	var ft storageFormat
-	if err := json.Unmarshal(b, &ft); err != nil {
-		return nil, err
-	}
-
-	fac, ok := factories[ft.Type]
-	if !ok {
-		return nil, fmt.Errorf("unknown filter type: %s", ft.Type)
-	}
-	filter := fac()
-	if err := json.Unmarshal(b, filter); err != nil {
-		return nil, err
-	}
-	return filter, nil
+	return UnmarshalJSON(b)
 }
 
 // Set stores the specified filter under the specified name overwriting any

@@ -8,8 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"trollibox/src/filter"
-	"trollibox/src/filter/keyed"
-	"trollibox/src/filter/ruled"
 )
 
 func (api *API) filterList(w http.ResponseWriter, r *http.Request) {
@@ -35,21 +33,8 @@ func (api *API) filterGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	typ := ""
-	switch filter.(type) {
-	case *ruled.RuleFilter:
-		typ = "ruled"
-	case *keyed.Query:
-		typ = "keyed"
-	default:
-		WriteError(w, r, fmt.Errorf("unknown filter type %T", filter))
-		return
-	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"filter": map[string]interface{}{
-			"type":  typ,
-			"value": filter,
-		},
+		"filter": filter,
 	})
 }
 
@@ -64,31 +49,19 @@ func (api *API) filterRemove(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) filterSet(w http.ResponseWriter, r *http.Request) {
 	var data struct {
-		Filter struct {
-			Type  string          `json:"type"`
-			Value json.RawMessage `json:"value"`
-		} `json:"filter"`
+		Filter json.RawMessage `json:"filter"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		WriteError(w, r, err)
 		return
 	}
 
-	var filter filter.Filter
-	switch data.Filter.Type {
-	case "ruled":
-		filter = &ruled.RuleFilter{}
-	case "keyed":
-		filter = &keyed.Query{}
-	default:
-		WriteError(w, r, fmt.Errorf("unknown filter type %q", data.Filter.Type))
-		return
-	}
-
-	if err := json.Unmarshal([]byte(data.Filter.Value), filter); err != nil {
+	filter, err := filter.UnmarshalJSON(data.Filter)
+	if err != nil {
 		WriteError(w, r, err)
 		return
 	}
+
 	name := chi.URLParam(r, "name")
 	if err := api.jukebox.FilterDB().Set(name, filter); err != nil {
 		WriteError(w, r, err)
