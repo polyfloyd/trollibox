@@ -1,7 +1,6 @@
 module trollibox
 
 require (
-	github.com/antage/eventsource v0.0.0-20190412115600-84b661236871
 	github.com/fhs/gompd/v2 v2.2.1-0.20210604155103-5f471998a4fb
 	github.com/go-chi/chi/v5 v5.0.3
 	github.com/sirupsen/logrus v1.8.1

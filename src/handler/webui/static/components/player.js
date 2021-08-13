@@ -87,30 +87,25 @@ Vue.component('player', {
 	`,
 	created: function() {
 		this.ev = new EventSource(`${this.urlroot}data/player/${this.selectedPlayer}/events`);
-		this.ev.onopen = () => {
-			// Reload all state to ensure that we are in sync.
-			this.reload()
-				.catch(err => console.error(err));
-		};
 		this.ev.addEventListener('playlist', async event => {
-			let { index, playlist } = await this.loadPlaylist();
+			let { index, tracks, time } = JSON.parse(event.data);
 			this.index = index;
-			this.playlist = playlist;
+			this.playlist = tracks;
+			this.time = time;
 		});
-		this.ev.addEventListener('playstate', event => {
+		this.ev.addEventListener('state', event => {
 			this.state = JSON.parse(event.data).state;
 		});
 		this.ev.addEventListener('time', event => {
 			this.time = JSON.parse(event.data).time;
 		});
 		this.ev.addEventListener('volume', event => {
-			this.volume = JSON.parse(event.data).volume;
+			this.volume = JSON.parse(event.data).volume / 100;
 		});
-		this.ev.addEventListener('tracks', async event => {
+		this.ev.addEventListener('library', async event => {
 			await this.reloadTrackLibrary();
 		});
-		this.reload()
-			.catch(err => console.error(err));
+		this.reloadTrackLibrary();
 	},
 	destroyed: function() {
 		this._ev.close();
@@ -168,57 +163,6 @@ Vue.component('player', {
 			this.moveInPlaylist(from, to);
 		},
 
-		reload: async function() {
-			let [
-				{ index, playlist },
-				state,
-				time,
-				volume,
-			] = await Promise.all([
-				this.loadPlaylist(),
-				this.loadState(),
-				this.loadTime(),
-				this.loadVolume(),
-			]);
-			this.index = index;
-			this.playlist = playlist;
-			this.state = state;
-			this.time = time;
-			this.volume = volume;
-			await this.reloadTrackLibrary();
-		},
-		loadPlaylist: async function() {
-			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/playlist`);
-			if (res.status >= 400) {
-				throw new Error('could not fetch tracks');
-			}
-			let { current, tracks } = await res.json();
-			return { index: current, playlist: tracks };
-		},
-		loadState: async function() {
-			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/playstate`);
-			if (res.status >= 400) {
-				throw new Error('could not fetch tracks');
-			}
-			let { playstate } = await res.json();
-			return playstate;
-		},
-		loadTime: async function() {
-			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/time`);
-			if (res.status >= 400) {
-				throw new Error('could not fetch tracks');
-			}
-			let { time } = await res.json();
-			return time;
-		},
-		loadVolume: async function() {
-			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/volume`);
-			if (res.status >= 400) {
-				throw new Error('could not fetch tracks');
-			}
-			let { volume } = await res.json();
-			return volume;
-		},
 		reloadTrackLibrary: async function() {
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/tracks`);
 			if (res.status >= 400) {

@@ -26,14 +26,18 @@ type Playlist interface {
 	Len() (int, error)
 }
 
+type MetaTrack struct {
+	library.Track
+	TrackMeta
+}
+
 // A MetaPlaylist is used as the main playlist of a player. It allows metadata
 // specific to tracks in the playlist to be persisted.
 type MetaPlaylist interface {
 	Playlist
 
 	InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error
-
-	Meta() ([]TrackMeta, error)
+	MetaTracks() ([]MetaTrack, error)
 }
 
 // A TrackIterator is a type that produces a finite or infinite stream of tracks.

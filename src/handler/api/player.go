@@ -9,21 +9,22 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/jukebox"
 	"trollibox/src/library"
 	"trollibox/src/player"
+	"trollibox/src/util/eventsource"
 )
 
 var httpCacheSince = time.Now()
 
 type playerContextType struct{}
 
-func trackJSON(tr *library.Track, meta *player.TrackMeta) interface{} {
+func jsonTrack(tr *library.Track, meta *player.TrackMeta) interface{} {
 	if tr == nil {
 		return nil
 	}
@@ -55,16 +56,15 @@ func trackJSON(tr *library.Track, meta *player.TrackMeta) interface{} {
 	return struc
 }
 
-func trackJSONList(inList []library.Track) (outList []interface{}) {
-	outList = make([]interface{}, len(inList))
+func jsonTracks(inList []library.Track) []interface{} {
+	outList := make([]interface{}, len(inList))
 	for i, tr := range inList {
-		outList[i] = trackJSON(&tr, nil)
+		outList[i] = jsonTrack(&tr, nil)
 	}
-	return
+	return outList
 }
 
-func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []library.Library, trackIndex int) ([]interface{}, error) {
-	outList := make([]interface{}, len(inList))
+func jsonPlaylistTracks(inList []player.MetaTrack, libs []library.Library) ([]interface{}, error) {
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
 		uris[i] = tr.URI
@@ -74,8 +74,9 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 		return nil, err
 	}
 
+	outList := make([]interface{}, len(inList))
 	for i, tr := range tracks {
-		outList[i] = trackJSON(&tr, &meta[i])
+		outList[i] = jsonTrack(&tr, &inList[i].TrackMeta)
 	}
 	return outList, nil
 }
@@ -203,12 +204,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	tracks, err := plist.Tracks()
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-	meta, err := plist.Meta()
+	tracks, err := plist.MetaTracks()
 	if err != nil {
 		WriteError(w, r, err)
 		return
@@ -218,24 +214,18 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	tim, err := api.jukebox.PlayerTime(r.Context(), playerName)
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
 	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
 	if err != nil {
 		WriteError(w, r, err)
 		return
 	}
-	trJSON, err := plTrackJSONList(tracks, meta, libs, trackIndex)
+	trJSON, err := jsonPlaylistTracks(tracks, libs)
 	if err != nil {
 		WriteError(w, r, err)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(map[string]interface{}{
-		"time":    int(tim / time.Second),
 		"current": trackIndex,
 		"tracks":  trJSON,
 	})
@@ -337,7 +327,7 @@ func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"tracks": trackJSONList(tracks),
+		"tracks": jsonTracks(tracks),
 	})
 }
 
@@ -390,7 +380,7 @@ func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	for i, w := range results {
 		mappedResults[i] = map[string]interface{}{
 			"matches": w.Matches,
-			"track":   trackJSON(&w.Track, nil),
+			"track":   jsonTrack(&w.Track, nil),
 		}
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -398,26 +388,108 @@ func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (api *API) playerEvents() http.Handler {
-	var eventSourcesLock sync.Mutex
-	eventSources := map[string]http.Handler{}
+func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		playerName := chi.URLParam(r, "playerName")
+	es, err := eventsource.Begin(w, r)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	emitter, err := api.jukebox.PlayerEvents(context.Background(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	listener := emitter.Listen()
+	defer emitter.Unlisten(listener)
 
-		eventSourcesLock.Lock()
-		ev, ok := eventSources[playerName]
-		if !ok {
-			emitter, err := api.jukebox.PlayerEvents(context.Background(), playerName)
+	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+
+	index, err := api.jukebox.PlayerTrackIndex(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+
+	tracks, err := plist.MetaTracks()
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	playlistTracks, err := jsonPlaylistTracks(tracks, libs)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	cTime, err := api.jukebox.PlayerTime(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	es.EventJSON("playlist", map[string]interface{}{"index": index, "tracks": playlistTracks, "time": cTime / time.Second})
+
+	state, err := api.jukebox.PlayerState(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	es.EventJSON("state", map[string]interface{}{"state": state})
+
+	volume, err := api.jukebox.PlayerVolume(r.Context(), playerName)
+	if err != nil {
+		log.Errorf("%v", err)
+		return
+	}
+	es.EventJSON("volume", map[string]interface{}{"volume": volume})
+
+	for {
+		var event interface{}
+		select {
+		case event = <-listener:
+		case <-r.Context().Done():
+			return
+		}
+
+		switch t := event.(type) {
+		case player.PlaylistEvent:
+			tracks, err := plist.MetaTracks()
 			if err != nil {
-				WriteError(w, r, err)
+				log.Errorf("%v", err)
 				return
 			}
-			ev = htEvents(emitter)
-			eventSources[playerName] = ev
+			playlistTracks, err := jsonPlaylistTracks(tracks, libs)
+			if err != nil {
+				log.Errorf("%v", err)
+				return
+			}
+			cTime, err := api.jukebox.PlayerTime(r.Context(), playerName)
+			if err != nil {
+				log.Errorf("%v", err)
+				return
+			}
+			es.EventJSON("playlist", map[string]interface{}{"index": t.Index, "tracks": playlistTracks, "time": cTime / time.Second})
+		case player.PlayStateEvent:
+			es.EventJSON("state", map[string]interface{}{"state": t.State})
+		case player.TimeEvent:
+			es.EventJSON("time", map[string]interface{}{"time": int(t.Time / time.Second)})
+		case player.VolumeEvent:
+			es.EventJSON("volume", map[string]interface{}{"volume": t.Volume})
+		case player.AvailabilityEvent:
+			es.EventJSON("availability", map[string]interface{}{"available": t.Available})
+		case library.UpdateEvent:
+			es.EventJSON("library", "")
+		default:
+			log.Debugf("Unmapped filter db event %#v", event)
 		}
-		eventSourcesLock.Unlock()
-
-		ev.ServeHTTP(w, r)
-	})
+	}
 }

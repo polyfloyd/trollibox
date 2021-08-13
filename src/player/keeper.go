@@ -176,11 +176,16 @@ func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, m
 }
 
 // Meta loads the metadata associated with each track in the playlist.
-func (kpr *PlaylistMetaKeeper) Meta() ([]TrackMeta, error) {
+func (kpr *PlaylistMetaKeeper) MetaTracks() ([]MetaTrack, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if err := kpr.update(); err != nil {
 		return nil, err
 	}
-	return kpr.meta, nil
+
+	metaTracks := make([]MetaTrack, len(kpr.tracks))
+	for i, track := range kpr.tracks {
+		metaTracks[i] = MetaTrack{Track: track, TrackMeta: kpr.meta[i]}
+	}
+	return metaTracks, nil
 }

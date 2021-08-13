@@ -37,14 +37,14 @@ func TestMetaKeeperInsert(t *testing.T) {
 	if err := metapl.InsertWithMeta(0, []library.Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
 		t.Fatal(err)
 	}
-	meta, err := metapl.Meta()
+	tracks, err := metapl.MetaTracks()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(meta) != 1 {
-		t.Fatalf("Unexpected metadata length: %v", len(meta))
+	if len(tracks) != 1 {
+		t.Fatalf("Unexpected metadata length: %v", len(tracks))
 	}
-	if meta[0].QueuedBy != "system" {
-		t.Fatalf("Unexpected QueuedBy: %v", meta[0].QueuedBy)
+	if tracks[0].QueuedBy != "system" {
+		t.Fatalf("Unexpected QueuedBy: %v", tracks[0].QueuedBy)
 	}
 }

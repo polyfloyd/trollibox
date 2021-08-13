@@ -2,19 +2,12 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
 
-	"github.com/antage/eventsource"
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 
-	"trollibox/src/filter"
 	"trollibox/src/jukebox"
-	"trollibox/src/library"
-	"trollibox/src/player"
-	"trollibox/src/util"
 )
 
 // InitRouter attaches all API routes to the specified router.
@@ -39,7 +32,7 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 		r.Get("/tracks", api.playerTracks)
 		r.Get("/tracks/search", api.playerTrackSearch)
 		r.Get("/tracks/art", api.playerTrackArt)
-		r.Mount("/events", api.playerEvents())
+		r.Get("/events", api.playerEvents)
 	})
 
 	r.Route("/filters/", func(r chi.Router) {
@@ -80,68 +73,6 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 		"error": err.Error(),
 		"data":  (*json.RawMessage)(&data),
 	})
-}
-
-func htEvents(emitter *util.Emitter) http.Handler {
-	conf := eventsource.DefaultSettings()
-	events := eventsource.New(conf, func(r *http.Request) [][]byte {
-		return [][]byte{
-			[]byte("X-Accel-Buffering: no"),
-		}
-	})
-
-	ch := emitter.Listen()
-	go func() {
-		id := 0
-		for event := range ch {
-			id++
-
-			// TODO: All these events should not all be combined in here.
-			var eventStr string
-			var eventObj interface{}
-			switch t := event.(type) {
-			case player.PlaylistEvent:
-				eventStr, eventObj = "playlist", map[string]interface{}{
-					"index": t.Index,
-				}
-			case player.PlayStateEvent:
-				eventStr, eventObj = "playstate", map[string]interface{}{
-					"state": t.State,
-				}
-			case player.TimeEvent:
-				eventStr, eventObj = "time", map[string]interface{}{
-					"time": int(t.Time / time.Second),
-				}
-			case player.VolumeEvent:
-				eventStr, eventObj = "volume", map[string]interface{}{
-					"volume": float32(t.Volume) / 100.0,
-				}
-			case player.ListEvent:
-				eventStr, eventObj = "list", struct{}{}
-			case player.AvailabilityEvent:
-				eventStr, eventObj = "availability", map[string]interface{}{
-					"available": t.Available,
-				}
-			case library.UpdateEvent:
-				eventStr, eventObj = "library:tracks", struct{}{}
-			case filter.UpdateEvent:
-				eventStr, eventObj = "filter:update", map[string]interface{}{
-					"filter": t.Filter,
-				}
-			default:
-				log.Debugf("Unmapped event %#v", event)
-				continue
-			}
-
-			eventMsg, err := json.Marshal(eventObj)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-			events.SendEventMessage(string(eventMsg), eventStr, fmt.Sprintf("%d", id))
-		}
-	}()
-	return events
 }
 
 func jsonCtx(next http.Handler) http.Handler {
