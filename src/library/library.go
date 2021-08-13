@@ -1,10 +1,13 @@
 package library
 
 import (
+	"errors"
 	"io"
 
 	"trollibox/src/util"
 )
+
+var ErrNoArt = errors.New("track has no art")
 
 // An UpdateEvent is emitted when the track collection in the library has
 // changed.
@@ -24,7 +27,9 @@ type Library interface {
 
 	// Returns the artwork for the track as a reader of image data along with
 	// its MIME type. The caller is responsible for closing the reader.
-	TrackArt(uri string) (image io.ReadCloser, mime string)
+	//
+	// If no art is available, ErrNoArt is returned.
+	TrackArt(uri string) (image io.ReadCloser, mime string, err error)
 }
 
 // AllTrackInfo looks for the track information in all the libraries supplied.

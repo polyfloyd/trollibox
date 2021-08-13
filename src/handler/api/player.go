@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"path"
@@ -39,7 +40,6 @@ func trackJSON(tr *library.Track, meta *player.TrackMeta) interface{} {
 		AlbumTrack  string `json:"albumtrack,omitempty"`
 		AlbumDisc   string `json:"albumdisc,omitempty"`
 		Duration    int    `json:"duration"`
-		HasArt      bool   `json:"hasart"`
 
 		QueuedBy string `json:"queuedby,omitempty"`
 	}
@@ -52,7 +52,6 @@ func trackJSON(tr *library.Track, meta *player.TrackMeta) interface{} {
 	struc.AlbumTrack = tr.AlbumTrack
 	struc.AlbumDisc = tr.AlbumDisc
 	struc.Duration = int(tr.Duration / time.Second)
-	struc.HasArt = tr.HasArt
 	if meta != nil {
 		struc.QueuedBy = meta.QueuedBy
 	}
@@ -76,21 +75,6 @@ func plTrackJSONList(inList []library.Track, meta []player.TrackMeta, libs []lib
 	tracks, err := library.AllTrackInfo(libs, uris...)
 	if err != nil {
 		return nil, err
-	}
-
-	if trackIndex >= 0 && trackIndex < len(inList) {
-		// Because players are allowed to overide the metadata of other sources
-		// like the stream database, artwork contained by these secondary
-		// sources will be overridden.
-		// This is a hacky way to ensure that such artwork will still be served
-		// for the current track.
-		for _, lib := range libs {
-			if image, _ := lib.TrackArt(inList[trackIndex].URI); image != nil {
-				image.Close()
-				tracks[trackIndex].HasArt = true
-				break
-			}
-		}
 	}
 
 	for i, tr := range tracks {
@@ -373,12 +357,16 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 	var image io.ReadCloser
 	var mime string
 	for _, lib := range libs {
-		if image, mime = lib.TrackArt(uri); image != nil {
+		image, mime, err = lib.TrackArt(uri)
+		if err == nil {
 			break
 		}
 	}
-	if image == nil {
+	if errors.Is(err, library.ErrNoArt) {
 		http.NotFound(w, r)
+		return
+	} else if err != nil {
+		WriteError(w, r, err)
 		return
 	}
 	defer image.Close()

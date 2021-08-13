@@ -24,7 +24,6 @@ type Track struct {
 	AlbumTrack  string        `json:"albumtrack,omitempty"`
 	AlbumDisc   string        `json:"albumdisc,omitempty"`
 	Duration    time.Duration `json:"duration"`
-	HasArt      bool          `json:"hasart"`
 }
 
 // Attr gets an attribute of a track by its name. Accepted names are:
@@ -57,8 +56,6 @@ func (track *Track) Attr(attr string) interface{} {
 		return track.AlbumDisc
 	case "duration":
 		return int64(track.Duration / time.Second)
-	case "hasart":
-		return track.HasArt
 	}
 	return nil
 }

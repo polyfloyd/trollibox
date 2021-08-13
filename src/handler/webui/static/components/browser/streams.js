@@ -41,16 +41,16 @@ Vue.component('browser-streams', {
 								<input class="form-control" type="text" v-model="editStream.title"
 									placeholder="Title" required />
 								<input class="form-control" type="text" v-model="editStream.arturi"
-									:placeholder="editStream.hasart ? 'Keep current image URL' : 'Image URL'" />
+									placeholder="Image URL" />
 							</div>
-							<track-art v-if="editStream.hasart"
+							<img v-if="editStream.arturi"
+								:src="editStream.arturi"
+								class="art-preview"/>
+							<track-art v-else-if="editStream"
 								:urlroot="urlroot"
 								:selected-player="selectedPlayer"
 								:track="editStream"
 								class="art-preview" />
-							<img v-else-if="editStream.arturi"
-								:src="editStream.arturi"
-								class="art-preview"/>
 						</div>
 						<div class="modal-footer">
 							<button type="button" class="btn btn-default" data-dismiss="modal" @click="editStream = null">Cancel</button>

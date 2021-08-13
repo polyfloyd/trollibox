@@ -142,8 +142,7 @@ func (jb *Jukebox) TrackArt(ctx context.Context, playerName, uri string) (io.Rea
 	if err != nil {
 		return nil, "", err
 	}
-	image, mime := pl.Library().TrackArt(uri)
-	return image, mime, nil
+	return pl.Library().TrackArt(uri)
 }
 
 func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, untagged []string) ([]filter.SearchResult, error) {

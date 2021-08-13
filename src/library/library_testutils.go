@@ -28,8 +28,8 @@ func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
 }
 
 // TrackArt implements the library.Library interface.
-func (lib *DummyLibrary) TrackArt(uri string) (image io.ReadCloser, mime string) {
-	return nil, ""
+func (lib *DummyLibrary) TrackArt(uri string) (io.ReadCloser, string, error) {
+	return nil, "", ErrNoArt
 }
 
 // Events implements the player.Player interface.

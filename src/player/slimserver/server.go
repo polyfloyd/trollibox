@@ -314,8 +314,6 @@ func setSlimAttr(serv *Server, track *library.Track, key, value string) {
 	case "duration":
 		d, _ := strconv.ParseFloat(value, 64)
 		track.Duration = time.Duration(d) * time.Second
-	case "coverid":
-		track.HasArt = serv.webURL != "" && value != ""
 	}
 }
 

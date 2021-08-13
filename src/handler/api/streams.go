@@ -19,7 +19,6 @@ func (api *API) streamsList(w http.ResponseWriter, r *http.Request) {
 			"filename": stream.Filename,
 			"url":      stream.URL,
 			"title":    stream.Title,
-			"hasart":   stream.ArtURI != "",
 		}
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{

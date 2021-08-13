@@ -110,17 +110,19 @@ func (stream *Stream) encodeM3U(out io.Writer) error {
 // PlayerTrack builds a library track for use in players.
 func (stream *Stream) PlayerTrack() library.Track {
 	return library.Track{
-		URI:    stream.URL,
-		Title:  stream.Title,
-		HasArt: stream.ArtURI != "",
+		URI:   stream.URL,
+		Title: stream.Title,
 	}
 }
 
-func (stream *Stream) art() (io.ReadCloser, string) {
-	if match := dataURIRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
-		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1]
+func (stream *Stream) art() (io.ReadCloser, string, error) {
+	if stream.ArtURI == "" {
+		return nil, "", library.ErrNoArt
 	}
-	return nil, ""
+	if match := dataURIRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
+		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1], nil
+	}
+	return nil, "", fmt.Errorf("stream %v: malformed stream art", stream.Title)
 }
 
 func (stream *Stream) String() string {
@@ -266,10 +268,13 @@ func (db *DB) TrackInfo(uris ...string) ([]library.Track, error) {
 }
 
 // TrackArt implements the library.Library interface.
-func (db *DB) TrackArt(track string) (image io.ReadCloser, mime string) {
+func (db *DB) TrackArt(track string) (io.ReadCloser, string, error) {
 	stream, err := db.streamByURL(track)
-	if stream == nil || err != nil {
-		return nil, ""
+	if stream == nil {
+		return nil, "", fmt.Errorf("%w: no such stream", library.ErrNoArt)
+	}
+	if err != nil {
+		return nil, "", err
 	}
 	return stream.art()
 }

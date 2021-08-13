@@ -542,10 +542,13 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 }
 
 // TrackArt implements the library.Library interface.
-func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
-	pl.withMpd(func(mpdc *mpd.Client) error {
+func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string, err error) {
+	err = pl.withMpd(func(mpdc *mpd.Client) error {
 		bin, err := mpdc.ReadPicture(uriToMpd(track))
 		if err != nil {
+			if err.Error() == "no binary data found in response" {
+				return library.ErrNoArt
+			}
 			return err
 		}
 		image = io.NopCloser(bytes.NewReader(bin))
@@ -675,12 +678,6 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) e
 	track.AlbumArtist = (*song)["AlbumArtist"]
 	track.AlbumDisc = (*song)["Disc"]
 	track.AlbumTrack = (*song)["Track"]
-
-	stkNum, _ := mpdc.StickerGet((*song)["file"], "image-nchunks")
-	if stkNum != nil {
-		_, err := strconv.ParseInt(stkNum.Value, 10, 32)
-		track.HasArt = err == nil
-	}
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
 		duration, err := strconv.ParseInt(timeStr, 10, 32)

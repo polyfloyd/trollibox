@@ -413,22 +413,25 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 }
 
 // TrackArt implements the library.Library interface.
-func (pl *Player) TrackArt(track string) (image io.ReadCloser, mime string) {
+func (pl *Player) TrackArt(track string) (io.ReadCloser, string, error) {
 	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeURI(track))
 	if err != nil {
-		return nil, ""
+		return nil, "", err
 	}
+
 	if pl.Serv.webURL == "" || attrs["coverid"] == "" {
-		return nil, ""
+		return nil, "", library.ErrNoArt
 	}
 	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", pl.Serv.webURL, attrs["coverid"]))
 	if err != nil {
-		return nil, ""
+		return nil, "", err
 	}
-	if res.StatusCode >= 400 {
-		return nil, ""
+	if res.StatusCode == 404 {
+		return nil, "", library.ErrNoArt
+	} else if res.StatusCode != 200 {
+		return nil, "", fmt.Errorf("could not get art: http status %d", res.StatusCode)
 	}
-	return res.Body, res.Header.Get("Content-Type")
+	return res.Body, res.Header.Get("Content-Type"), nil
 }
 
 // Events implements the player.Player interface.
