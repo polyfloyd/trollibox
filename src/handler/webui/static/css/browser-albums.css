@@ -13,26 +13,12 @@
 	flex-shrink: 0;
 }
 
-.browser-albums .tab-name-list ul {
-	flex-grow: 1;
+.browser-albums .tab-name-list .grid-item {
+	cursor: pointer;
 }
 
-.browser-albums .tab-name-list ul:before {
-	line-height: 1em;
-}
-
-.browser-albums .tab-name-list li {
-	position: relative;
-}
-
-.browser-albums .tab-name-list li .track-art {
-	width: calc(100% - 8px);
-	height: calc(100% - 8px);
-	margin: 4px;
-}
-
-.browser-albums .tab-name-list li > .album-artist,
-.browser-albums .tab-name-list li > .album-title {
+.browser-albums .tab-name-list .grid-item > .album-artist,
+.browser-albums .tab-name-list .grid-item > .album-title {
 	position: absolute;
 	padding: 0 0.2em;
 	opacity: 0;
@@ -40,18 +26,18 @@
 	background-color: var(--color-bg);
 }
 
-.browser-albums .tab-name-list li > .track-art.placeholder ~ *,
-.browser-albums .tab-name-list li:hover > * {
+.browser-albums .tab-name-list .grid-item > .track-art.placeholder ~ *,
+.browser-albums .tab-name-list .grid-item:hover > * {
 	opacity: 1;
 }
 
-.browser-albums .tab-name-list li > .album-title {
+.browser-albums .tab-name-list .grid-item > .album-title {
 	top: 0;
 	left: 0;
 	right: 0;
 }
 
-.browser-albums .tab-name-list li > .album-artist {
+.browser-albums .tab-name-list .grid-item > .album-artist {
 	left: 0;
 	right: 0;
 	bottom: 0;

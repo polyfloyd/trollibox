@@ -10,6 +10,7 @@
 	content: ")";
 }
 
+
 ul.result-list {
 	margin: 0;
 	padding: 0;
@@ -103,39 +104,32 @@ ul.result-list li > .track-album + .glyphicon {
 	flex-shrink: 0;
 }
 
-ul.result-list.grid-list {
-	display: flex;
-	flex-wrap: wrap;
-	line-height: 0;
+
+.grid-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	grid-gap: 4px;
 }
 
-ul.result-list.grid-list:after {
-	content: "";
-}
-
-ul.result-list.grid-list li {
-	min-width: 160px;
+.grid-list > .grid-item {
+	padding: 4px;
 	position: relative;
-	display: inline-block;
-	flex-grow: 1;
-	line-height: initial;
-
-	/* Hack to prevent items from becoming really big */
-	overflow: hidden;
-	max-width: 320px;
 }
 
-ul.result-list.grid-list li img.ratio {
-	width: 100%;
+.grid-list > .grid-item:before {
+	content: "";
+	padding-bottom: 100%;
+	display: block;
 }
 
-ul.result-list.grid-list li img.ratio + * {
+.grid-list > .grid-item > .track-art {
 	position: absolute;
 	top: 0;
 	left: 0;
-	right: 0;
-	bottom: 0;
+	width: 100%;
+	height: 100%;
 }
+
 
 .insertion-animation {
 	position: fixed;

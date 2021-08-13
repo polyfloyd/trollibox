@@ -10,16 +10,15 @@ Vue.component('browser-albums', {
 		<div class="browser-albums view tab-view">
 			<div class="tab tab-name-list">
 				<h2>Albums</h2>
-				<ul class="result-list grid-list">
-					<li v-for="(album, i) in albums" :key="i"
+				<div class="grid-list">
+					<div class="grid-item" v-for="(album, i) in albums" :key="i"
 						:title="album.artist+' - '+album.title+' ('+durationToString(album.duration)+')'"
 						@click="detailAlbumIndex = i">
-						<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />
 						<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="album.tracks[0]" />
 						<span class="album-artist">{{ album.artist }}</span>
 						<span class="album-title">{{ album.title }}</span>
-					</li>
-				</ul>
+					</div>
+				</div>
 			</div>
 
 			<div class="tab tab-name-album" v-if="detailAlbum">

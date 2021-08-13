@@ -13,19 +13,20 @@ Vue.component('browser-streams', {
 				<span class="glyphicon glyphicon-plus do-add-stream"
 					@click="showEditStreamDialog(null)"></span>
 			</h2>
-			<ul class="result-list grid-list">
-				<li v-for="stream in streams" :title="stream.title"
-					@click="appendToPlaylist(stream, $event)">
-					<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />
-					<track-art :urlroot="urlroot" :selectedPlayer="selectedPlayer" :track="stream" />
-					<span class="stream-title">{{ stream.title }}</span>
-					<span class="glyphicon glyphicon-plus do-add"></span>
-					<button class="glyphicon glyphicon-remove do-remove"
-						@click.stop="removeStream(stream)"></button>
-					<button class="glyphicon glyphicon-edit do-edit"
-						@click.stop="showEditStreamDialog(stream)"></button>
-				</li>
-			</ul>
+			<div class="stream-list">
+				<div class="grid-list">
+					<div v-for="stream in streams" class="grid-item" :title="stream.title"
+						@click="appendToPlaylist(stream, $event)">
+						<track-art :urlroot="urlroot" :selectedPlayer="selectedPlayer" :track="stream" />
+						<span class="stream-title">{{ stream.title }}</span>
+							<span class="glyphicon glyphicon-plus do-add"></span>
+						<button class="glyphicon glyphicon-remove do-remove"
+							@click.stop="removeStream(stream)"></button>
+						<button class="glyphicon glyphicon-edit do-edit"
+							@click.stop="showEditStreamDialog(stream)"></button>
+					</div>
+				</div>
+			</div>
 
 			<div v-if="editStream" class="modal fade show" style="opacity: 1">
 				<div class="modal-dialog">
