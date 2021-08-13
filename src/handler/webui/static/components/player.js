@@ -46,6 +46,7 @@ Vue.component('player', {
 					<input type="range"
 						min="0" :max="currentTrack ? currentTrack.duration : 100"
 						:value="time"
+						:disabled="!currentTrack || !currentTrack.duration"
 						title="Seek in the current track"
 						@click="setTime($event.target.value|0)" />
 					<span v-if="currentTrack && currentTrack.duration">
@@ -59,6 +60,7 @@ Vue.component('player', {
 					<input type="range"
 						min="0" max="100" :value="volume * 100"
 						title="Set volume level"
+						:disabled="state == 'stopped'"
 						@click="setVolume($event.target.value/100)" />
 					<span class="glyphicon glyphicon-volume-up"></span>
 				</div>
