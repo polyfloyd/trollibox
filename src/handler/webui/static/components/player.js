@@ -141,7 +141,7 @@ Vue.component('player', {
 		playlist: function() {
 			// Scroll to the current track so it is aligned to the top of the
 			// container. But only if the player is the initialy selected view.
-			if ($(window).width() >= 992) {
+			if (window.innerWidth >= 992) {
 				this.$el.querySelector('.player-current').scrollIntoView();
 			}
 		},

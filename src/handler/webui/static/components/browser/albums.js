@@ -25,16 +25,16 @@ Vue.component('browser-albums', {
 			<div class="tab tab-name-album" v-if="detailAlbum">
 				<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="detailAlbum.tracks[0]" />
 				<a class="glyphicon glyphicon-arrow-left do-pop-tab" @click="detailAlbumIndex = -1"></a>
-				<p class="album-info" @click="appendToPlaylist(detailAlbum.tracks, $event.target)">
+				<p class="album-info" @click="appendToPlaylist(detailAlbum.tracks, $event)">
 					<span class="album-title">{{ detailAlbum.title }}</span>
 					<span class="album-duration track-duration">{{ durationToString(detailAlbum.duration) }}</span>
 					<span class="album-artist">{{ detailAlbum.artist }}</span>
 				</p>
 				<div class="album-content">
 					<template v-for="disc in detailAlbum.discs">
-						<p v-if="disc.title" class="album-disc-title" @click="appendToPlaylist(disc.tracks, $event.target)">{{ disc.title }}</p>
+						<p v-if="disc.title" class="album-disc-title" @click="appendToPlaylist(disc.tracks, $event)">{{ disc.title }}</p>
 						<ul class="result-list">
-							<li v-for="track in disc.tracks" class="track" :title="formatTrackTitle(track)" @click="appendToPlaylist(track, $event.target)">
+							<li v-for="track in disc.tracks" class="track" :title="formatTrackTitle(track)" @click="appendToPlaylist(track, $event)">
 								<span class="track-num">{{ track.albumtrack }}</span>
 								<span class="track-artist">{{ track.artist }}</span>
 								<span class="track-title">{{ track.title }}</span>

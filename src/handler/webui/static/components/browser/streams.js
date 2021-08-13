@@ -15,7 +15,7 @@ Vue.component('browser-streams', {
 			</h2>
 			<ul class="result-list grid-list">
 				<li v-for="stream in streams" :title="stream.title"
-					@click="appendToPlaylist(stream, $event.target)">
+					@click="appendToPlaylist(stream, $event)">
 					<img class="ratio" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAADUlEQVQI12NgYGBgAAAABQABXvMqOgAAAABJRU5ErkJggg==" />
 					<track-art :urlroot="urlroot" :selectedPlayer="selectedPlayer" :track="stream" />
 					<span class="stream-title">{{ stream.title }}</span>

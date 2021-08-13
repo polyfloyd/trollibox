@@ -138,7 +138,7 @@ ul.result-list.grid-list li img.ratio + * {
 }
 
 .insertion-animation {
-	position: absolute;
+	position: fixed;
 	z-index: 10000;
 	font-size: 4vmin;
 	color: var(--color-accent);
@@ -147,7 +147,6 @@ ul.result-list.grid-list li img.ratio + * {
 
 @keyframes bubble-up {
 	0% {
-		transform-origin: center center;
 		transform: scale(0) translate(0, 0);
 		opacity: 1;
 	}

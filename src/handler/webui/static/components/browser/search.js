@@ -6,20 +6,30 @@ Vue.component('browser-search-result', {
 	},
 	template: `
 		<li :title="formatTrackTitle(track)">
-			<span class="track-artist"><span v-html="highlight('artist')" /></span>
-			<span class="track-title"><span v-html="highlight('title')" /></span>
+			<span class="track-artist">
+				<template v-for="em in artist">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
+			</span>
+			<span class="track-title">
+				<template v-for="em in title">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
+			</span>
 			<span class="track-duration">{{ durationToString(track.duration) }}</span>
-			<span class="track-album"><span v-html="highlight('album')" /></span>
+			<span class="track-album">
+				<template v-for="em in album">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
+			</span>
 			<span class="glyphicon glyphicon-plus"></span>
 		</li>
 	`,
+	computed: {
+		artist: function() { return this.highlight('artist'); },
+		title: function() { return this.highlight('title'); },
+		album: function() { return this.highlight('album'); },
+	},
 	methods: {
 		highlight: function(property) {
-			let propMatches = [].concat(this.matches[property] || []);
-			let value = propMatches
+			let {sections, head} = [].concat(this.matches[property] || [])
 				.sort((a, b) => a.start - b.end)
+				// Ensure that matches don't overlap each other.
 				.reduce((state, match) => {
-					// Ensure that matches don't overlap each other.
 					let newStart = [state.prevEnd, match.start, match.end]
 						.sort((a, b) => a - b)[1];
 					state.prevEnd = match.end;
@@ -28,10 +38,18 @@ Vue.component('browser-search-result', {
 					return state;
 				}, { noOverlap: [], prevEnd: 0 })
 				.noOverlap
-				.reduceRight((value, match) => {
-					return value.substring(0, match.start)+'<em>'+value.substring(match.start, match.end)+'</em>'+value.substring(match.end);
-				}, this.track[property]);
-			return _.escape(value).replace(/&lt;(\/)?em&gt;/g, '<$1em>');
+				// Map matches into string sections.
+				// The value string is progressively consumed by each
+				// iteration, yielding a non-highlighted tail, the highlighted body
+				// and the remaining head passed to the next itertaion.
+				.reduceRight(({head, sections}, match) => {
+					let body = head.substring(match.start, match.end);
+					let tail = head.substring(match.end);
+					let nextHead = head.substring(0, match.start);
+					sections.push({body, tail});
+					return {head: nextHead, sections};
+				}, {head: this.track[property], sections: []});
+			return [{tail: head}].concat(sections.reverse());
 		},
 	},
 });
@@ -63,7 +81,7 @@ Vue.component('browser-search', {
 			<ul class="result-list search-results">
 				<browser-search-result v-for="(result, i) in results" :key="i"
 					v-bind="result"
-					@click.native="appendToPlaylist(result.track, $event.target)" />
+					@click.native="appendToPlaylist(result.track, $event)" />
 			</ul>
 		</div>
 	`,

@@ -28,7 +28,7 @@ Vue.component('browser-genres', {
 				<h2><a class="glyphicon glyphicon-arrow-left do-pop-tab" @click="pop()"></a>Tracks</h2>
 				<ul class="result-list">
 					<li v-for="track in tracks" title="formatTrackTitle(track)"
-						@click="appendToPlaylist(track, $event.target)">
+						@click="appendToPlaylist(track, $event)">
 						<span class="track-title">{{ track.title }}</span>
 						<span class="track-duration">{{ durationToString(track.duration) }}</span>
 						<span class="track-album">{{ track.album }}</span>

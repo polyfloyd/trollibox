@@ -16,17 +16,15 @@ let ApiMixin = {
 };
 
 
-var _formatTrackTitleTemplate = _.template(`<% if (albumtrack) {%><%= albumtrack %>.  <% } %><% if (artist) {%><%= artist %> - <% } %><%= title %><% if (duration) {%> (<%- duration %>)<% } %>`);
-
 let TrackMixin = {
 	methods: {
 		formatTrackTitle: function(track) {
-			return  _formatTrackTitleTemplate({
-				artist: track.artist || '',
-				title: track.title || '',
-				albumtrack: track.albumtrack || '',
-				duration: track.duration && this.durationToString(track.duration),
-			});
+			let s = '';
+			if (track.albumtrack) s += `${track.albumtrack}. `;
+			if (track.artist) s += `${track.artist} - `;
+			s += track.title;
+			if (track.duration) s += ` (${this.durationToString(track.duration)})`;
+			return s;
 		},
 		durationToString: function(seconds) {
 			let parts = [];
@@ -51,23 +49,22 @@ let TrackMixin = {
 let PlaylistMixin = {
 	mixins: [ApiMixin],
 	methods: {
-		insertIntoPlaylist: async function(tracks, index, elems) {
+		insertIntoPlaylist: async function(tracks, index, event) {
 			if (!Array.isArray(tracks)) tracks = [ tracks ];
 
 			// Shows an animation to indicate that a track was added to the
 			// playlist.
-			$(elems || []).each((i, el) => {
-				setTimeout(() => {
-					var $elem = $(el);
-					var $anim = $('<div class="insertion-animation glyphicon glyphicon-plus"></div>');
-					$anim.css($elem.offset());
+			let anim = document.createElement('div');
+			anim.classList.add('insertion-animation');
+			anim.classList.add('glyphicon');
+			anim.classList.add('glyphicon-plus');
+			anim.style.top = `calc(${event.y}px - 0.5em)`;
+			anim.style.left = `calc(${event.x}px - 0.5em)`;
 
-					$('body').prepend($anim);
-					setTimeout(() => {
-						$anim.remove();
-					}, 1500);
-				}, i * 40);
-			});
+			document.body.appendChild(anim);
+			setTimeout(() => {
+				document.body.removeChild(anim)
+			}, 1500);
 
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/playlist`, {
 				method: 'PUT',
@@ -81,8 +78,8 @@ let PlaylistMixin = {
 				throw new Error('could not insert into playlist');
 			}
 		},
-		appendToPlaylist: function(tracks, elems) {
-			return this.insertIntoPlaylist(tracks, -1, elems);
+		appendToPlaylist: function(tracks, event) {
+			return this.insertIntoPlaylist(tracks, -1, event);
 		},
 		removeFromPlaylist: async function(trackIndices) {
 			if (!Array.isArray(trackIndices)) trackIndices = [ trackIndices ];

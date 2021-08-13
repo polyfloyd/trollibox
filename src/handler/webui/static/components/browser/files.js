@@ -93,7 +93,7 @@ Vue.component('browser-files', {
 		},
 		appendNodeToPlaylist: function(node, event) {
 			if (node.track) {
-				this.appendToPlaylist(node.track, event.target);
+				this.appendToPlaylist(node.track, event);
 				return;
 			}
 
@@ -103,7 +103,7 @@ Vue.component('browser-files', {
 			if (tracks.length > 20 && !confirm(`You are about to add ${tracks.length} tracks to the playlist. Is that okay?`)) {
 				return;
 			}
-			this.appendToPlaylist(tracks, event.target);
+			this.appendToPlaylist(tracks, event);
 		},
 
 		join: function(parts) {
