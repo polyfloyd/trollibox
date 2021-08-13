@@ -8,15 +8,12 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 
-	"trollibox/src/filter"
-	"trollibox/src/filter/keyed"
 	"trollibox/src/jukebox"
 	"trollibox/src/library"
 	"trollibox/src/player"
@@ -380,28 +377,17 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	playerName := chi.URLParam(r, "playerName")
-	lib, err := api.jukebox.PlayerLibrary(r.Context(), playerName)
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-	tracks, err := lib.Tracks()
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-
 	untaggedFields := strings.Split(r.FormValue("untagged"), ",")
-	compiledQuery, err := keyed.CompileQuery(r.FormValue("query"), untaggedFields)
-	if err != nil {
+	results, err := api.jukebox.SearchTracks(r.Context(), playerName, r.FormValue("query"), untaggedFields)
+	if errors.Is(err, context.Canceled) {
+		return
+	} else if err != nil {
 		WriteError(w, r, err)
 		return
 	}
-	wults := filter.Tracks(compiledQuery, tracks)
-	sort.Sort(filter.ByNumMatches(wults))
 
-	mappedResults := make([]interface{}, len(wults))
-	for i, w := range wults {
+	mappedResults := make([]interface{}, len(results))
+	for i, w := range results {
 		mappedResults[i] = map[string]interface{}{
 			"matches": w.Matches,
 			"track":   trackJSON(&w.Track, nil),

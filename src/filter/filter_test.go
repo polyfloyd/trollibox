@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"context"
 	"sort"
 	"strings"
 	"testing"
@@ -27,21 +28,21 @@ func TestFilterTracks(t *testing.T) {
 		},
 	}
 
-	results := Tracks(Func(func(track library.Track) (SearchResult, bool) {
+	results, _ := Tracks(context.Background(), Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, true
 	}), tracks)
 	if len(results) != 3 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(Func(func(track library.Track) (SearchResult, bool) {
+	results, _ = Tracks(context.Background(), Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, false
 	}), tracks)
 	if len(results) != 0 {
 		t.Fatalf("Unexpected number of results: %v", len(results))
 	}
 
-	results = Tracks(Func(func(track library.Track) (SearchResult, bool) {
+	results, _ = Tracks(context.Background(), Func(func(track library.Track) (SearchResult, bool) {
 		return SearchResult{}, strings.Contains(track.Artist, "Test")
 	}), tracks)
 	if len(results) != 1 {

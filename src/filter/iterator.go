@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"context"
 	"math/rand"
 	"time"
 
@@ -28,7 +29,7 @@ func (it randFilterIterator) NextTrack(lib library.Library) (library.Track, play
 		return library.Track{}, player.TrackMeta{}, false
 	}
 
-	results := Tracks(it.filter, tracks)
+	results, _ := Tracks(context.Background(), it.filter, tracks)
 	if len(results) == 0 {
 		return library.Track{}, player.TrackMeta{}, false
 	}

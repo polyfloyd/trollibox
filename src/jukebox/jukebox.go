@@ -158,7 +158,10 @@ func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, u
 	if err != nil {
 		return nil, err
 	}
-	results := filter.Tracks(compiledQuery, tracks)
+	results, err := filter.Tracks(ctx, compiledQuery, tracks)
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(filter.ByNumMatches(results))
 	return results, nil
 }

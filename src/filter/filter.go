@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"context"
 	"runtime"
 	"sync"
 
@@ -70,13 +71,18 @@ func (l ByNumMatches) Less(a, b int) bool { return l[a].NumMatches() > l[b].NumM
 
 // Tracks filters a list of tracks by applying the specified filter to all
 // tracks.
-func Tracks(filter Filter, tracks []library.Track) []SearchResult {
+//
+// An error is returned if, and only if, the specified context is canceled.
+func Tracks(ctx context.Context, filter Filter, tracks []library.Track) ([]SearchResult, error) {
 	trackStream := make(chan library.Track)
-	matchStream := make(chan SearchResult)
+	matchStream := make(chan SearchResult, runtime.NumCPU())
 	go func() {
 		defer close(trackStream)
 		for _, track := range tracks {
-			trackStream <- track
+			select {
+			case trackStream <- track:
+			case <-ctx.Done():
+			}
 		}
 	}()
 
@@ -84,12 +90,12 @@ func Tracks(filter Filter, tracks []library.Track) []SearchResult {
 	wg.Add(runtime.NumCPU())
 	for i := 0; i < runtime.NumCPU(); i++ {
 		go func() {
+			defer wg.Done()
 			for track := range trackStream {
 				if res, ok := filter.Filter(track); ok {
 					matchStream <- res
 				}
 			}
-			wg.Done()
 		}()
 	}
 	go func() {
@@ -98,8 +104,15 @@ func Tracks(filter Filter, tracks []library.Track) []SearchResult {
 	}()
 
 	results := make([]SearchResult, 0, len(tracks))
-	for match := range matchStream {
-		results = append(results, match)
+	for {
+		select {
+		case match, ok := <-matchStream:
+			if !ok {
+				return results, nil
+			}
+			results = append(results, match)
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
-	return results
 }
