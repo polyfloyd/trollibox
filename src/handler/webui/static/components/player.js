@@ -34,20 +34,24 @@ Vue.component('player', {
 			</draggable>
 
 			<div class="player-current"
-				:class="currentTrack ? [currentTrack.duration == 0  ? 'track-infinite' : '', 'queuedby-'+currentTrack.queuedby] : []">
+				:class="currentTrack ? ['queuedby-'+currentTrack.queuedby] : []">
 				<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="currentTrack" />
 				<p class="track-album">{{ currentTrack && currentTrack.album }}</p>
 				<p class="track-title">{{ currentTrack && currentTrack.title }}</p>
 				<p class="track-artist">{{ currentTrack && currentTrack.artist }}</p>
 
 				<div class="track-time">
-					<span class="track-time-current">{{ currentTrack && durationToString(time) }}</span>
+					<span v-if="currentTrack">{{ durationToString(time) }}</span>
+					<span v-else>0:00</span>
 					<input type="range"
 						min="0" :max="currentTrack ? currentTrack.duration : 100"
 						:value="time"
 						title="Seek in the current track"
 						@click="setTime($event.target.value|0)" />
-					<span class="track-time-total">{{ currentTrack && durationToString(currentTrack.duration) }}</span>
+					<span v-if="currentTrack && currentTrack.duration">
+						{{ durationToString(currentTrack.duration) }}
+					</span>
+					<span v-else>∞</span>
 				</div>
 
 				<div class="player-volume">

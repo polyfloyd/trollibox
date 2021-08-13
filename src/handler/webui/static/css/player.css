@@ -56,6 +56,10 @@
 	font-size: 0.8em;
 }
 
+.player.player-stopped .track-time > * {
+	color: var(--color-text-inactive);
+}
+
 .player .track-time > * {
 	font-size: 0.8em;
 }
@@ -66,29 +70,10 @@
 	text-align: center;
 }
 
-.player .track-time-current:empty:before {
-	content: "0:00";
-	opacity: 0.7;
-}
-
-.player .track-time-current:empty:before {
-	content: "0:00";
-	opacity: 0.7;
-}
-
-.player-current .do-set-time {
+.player-current .track-time > input {
 	width: calc(100% - 0.3em);
 	margin: 0.3em 0;
 	height: 0.7em;
-}
-
-.player-current.track-infinite .do-set-time {
-	opacity: 0;
-}
-
-.player-current.track-infinite .track-time-current:not(:empty) ~ .track-time-total:after {
-	content: "∞";
-	font-size: 1.6em;
 }
 
 .player-volume {
