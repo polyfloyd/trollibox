@@ -12,6 +12,21 @@
 	cursor: pointer;
 }
 
+.browser-streams .stream-header {
+	margin-bottom: 15px;
+}
+
+.browser-streams .edit-stream .art-preview {
+	width: 160px;
+	height: 160px;
+	margin-left: 15px;
+	float: right;
+}
+
+.browser-streams .input-group + .input-group {
+	margin-top: 15px;
+}
+
 .browser-streams .stream-list {
 	width: 100%;
 	height: 100%;
@@ -64,10 +79,4 @@
 
 .browser-streams .grid-list > .grid-item:hover .do-add {
 	opacity: 1;
-}
-
-.dialog-add-stream .art-preview {
-	margin: 15px auto 0 auto;
-	width: 100px;
-	height: 100px;
 }

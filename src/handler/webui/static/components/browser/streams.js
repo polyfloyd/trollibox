@@ -8,11 +8,33 @@ Vue.component('browser-streams', {
 	},
 	template: `
 		<div class="browser-streams">
-			<h2>
-				Network Streams
-				<span class="glyphicon glyphicon-plus do-add-stream"
-					@click="showEditStreamDialog(null)"></span>
-			</h2>
+			<div class="stream-header">
+				<h2>
+					Network Streams
+					<span v-if="!editStream" class="glyphicon glyphicon-plus do-add-stream"
+						@click="editStream = {}"></span>
+				</h2>
+				<div v-if="editStream" class="edit-stream">
+					<img v-if="editStream.arturi" class="art-preview" :src="editStream.arturi" />
+					<track-art v-else-if="editStream"
+						class="art-preview"
+						:urlroot="urlroot"
+						:selected-player="selectedPlayer"
+						:track="editStream" />
+					<div class="input-group">
+						<input class="form-control" type="text" v-model="editStream.url"
+							placeholder="URL" required />
+						<input class="form-control" type="text" v-model="editStream.title"
+							placeholder="Title" required />
+						<input class="form-control" type="text" v-model="editStream.arturi"
+							placeholder="Image URL" />
+					</div>
+					<div class="input-group">
+						<button class="btn btn-default" @click="editStream = null">Cancel</button>
+						<button class="btn btn-default" @click="addStream(editStream); editStream = null">Save</button>
+					</div>
+				</div>
+			</div>
 			<div class="stream-list">
 				<div class="grid-list">
 					<div v-for="stream in streams" class="grid-item" :title="stream.title"
@@ -23,41 +45,8 @@ Vue.component('browser-streams', {
 						<button class="glyphicon glyphicon-remove do-remove"
 							@click.stop="removeStream(stream)"></button>
 						<button class="glyphicon glyphicon-edit do-edit"
-							@click.stop="showEditStreamDialog(stream)"></button>
+							@click.stop="editStream = stream"></button>
 					</div>
-				</div>
-			</div>
-
-			<div v-if="editStream" class="modal fade show" style="opacity: 1">
-				<div class="modal-dialog">
-					<form class="modal-content dialog-add-stream">
-						<div class="modal-header">
-							<button type="button" class="close" data-dismiss="modal" aria-label="Close" @click="editStream = null"><span aria-hidden="true">&times;</span></button>
-							<h4 class="modal-title">Add Stream</h4>
-						</div>
-						<div class="modal-body">
-							<div class="input-group">
-								<input class="form-control" type="text" v-model="editStream.url"
-									placeholder="URL" required />
-								<input class="form-control" type="text" v-model="editStream.title"
-									placeholder="Title" required />
-								<input class="form-control" type="text" v-model="editStream.arturi"
-									placeholder="Image URL" />
-							</div>
-							<img v-if="editStream.arturi"
-								:src="editStream.arturi"
-								class="art-preview"/>
-							<track-art v-else-if="editStream"
-								:urlroot="urlroot"
-								:selected-player="selectedPlayer"
-								:track="editStream"
-								class="art-preview" />
-						</div>
-						<div class="modal-footer">
-							<button type="button" class="btn btn-default" data-dismiss="modal" @click="editStream = null">Cancel</button>
-							<input type="submit" class="btn btn-default do-add" value="Add" @click="addStream(editStream); editStream = null" />
-						</div>
-					</form>
 				</div>
 			</div>
 		</div>
@@ -74,10 +63,6 @@ Vue.component('browser-streams', {
 		this._ev.close();
 	},
 	methods: {
-		showEditStreamDialog: function(stream) {
-			this.editStream = stream || {};
-		},
-
 		removeStream: async function(stream) {
 			let url = `${this.urlroot}data/streams?filename=${encodeURIComponent(stream.filename)}`;
 			let response = await fetch(url, {method: 'DELETE'});
