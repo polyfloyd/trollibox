@@ -22,6 +22,7 @@ Vue.component('player', {
 			state: 'stopped',
 			time: 0,
 			volume: 0,
+			connectionState: 'disconnected',
 		};
 	},
 	template: `
@@ -65,7 +66,7 @@ Vue.component('player', {
 					<span class="glyphicon glyphicon-volume-up"></span>
 				</div>
 
-				<div class="player-controls">
+				<div v-if="connectionState == 'connected'" class="player-controls">
 					<button class="btn btn-default glyphicon glyphicon-step-backward" title="Go back to the previous track"
 						@click="setIndex(-1, true)"></button>
 					<button class="btn btn-default glyphicon"
@@ -76,6 +77,10 @@ Vue.component('player', {
 						@click="setIndex(1, true)"></button>
 					<button class="btn btn-default glyphicon glyphicon-ban-circle" title="Clear the playlist"
 						@click="clearPlaylist()"></button>
+				</div>
+				<div v-else class="player-controls">
+					<button class="btn btn-default glyphicon glyphicon-refresh" title="Reconnect"
+						:disabled="connectionState == 'connecting'" @click="reconnect"></button>
 				</div>
 			</div>
 
@@ -88,29 +93,10 @@ Vue.component('player', {
 		</div>
 	`,
 	created: function() {
-		this.ev = new EventSource(`${this.urlroot}data/player/${this.selectedPlayer}/events`);
-		this.ev.addEventListener('playlist', async event => {
-			let { index, tracks, time } = JSON.parse(event.data);
-			this.index = index;
-			this.playlist = tracks;
-			this.time = time;
-		});
-		this.ev.addEventListener('state', event => {
-			this.state = JSON.parse(event.data).state;
-		});
-		this.ev.addEventListener('time', event => {
-			this.time = JSON.parse(event.data).time;
-		});
-		this.ev.addEventListener('volume', event => {
-			this.volume = JSON.parse(event.data).volume / 100;
-		});
-		this.ev.addEventListener('library', async event => {
-			await this.reloadTrackLibrary();
-		});
-		this.reloadTrackLibrary();
+		this.reconnect();
 	},
 	destroyed: function() {
-		this._ev.close();
+		this.ev.close();
 	},
 	mounted: function() {
 		document.body.addEventListener('keypress', this.onKey);
@@ -163,6 +149,32 @@ Vue.component('player', {
 			let from = event.oldIndex + (fromFuture ? this.pastPlaylist.length+1 : 0);
 			let to = event.newIndex + (toFuture ? this.pastPlaylist.length+1 : 0);
 			this.moveInPlaylist(from, to);
+		},
+		reconnect: function() {
+			if (this.ev) this.ev.close();
+			this.ev = new EventSource(`${this.urlroot}data/player/${this.selectedPlayer}/events`);
+			this.ev.addEventListener('error', () => { this.connectionState = 'disconnected'; });
+			this.ev.addEventListener('open', () => { this.connectionState = 'connected'; });
+			this.connectionState = 'connecting';
+			this.ev.addEventListener('playlist', async event => {
+				let { index, tracks, time } = JSON.parse(event.data);
+				this.index = index;
+				this.playlist = tracks;
+				this.time = time;
+			});
+			this.ev.addEventListener('state', event => {
+				this.state = JSON.parse(event.data).state;
+			});
+			this.ev.addEventListener('time', event => {
+				this.time = JSON.parse(event.data).time;
+			});
+			this.ev.addEventListener('volume', event => {
+				this.volume = JSON.parse(event.data).volume / 100;
+			});
+			this.ev.addEventListener('library', async event => {
+				await this.reloadTrackLibrary();
+			});
+			this.reloadTrackLibrary();
 		},
 
 		reloadTrackLibrary: async function() {
