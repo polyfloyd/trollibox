@@ -56,7 +56,7 @@
 .browser-streams .grid-item:hover > .stream-title {
 	text-overflow: initial;
 	overflow: initial;
-	word-break: break-all;
+	word-break: break-word;
 }
 
 .browser-streams .grid-item > button {
