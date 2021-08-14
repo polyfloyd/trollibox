@@ -49,6 +49,14 @@
 	top: 0;
 	left: 0;
 	right: 0;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+
+.browser-streams .grid-item:hover > .stream-title {
+	text-overflow: initial;
+	overflow: initial;
+	word-break: break-all;
 }
 
 .browser-streams .grid-item > button {
