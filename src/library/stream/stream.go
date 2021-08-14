@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -20,6 +21,8 @@ import (
 	"trollibox/src/library"
 	"trollibox/src/util"
 )
+
+var ErrInvalidArgument = errors.New("invalid argument")
 
 var dataURIRe = regexp.MustCompile("^data:([a-z]+/[a-z]+);base64,(.+)$")
 var m3uTemplate = template.Must(template.New("m3u").Parse(
@@ -207,21 +210,29 @@ func (db *DB) RemoveStream(stream *Stream) error {
 // returned if downloading fails or something other than an image was
 // downloaded.
 func (db *DB) StoreStream(stream *Stream) error {
+	if stream.Title == "" {
+		return fmt.Errorf("%w: title not set", ErrInvalidArgument)
+	}
+	if stream.URL == "" {
+		return fmt.Errorf("%w: url not set", ErrInvalidArgument)
+	} else if !regexp.MustCompile(`^https?://`).MatchString(stream.URL) {
+		return fmt.Errorf("%w: invalid URL", ErrInvalidArgument)
+	} else if regexp.MustCompile(`^https?:\/\/(?:www\.)youtube\.com`).MatchString(stream.URL) {
+		return fmt.Errorf("%w: that is definitely not an internet radio URL", ErrInvalidArgument)
+	}
+
 	if stream.Filename == "" {
 		stream.Filename = filenameFromURL(stream.URL) + ".m3u"
 	}
 	if path.Ext(stream.Filename) != ".m3u" {
-		return fmt.Errorf("stream filenames must have the .m3u suffix")
+		return fmt.Errorf("%w: stream filenames must have the .m3u suffix", ErrInvalidArgument)
 	}
 
 	// Download the track art and store it as a data URI.
 	if stream.ArtURI != "" && !dataURIRe.MatchString(stream.ArtURI) {
-		artURI, contentType, err := downloadToDataURI(stream.ArtURI)
+		artURI, err := downloadToDataURI(stream.ArtURI)
 		if err != nil {
 			return err
-		}
-		if !regexp.MustCompile("^image/").MatchString(contentType) {
-			return fmt.Errorf("invalid content type for stream image: %s", contentType)
 		}
 		stream.ArtURI = artURI
 	}
@@ -305,19 +316,23 @@ func filenameFromURL(url string) string {
 	return regexp.MustCompile(`\W`).ReplaceAllString(url, "_")
 }
 
-func downloadToDataURI(url string) (string, string, error) {
+func downloadToDataURI(url string) (string, error) {
 	client := http.Client{Timeout: time.Second * 30}
 	res, err := client.Get(url)
 	if err != nil {
-		return "", "", err
+		return "", fmt.Errorf("could not fetch image: %v", err)
 	}
 	defer res.Body.Close()
 
 	contentType := res.Header.Get("Content-Type")
+	if !regexp.MustCompile("^image/").MatchString(contentType) {
+		return "", fmt.Errorf("%w: invalid content type for image: %s", ErrInvalidArgument, contentType)
+	}
+
 	var buf bytes.Buffer
 	fmt.Fprintf(&buf, "data:%s;base64,", contentType)
 	if _, err := io.Copy(base64.NewEncoder(base64.StdEncoding, &buf), res.Body); err != nil {
-		return "", "", err
+		return "", fmt.Errorf("could not fetch image: %v", err)
 	}
-	return buf.String(), contentType, nil
+	return buf.String(), nil
 }

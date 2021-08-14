@@ -4,6 +4,7 @@ Vue.component('browser-streams', {
 		return {
 			streams: [],
 			editStream: null,
+			editError: '',
 		};
 	},
 	template: `
@@ -31,8 +32,9 @@ Vue.component('browser-streams', {
 					</div>
 					<div class="input-group">
 						<button class="btn btn-default" @click="editStream = null">Cancel</button>
-						<button class="btn btn-default" @click="addStream(editStream); editStream = null">Save</button>
+						<button class="btn btn-default" @click="addStream(editStream); ">Save</button>
 					</div>
+					<div v-if="editError" class="input-group error-message">{{ editError }}</div>
 				</div>
 			</div>
 			<div class="stream-list">
@@ -73,12 +75,17 @@ Vue.component('browser-streams', {
 		addStream: async function(stream) {
 			let response = await fetch(`${this.urlroot}data/streams`, {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ stream }),
+				headers: {'Content-Type': 'application/json'},
+				body: JSON.stringify({stream}),
 			});
 			if (!response.ok) {
-				throw new Error('Unable to add stream');
+				let body = await response.json();
+				this.editError = body.error;
+				return;
 			}
+
+			this.editStream = null;
+			this.editError = '';
 		},
 	},
 });

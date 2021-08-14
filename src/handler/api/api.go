@@ -60,11 +60,6 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	log.Errorf("Error serving %s: %v", r.RemoteAddr, err)
 	w.WriteHeader(http.StatusBadRequest)
 
-	if r.Header.Get("X-Requested-With") == "" {
-		w.Write([]byte(err.Error()))
-		return
-	}
-
 	data, _ := json.Marshal(err)
 	if data == nil {
 		data = []byte("{}")
