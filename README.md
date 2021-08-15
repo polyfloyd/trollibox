@@ -10,25 +10,21 @@ Features:
 * Support for Logitech SlimServer and SqueezeBoxes
 * Track art
 * Listen to web radio stations
-* Search-as-you-type for tracks
-* Filebrowser
-* Albumbrowser
-* Queue random tracks when the playlist is done.
+* Search-as-you-type for tracks with highlighting
+* File browser
+* Album browser
+* Queue random tracks when the playlist is empty.
+* Mobile device friendly
 * Free Open Source Software (GPLv3)
 
 ## Installing
-We're not using semantic versioning yet, but it is safe to install from the
-master branch. Altough this also means that some things (like the stored stream
-database) may break if you update it.
-
-### Building
 The following tools are required to build Trollibox:
 * [Golang](https://golang.org/)
 
 To build:
 ```sh
 # Download Trollibox
-git clone --recurse-submodules -j8 https://github.com/polyfloyd/trollibox.git trollibox
+git clone --recurse-submodules https://github.com/polyfloyd/trollibox.git trollibox
 cd trollibox
 
 # Build a release version of Trollibox containing all of its assets.
@@ -51,17 +47,6 @@ trollibox -conf /etc/trollibox.yaml
 ```
 
 Inside the configuration file, you will find some options you may need to change.
-
-### Track Art and MPD
-Since MPD does not natively support art embedded in tracks, track art is
-presented to Trollibox through stickers. These stickers need to be added by
-running the [enclosed python script](support/mpd-artwork.py). It will look for
-the art embedded in the track.
-
-The script requires Python3 and the pillow, python-mpd2 and mutagen packages,
-the lather 3 can be installed using pip. You also may need to adjust the
-reference to MPD's config file, `MPD_CONF`. By default it will look for
-`~/.mpdconf`.
 
 
 ## For Users
