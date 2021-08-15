@@ -15,7 +15,7 @@ Vue.component('browser-files', {
 				</div>
 				<ul class="result-list">
 					<li v-for="file in node.files" v-if="!file.track"
-						class="type-dir" :class="{active: path.indexOf(file.path) == 0}"
+						class="type-dir" :class="{active: (path+'/').indexOf(file.path+'/') == 0}"
 						@click="path = file.path">{{ file.name }}/</li>
 					<li v-for="file in node.files" v-if="file.track"
 						class="type-track"
