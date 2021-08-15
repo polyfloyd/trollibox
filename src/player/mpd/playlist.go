@@ -28,7 +28,7 @@ func (plist userPlaylist) Remove(ctx context.Context, positions ...int) error {
 
 func (plist userPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 	var tracks []library.Track
-	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
+	err := plist.player.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistContents(plist.name)
 		if err != nil {
 			return err
@@ -46,7 +46,7 @@ func (plist userPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 
 func (plist userPlaylist) Len(ctx context.Context) (int, error) {
 	var length int
-	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
+	err := plist.player.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		info, err := mpdc.PlaylistInfo(-1, -1)
 		length = len(info)
 		return err
