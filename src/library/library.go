@@ -1,6 +1,7 @@
 package library
 
 import (
+	"context"
 	"errors"
 	"io"
 
@@ -19,31 +20,33 @@ type Library interface {
 	util.Eventer
 
 	// Returns all available tracks in the library.
-	Tracks() ([]Track, error)
+	Tracks(ctx context.Context) ([]Track, error)
 
 	// Gets information about the specified tracks. If a track is not found, a
 	// zero track is returned at that index.
-	TrackInfo(uris ...string) ([]Track, error)
+	TrackInfo(ctx context.Context, uris ...string) ([]Track, error)
 
 	// Returns the artwork for the track as a reader of image data along with
 	// its MIME type. The caller is responsible for closing the reader.
 	//
 	// If no art is available, ErrNoArt is returned.
-	TrackArt(uri string) (image io.ReadCloser, mime string, err error)
+	TrackArt(ctx context.Context, uri string) (image io.ReadCloser, mime string, err error)
 }
 
 // AllTrackInfo looks for the track information in all the libraries supplied.
 //
 // If the track is found in more than one library, precedence is given to the
 // library at the lowest index.
-func AllTrackInfo(libs []Library, uris ...string) ([]Track, error) {
+func AllTrackInfo(ctx context.Context, libs []Library, uris ...string) ([]Track, error) {
+	// TODO: Use context cancellation.
+
 	// Request track information from all libraries in parallel.
 	accumChannels := make([]<-chan interface{}, 0, len(libs))
 	for _, lib := range libs {
 		ch := make(chan interface{}, 1)
 		go func(lib Library) {
 			defer close(ch)
-			tracks, err := lib.TrackInfo(uris...)
+			tracks, err := lib.TrackInfo(ctx, uris...)
 			if err != nil {
 				ch <- err
 			} else {

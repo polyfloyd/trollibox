@@ -1,6 +1,7 @@
 package mpd
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func TestPlaylistImplementation(t *testing.T) {
 	if err != nil {
 		t.Skipf("%v", err)
 	}
-	tracks, err := pl.Tracks()
+	tracks, err := pl.Tracks(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

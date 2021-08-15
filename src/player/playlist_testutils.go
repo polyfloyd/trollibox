@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -9,63 +10,64 @@ import (
 
 // TestPlaylistImplementation tests the implementation of the playerPlaylist interface.
 func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []library.Track) {
+	ctx := context.Background()
 	clear := func() {
-		if length, err := ls.Len(); err != nil {
+		if length, err := ls.Len(ctx); err != nil {
 			t.Fatal(err)
 		} else {
 			rm := make([]int, length)
 			for i := range rm {
 				rm[i] = i
 			}
-			if err := ls.Remove(rm...); err != nil {
+			if err := ls.Remove(ctx, rm...); err != nil {
 				t.Fatal(err)
 			}
 		}
 	}
 	t.Run("len", func(t *testing.T) {
 		clear()
-		testPlaylistLen(t, ls, testTracks)
+		testPlaylistLen(ctx, t, ls, testTracks)
 	})
 	t.Run("insert", func(t *testing.T) {
 		clear()
-		testPlaylistInsert(t, ls, testTracks)
+		testPlaylistInsert(ctx, t, ls, testTracks)
 	})
 	t.Run("append", func(t *testing.T) {
 		clear()
-		testPlaylistAppend(t, ls, testTracks)
+		testPlaylistAppend(ctx, t, ls, testTracks)
 	})
 	t.Run("move", func(t *testing.T) {
 		clear()
-		testPlaylistMove(t, ls, testTracks)
+		testPlaylistMove(ctx, t, ls, testTracks)
 	})
 	t.Run("remove", func(t *testing.T) {
 		clear()
-		testPlaylistRemove(t, ls, testTracks)
+		testPlaylistRemove(ctx, t, ls, testTracks)
 	})
 }
 
-func testPlaylistLen(t *testing.T, ls Playlist, testTracks []library.Track) {
-	if l, err := ls.Len(); err != nil {
+func testPlaylistLen(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+	if l, err := ls.Len(ctx); err != nil {
 		t.Fatal(err)
 	} else if l != 0 {
 		t.Fatalf("Initial length is not 0, got %d", l)
 	}
-	if err := ls.Insert(-1, testTracks...); err != nil {
+	if err := ls.Insert(ctx, -1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
-	if l, err := ls.Len(); err != nil {
+	if l, err := ls.Len(ctx); err != nil {
 		t.Fatal(err)
 	} else if l != len(testTracks) {
 		t.Fatalf("Inserted track count mismatch: %d != %d", len(testTracks), l)
 	}
 }
 
-func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []library.Track) {
-	if err := ls.Insert(0, testTracks[1:]...); err != nil {
+func testPlaylistInsert(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+	if err := ls.Insert(ctx, 0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
 
-	tracks, err := ls.Tracks()
+	tracks, err := ls.Tracks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,10 +79,10 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []library.Track) {
 		}
 	}
 
-	if err := ls.Insert(0, testTracks[0]); err != nil {
+	if err := ls.Insert(ctx, 0, testTracks[0]); err != nil {
 		t.Fatal(err)
 	}
-	if tracks, err = ls.Tracks(); err != nil {
+	if tracks, err = ls.Tracks(ctx); err != nil {
 		t.Fatal(err)
 	} else if tracks[0].URI != testTracks[0].URI {
 		t.Logf("expected %q at index 0", testTracks[0].URI)
@@ -89,14 +91,14 @@ func testPlaylistInsert(t *testing.T, ls Playlist, testTracks []library.Track) {
 	}
 }
 
-func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []library.Track) {
-	if err := ls.Insert(0, testTracks[1:]...); err != nil {
+func testPlaylistAppend(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+	if err := ls.Insert(ctx, 0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
-	if err := ls.Insert(-1, testTracks[0]); err != nil {
+	if err := ls.Insert(ctx, -1, testTracks[0]); err != nil {
 		t.Fatal(err)
 	}
-	tracks, err := ls.Tracks()
+	tracks, err := ls.Tracks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,15 +107,15 @@ func testPlaylistAppend(t *testing.T, ls Playlist, testTracks []library.Track) {
 	}
 }
 
-func testPlaylistMove(t *testing.T, ls Playlist, testTracks []library.Track) {
-	if err := ls.Insert(-1, testTracks...); err != nil {
+func testPlaylistMove(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+	if err := ls.Insert(ctx, -1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
-	tracksBefore, _ := ls.Tracks()
-	if err := ls.Move(0, 1); err != nil {
+	tracksBefore, _ := ls.Tracks(ctx)
+	if err := ls.Move(ctx, 0, 1); err != nil {
 		t.Fatal(err)
 	}
-	if tracks, err := ls.Tracks(); err != nil {
+	if tracks, err := ls.Tracks(ctx); err != nil {
 		t.Fatal(err)
 	} else if tracks[1].URI != testTracks[0].URI {
 		t.Logf("Tracks before:")
@@ -128,18 +130,18 @@ func testPlaylistMove(t *testing.T, ls Playlist, testTracks []library.Track) {
 	}
 }
 
-func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []library.Track) {
-	if err := ls.Insert(-1, testTracks...); err != nil {
+func testPlaylistRemove(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+	if err := ls.Insert(ctx, -1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
 	indices := make([]int, len(testTracks))
 	for i := 0; i < len(indices); i++ {
 		indices[i] = i
 	}
-	if err := ls.Remove(indices...); err != nil {
+	if err := ls.Remove(ctx, indices...); err != nil {
 		t.Fatal(err)
 	}
-	if l, err := ls.Len(); err != nil {
+	if l, err := ls.Len(ctx); err != nil {
 		t.Fatal(err)
 	} else if l != 0 {
 		t.Fatalf("Not all tracks were removed: %d remaining", l)
@@ -150,16 +152,16 @@ func testPlaylistRemove(t *testing.T, ls Playlist, testTracks []library.Track) {
 type DummyPlaylist []library.Track
 
 // Insert implements the player.Playlist interface.
-func (pl *DummyPlaylist) Insert(pos int, tracks ...library.Track) error {
+func (pl *DummyPlaylist) Insert(ctx context.Context, pos int, tracks ...library.Track) error {
 	if pos == -1 {
-		pos, _ = pl.Len()
+		pos, _ = pl.Len(ctx)
 	}
 	*pl = append(append((*pl)[:pos], tracks...), (*pl)[pos:]...)
 	return nil
 }
 
 // Move implements the player.Playlist interface.
-func (pl *DummyPlaylist) Move(fromPos, toPos int) error {
+func (pl *DummyPlaylist) Move(ctx context.Context, fromPos, toPos int) error {
 	moved := (*pl)[fromPos]
 	cut := append((*pl)[:fromPos], (*pl)[fromPos+1:]...)
 	delta := 0
@@ -171,7 +173,7 @@ func (pl *DummyPlaylist) Move(fromPos, toPos int) error {
 }
 
 // Remove implements the player.Playlist interface.
-func (pl *DummyPlaylist) Remove(pos ...int) error {
+func (pl *DummyPlaylist) Remove(ctx context.Context, pos ...int) error {
 	sort.Ints(pos)
 	for i, p := range pos {
 		*pl = append((*pl)[:p-i], (*pl)[p+1-i:]...)
@@ -180,11 +182,11 @@ func (pl *DummyPlaylist) Remove(pos ...int) error {
 }
 
 // Tracks implements the player.Playlist interface.
-func (pl *DummyPlaylist) Tracks() ([]library.Track, error) {
+func (pl *DummyPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 	return *pl, nil
 }
 
 // Len implements the player.Playlist interface.
-func (pl *DummyPlaylist) Len() (int, error) {
+func (pl *DummyPlaylist) Len(ctx context.Context) (int, error) {
 	return len(*pl), nil
 }

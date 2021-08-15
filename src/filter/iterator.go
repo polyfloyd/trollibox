@@ -23,13 +23,13 @@ func RandomIterator(filter Filter) player.TrackIterator {
 	}
 }
 
-func (it randFilterIterator) NextTrack(lib library.Library) (library.Track, player.TrackMeta, bool) {
-	tracks, err := lib.Tracks()
+func (it randFilterIterator) NextTrack(ctx context.Context, lib library.Library) (library.Track, player.TrackMeta, bool) {
+	tracks, err := lib.Tracks(ctx)
 	if err != nil {
 		return library.Track{}, player.TrackMeta{}, false
 	}
 
-	results, _ := Tracks(context.Background(), it.filter, tracks)
+	results, _ := Tracks(ctx, it.filter, tracks)
 	if len(results) == 0 {
 		return library.Track{}, player.TrackMeta{}, false
 	}

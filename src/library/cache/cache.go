@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -32,7 +33,7 @@ func NewCache(lib library.Library) *Cache {
 }
 
 // Tracks implements the library.Library interface.
-func (cache *Cache) Tracks() ([]library.Track, error) {
+func (cache *Cache) Tracks(ctx context.Context) ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -40,7 +41,7 @@ func (cache *Cache) Tracks() ([]library.Track, error) {
 		cache.lock.RUnlock()
 		cache.lock.Lock()
 		if cache.tracks == nil {
-			cache.reloadTracks()
+			cache.reloadTracks(ctx)
 		}
 		cache.lock.Unlock()
 		cache.lock.RLock()
@@ -49,7 +50,7 @@ func (cache *Cache) Tracks() ([]library.Track, error) {
 }
 
 // TrackInfo implements the library.Library interface.
-func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
+func (cache *Cache) TrackInfo(ctx context.Context, uris ...string) ([]library.Track, error) {
 	cache.lock.RLock()
 	defer cache.lock.RUnlock()
 
@@ -57,7 +58,7 @@ func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 		cache.lock.RUnlock()
 		cache.lock.Lock()
 		if cache.tracks == nil {
-			cache.reloadTracks()
+			cache.reloadTracks(ctx)
 		}
 		cache.lock.Unlock()
 		cache.lock.RLock()
@@ -71,7 +72,7 @@ func (cache *Cache) TrackInfo(uris ...string) ([]library.Track, error) {
 		if track, ok := cache.index[uri]; ok {
 			results[i] = *track
 		} else {
-			tracks, err := cache.Library.TrackInfo(uri)
+			tracks, err := cache.Library.TrackInfo(ctx, uri)
 			if err != nil {
 				return nil, err
 			}
@@ -92,24 +93,24 @@ func (cache *Cache) run() {
 
 	// Reload tracks on startup.
 	cache.lock.Lock()
-	cache.reloadTracks()
+	cache.reloadTracks(context.Background())
 	cache.lock.Unlock()
 	cache.Emit(library.UpdateEvent{})
 
 	for event := range listener {
 		if _, ok := event.(library.UpdateEvent); ok {
 			cache.lock.Lock()
-			cache.reloadTracks()
+			cache.reloadTracks(context.Background())
 			cache.lock.Unlock()
 		}
 		cache.Emit(event)
 	}
 }
 
-func (cache *Cache) reloadTracks() {
+func (cache *Cache) reloadTracks(ctx context.Context) {
 	log.Infof("%v: Reloading tracks", cache)
 
-	tracks, err := cache.Library.Tracks()
+	tracks, err := cache.Library.Tracks(ctx)
 	if err != nil {
 		cache.err = err
 		cache.tracks, cache.index = nil, nil

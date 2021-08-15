@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"time"
 
 	"trollibox/src/library"
@@ -73,38 +74,38 @@ type Player interface {
 
 	// Gets the time offset into the currently playing track. 0 if no track is
 	// being played.
-	Time() (time.Duration, error)
+	Time(context.Context) (time.Duration, error)
 
 	// SetTime Seeks to the absolute point in time of the current track. This is a
 	// no-op if player has been stopped.
-	SetTime(offset time.Duration) error
+	SetTime(context.Context, time.Duration) error
 
 	// Returns absolute index into the players' playlist.
-	TrackIndex() (int, error)
+	TrackIndex(context.Context) (int, error)
 
 	// Jumps to the specified track in the players' playlist. If the index is
 	// bigger than the length of the playlist, the playlist is ended and the
 	// state is setted to stopped.
-	SetTrackIndex(trackIndex int) error
+	SetTrackIndex(context.Context, int) error
 
 	// Returns the current playstate of the player.
-	State() (PlayState, error)
+	State(context.Context) (PlayState, error)
 
 	// Signal the player to start/resume, stop or pause playback. If the
 	// playlist is empty, a playlist-end event is emitted.
-	SetState(state PlayState) error
+	SetState(context.Context, PlayState) error
 
 	// Gets the set volume as a value between 0 and 100.
-	Volume() (int, error)
+	Volume(context.Context) (int, error)
 
 	// Sets the volume of the player. The volume should be updated even when
 	// nothing is playing. The value is clamped between 0 and 100.
-	SetVolume(vol int) error
+	SetVolume(context.Context, int) error
 
 	// Retrieves the custom finite playlists that are stored by the player and
 	// maps them by their unique name.
-	Lists() (map[string]Playlist, error)
+	Lists(context.Context) (map[string]Playlist, error)
 
 	// Reports wether the player is online and reachable.
-	Available() bool
+	Available(context.Context) bool
 }

@@ -64,12 +64,12 @@ func jsonTracks(inList []library.Track) []interface{} {
 	return outList
 }
 
-func jsonPlaylistTracks(inList []player.MetaTrack, libs []library.Library) ([]interface{}, error) {
+func jsonPlaylistTracks(ctx context.Context, inList []player.MetaTrack, libs []library.Library) ([]interface{}, error) {
 	uris := make([]string, len(inList))
 	for i, tr := range inList {
 		uris[i] = tr.URI
 	}
-	tracks, err := library.AllTrackInfo(libs, uris...)
+	tracks, err := library.AllTrackInfo(ctx, libs, uris...)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	tracks, err := plist.MetaTracks()
+	tracks, err := plist.MetaTracks(r.Context())
 	if err != nil {
 		WriteError(w, r, err)
 		return
@@ -219,7 +219,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	trJSON, err := jsonPlaylistTracks(tracks, libs)
+	trJSON, err := jsonPlaylistTracks(r.Context(), tracks, libs)
 	if err != nil {
 		WriteError(w, r, err)
 		return
@@ -260,7 +260,7 @@ func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	if err := plist.InsertWithMeta(data.Pos, tracks, meta); err != nil {
+	if err := plist.InsertWithMeta(r.Context(), data.Pos, tracks, meta); err != nil {
 		WriteError(w, r, err)
 		return
 	}
@@ -284,7 +284,7 @@ func (api *API) playlistMove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	if err := plist.Move(data.From, data.To); err != nil {
+	if err := plist.Move(r.Context(), data.From, data.To); err != nil {
 		WriteError(w, r, err)
 		return
 	}
@@ -307,7 +307,7 @@ func (api *API) playlistRemove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	if err := plist.Remove(data.Positions...); err != nil {
+	if err := plist.Remove(r.Context(), data.Positions...); err != nil {
 		WriteError(w, r, err)
 		return
 	}
@@ -321,7 +321,7 @@ func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	tracks, err := lib.Tracks()
+	tracks, err := lib.Tracks(r.Context())
 	if err != nil {
 		WriteError(w, r, err)
 		return
@@ -344,7 +344,7 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 	var image io.ReadCloser
 	var mime string
 	for _, lib := range libs {
-		image, mime, err = lib.TrackArt(uri)
+		image, mime, err = lib.TrackArt(r.Context(), uri)
 		if err == nil {
 			break
 		}
@@ -421,12 +421,12 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tracks, err := plist.MetaTracks()
+	tracks, err := plist.MetaTracks(r.Context())
 	if err != nil {
 		log.Errorf("%v", err)
 		return
 	}
-	playlistTracks, err := jsonPlaylistTracks(tracks, libs)
+	playlistTracks, err := jsonPlaylistTracks(r.Context(), tracks, libs)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
@@ -462,12 +462,12 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 
 		switch t := event.(type) {
 		case player.PlaylistEvent:
-			tracks, err := plist.MetaTracks()
+			tracks, err := plist.MetaTracks(r.Context())
 			if err != nil {
 				log.Errorf("%v", err)
 				return
 			}
-			playlistTracks, err := jsonPlaylistTracks(tracks, libs)
+			playlistTracks, err := jsonPlaylistTracks(r.Context(), tracks, libs)
 			if err != nil {
 				log.Errorf("%v", err)
 				return

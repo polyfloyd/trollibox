@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"trollibox/src/library"
 )
 
@@ -8,22 +9,22 @@ import (
 type Playlist interface {
 	// Insert a bunch of tracks into the playlist starting at the specified
 	// position. Position -1 can be used to append to the end of the playlist.
-	Insert(pos int, tracks ...library.Track) error
+	Insert(ctx context.Context, pos int, tracks ...library.Track) error
 
 	// Moves a track from position A to B. An error is returned if at least one
 	// of the positions is out of range.
-	Move(fromPos, toPos int) error
+	Move(ctx context.Context, fromPos, toPos int) error
 
 	// Removes one or more tracks from the playlist.
-	Remove(pos ...int) error
+	Remove(ctx context.Context, pos ...int) error
 
 	// Returns all tracks in the playlist.
-	Tracks() ([]library.Track, error)
+	Tracks(ctx context.Context) ([]library.Track, error)
 
 	// Len() returns the total number of tracks in the playlist. It's much the
 	// same as getting the length of the slice returned by Tracks(), but
 	// probably a lot faster.
-	Len() (int, error)
+	Len(ctx context.Context) (int, error)
 }
 
 type MetaTrack struct {
@@ -36,8 +37,8 @@ type MetaTrack struct {
 type MetaPlaylist interface {
 	Playlist
 
-	InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error
-	MetaTracks() ([]MetaTrack, error)
+	InsertWithMeta(ctx context.Context, pos int, tracks []library.Track, meta []TrackMeta) error
+	MetaTracks(ctx context.Context) ([]MetaTrack, error)
 }
 
 // A TrackIterator is a type that produces a finite or infinite stream of tracks.
@@ -47,7 +48,7 @@ type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end. The player that is requesting the next
 	// track is specified.
-	NextTrack(lib library.Library) (library.Track, TrackMeta, bool)
+	NextTrack(ctx context.Context, lib library.Library) (library.Track, TrackMeta, bool)
 }
 
 // AutoAppend attaches a listener to the specified player. The iterator is used
@@ -57,6 +58,7 @@ type TrackIterator interface {
 // Receiving from the channel blocks until no more tracks are available from
 // the iterator or an error is encountered.
 func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan error {
+	ctx := context.Background()
 	errc := make(chan error, 1)
 	go func() {
 		events := pl.Events().Listen()
@@ -73,12 +75,12 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 				}
 
 				plist := pl.Playlist()
-				trackIndex, err := pl.TrackIndex()
+				trackIndex, err := pl.TrackIndex(ctx)
 				if err != nil {
 					errc <- err
 					return
 				}
-				state, err := pl.State()
+				state, err := pl.State(ctx)
 				if err != nil {
 					errc <- err
 					return
@@ -87,21 +89,21 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 					continue
 				}
 
-				track, meta, ok := iter.NextTrack(pl.Library())
+				track, meta, ok := iter.NextTrack(ctx, pl.Library())
 				if !ok {
 					break outer
 				}
-				if err := plist.InsertWithMeta(-1, []library.Track{track}, []TrackMeta{meta}); err != nil {
+				if err := plist.InsertWithMeta(ctx, -1, []library.Track{track}, []TrackMeta{meta}); err != nil {
 					errc <- err
 					return
 				}
-				plistLen, err := plist.Len()
+				plistLen, err := plist.Len(ctx)
 				if err != nil {
 					errc <- err
 					return
 				}
-				pl.SetState(PlayStatePlaying)
-				pl.SetTrackIndex(plistLen - 1)
+				pl.SetState(ctx, PlayStatePlaying)
+				pl.SetTrackIndex(ctx, plistLen-1)
 
 			case <-cancel:
 				break outer

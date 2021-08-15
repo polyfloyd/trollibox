@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"testing"
 
 	"trollibox/src/library"
@@ -29,15 +30,17 @@ func TestMetaKeeperPlaylistImplementation(t *testing.T) {
 }
 
 func TestMetaKeeperInsert(t *testing.T) {
+	ctx := context.Background()
+
 	metapl := PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
-	if err := metapl.InsertWithMeta(0, []library.Track{{}, {}}, []TrackMeta{{}}); err == nil {
+	if err := metapl.InsertWithMeta(ctx, 0, []library.Track{{}, {}}, []TrackMeta{{}}); err == nil {
 		t.Fatalf("The Metakeeper should not accept track and meta slices which lengths do not match")
 	}
 
-	if err := metapl.InsertWithMeta(0, []library.Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
+	if err := metapl.InsertWithMeta(ctx, 0, []library.Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
 		t.Fatal(err)
 	}
-	tracks, err := metapl.MetaTracks()
+	tracks, err := metapl.MetaTracks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package mpd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/fhs/gompd/v2/mpd"
@@ -13,19 +14,19 @@ type userPlaylist struct {
 	name   string
 }
 
-func (plist userPlaylist) Insert(pos int, tracks ...library.Track) error {
+func (plist userPlaylist) Insert(ctx context.Context, pos int, tracks ...library.Track) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
-func (plist userPlaylist) Move(fromPos, toPos int) error {
+func (plist userPlaylist) Move(ctx context.Context, fromPos, toPos int) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
-func (plist userPlaylist) Remove(positions ...int) error {
+func (plist userPlaylist) Remove(ctx context.Context, positions ...int) error {
 	return fmt.Errorf("UNIMPLEMENTED")
 }
 
-func (plist userPlaylist) Tracks() ([]library.Track, error) {
+func (plist userPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 	var tracks []library.Track
 	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistContents(plist.name)
@@ -43,7 +44,7 @@ func (plist userPlaylist) Tracks() ([]library.Track, error) {
 	return tracks, err
 }
 
-func (plist userPlaylist) Len() (int, error) {
+func (plist userPlaylist) Len(ctx context.Context) (int, error) {
 	var length int
 	err := plist.player.withMpd(func(mpdc *mpd.Client) error {
 		info, err := mpdc.PlaylistInfo(-1, -1)

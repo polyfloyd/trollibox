@@ -2,6 +2,7 @@ package slimserver
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -69,7 +70,7 @@ var eventTranslations = []struct {
 	{
 		Exp: regexp.MustCompile(`^\S+ playlist (?:delete|newsong)`),
 		Event: func(pl *Player, m []string) (player.Event, error) {
-			index, err := pl.TrackIndex()
+			index, err := pl.TrackIndex(context.Background())
 			if err != nil {
 				return nil, err
 			}
@@ -177,7 +178,7 @@ func (pl *Player) Library() library.Library {
 }
 
 // Tracks implements the library.Library interface.
-func (pl *Player) Tracks() ([]library.Track, error) {
+func (pl *Player) Tracks(ctx context.Context) ([]library.Track, error) {
 	res, err := pl.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func (pl *Player) Tracks() ([]library.Track, error) {
 }
 
 // TrackInfo implements the library.Library interface.
-func (pl *Player) TrackInfo(uris ...string) ([]library.Track, error) {
+func (pl *Player) TrackInfo(ctx context.Context, uris ...string) ([]library.Track, error) {
 	res, err := pl.Serv.request(pl.ID, "path", "?")
 	if err != nil {
 		return nil, err
@@ -236,7 +237,7 @@ func (pl *Player) TrackInfo(uris ...string) ([]library.Track, error) {
 }
 
 // Time implements the player.Player interface.
-func (pl *Player) Time() (time.Duration, error) {
+func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
 	res, err := pl.Serv.request(pl.ID, "time", "?")
 	if err != nil {
 		return 0, err
@@ -249,18 +250,18 @@ func (pl *Player) Time() (time.Duration, error) {
 }
 
 // SetTime implements the player.Player interface.
-func (pl *Player) SetTime(offset time.Duration) error {
+func (pl *Player) SetTime(ctx context.Context, offset time.Duration) error {
 	_, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second)))
 	return err
 }
 
 // TrackIndex implements the player.Player interface.
-func (pl *Player) TrackIndex() (int, error) {
+func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
 	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
 	if err != nil || numTrackRes[3] == "0" {
 		return -1, err
 	}
-	state, err := pl.State()
+	state, err := pl.State(ctx)
 	if err != nil || state == player.PlayStateStopped {
 		return -1, err
 	}
@@ -272,18 +273,18 @@ func (pl *Player) TrackIndex() (int, error) {
 }
 
 // SetTrackIndex implements the player.Player interface.
-func (pl *Player) SetTrackIndex(trackIndex int) error {
-	if plistLen, err := pl.Playlist().Len(); err != nil {
+func (pl *Player) SetTrackIndex(ctx context.Context, trackIndex int) error {
+	if plistLen, err := pl.Playlist().Len(ctx); err != nil {
 		return err
 	} else if trackIndex >= plistLen {
-		return pl.SetState(player.PlayStateStopped)
+		return pl.SetState(ctx, player.PlayStateStopped)
 	}
 	_, err := pl.Serv.request(pl.ID, "playlist", "index", strconv.Itoa(trackIndex))
 	return err
 }
 
 // State implements the player.Player interface.
-func (pl *Player) State() (player.PlayState, error) {
+func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
 	res, err := pl.Serv.request(pl.ID, "mode", "?")
 	if err != nil {
 		return player.PlayStateInvalid, err
@@ -301,7 +302,7 @@ func (pl *Player) State() (player.PlayState, error) {
 }
 
 // SetState implements the player.Player interface.
-func (pl *Player) SetState(state player.PlayState) error {
+func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 	ack := make(chan error, 1)
 	defer close(ack)
 	// SlimServer may have acknowledged the command, but has not processed it.
@@ -345,7 +346,7 @@ func (pl *Player) SetState(state player.PlayState) error {
 }
 
 // Volume implements the player.Player interface.
-func (pl *Player) Volume() (int, error) {
+func (pl *Player) Volume(ctx context.Context) (int, error) {
 	res, err := pl.Serv.request(pl.ID, "mixer", "volume", "?")
 	if err != nil {
 		return 0, err
@@ -359,7 +360,7 @@ func (pl *Player) Volume() (int, error) {
 }
 
 // SetVolume implements the player.Player interface.
-func (pl *Player) SetVolume(vol int) error {
+func (pl *Player) SetVolume(ctx context.Context, vol int) error {
 	// Also unmute the in case the player was muted.
 	_, err := pl.Serv.request(pl.ID, "mixer", "muting", "0")
 	if err != nil {
@@ -370,7 +371,7 @@ func (pl *Player) SetVolume(vol int) error {
 }
 
 // Lists implements the player.Player interface.
-func (pl *Player) Lists() (map[string]player.Playlist, error) {
+func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error) {
 	countRes, err := pl.Serv.requestAttrs("playlists")
 	if err != nil {
 		return nil, err
@@ -395,7 +396,7 @@ func (pl *Player) Lists() (map[string]player.Playlist, error) {
 }
 
 // Available implements the player.Player interface.
-func (pl *Player) Available() bool {
+func (pl *Player) Available(ctx context.Context) bool {
 	powerRes, err := pl.Serv.request(pl.ID, "power", "?")
 	if err != nil {
 		return false
@@ -413,7 +414,7 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 }
 
 // TrackArt implements the library.Library interface.
-func (pl *Player) TrackArt(track string) (io.ReadCloser, string, error) {
+func (pl *Player) TrackArt(ctx context.Context, track string) (io.ReadCloser, string, error) {
 	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeURI(track))
 	if err != nil {
 		return nil, "", err
@@ -447,8 +448,8 @@ type slimPlaylist struct {
 	player *Player
 }
 
-func (plist slimPlaylist) Insert(pos int, tracks ...library.Track) error {
-	originalLength, err := plist.Len()
+func (plist slimPlaylist) Insert(ctx context.Context, pos int, tracks ...library.Track) error {
+	originalLength, err := plist.Len(ctx)
 	if err != nil {
 		return err
 	}
@@ -466,19 +467,19 @@ func (plist slimPlaylist) Insert(pos int, tracks ...library.Track) error {
 	// SlimServer does not support inserting at a specific position, so
 	// We'll just have to move it ourselves.
 	for i := range tracks {
-		if err := plist.Move(originalLength+i, pos+i); err != nil {
+		if err := plist.Move(ctx, originalLength+i, pos+i); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (plist slimPlaylist) Move(fromPos, toPos int) error {
+func (plist slimPlaylist) Move(ctx context.Context, fromPos, toPos int) error {
 	_, err := plist.player.Serv.request(plist.player.ID, "playlist", "move", strconv.Itoa(fromPos), strconv.Itoa(toPos))
 	return err
 }
 
-func (plist slimPlaylist) Remove(positions ...int) error {
+func (plist slimPlaylist) Remove(ctx context.Context, positions ...int) error {
 	sort.Ints(positions)
 	for i := len(positions) - 1; i >= 0; i-- {
 		if _, err := plist.player.Serv.request(plist.player.ID, "playlist", "delete", strconv.Itoa(positions[i])); err != nil {
@@ -488,7 +489,7 @@ func (plist slimPlaylist) Remove(positions ...int) error {
 	return nil
 }
 
-func (plist slimPlaylist) Tracks() ([]library.Track, error) {
+func (plist slimPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 	res, err := plist.player.Serv.request("info", "total", "songs", "?")
 	if err != nil {
 		return nil, err
@@ -500,7 +501,7 @@ func (plist slimPlaylist) Tracks() ([]library.Track, error) {
 	return plist.player.Serv.decodeTracks("id", numTracks, plist.player.ID, "status", "0", strconv.Itoa(numTracks), "tags:"+trackTags)
 }
 
-func (plist slimPlaylist) Len() (int, error) {
+func (plist slimPlaylist) Len(ctx context.Context) (int, error) {
 	res, err := plist.player.Serv.request(plist.player.ID, "playlist", "tracks", "?")
 	if err != nil {
 		return -1, err

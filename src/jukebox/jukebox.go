@@ -59,90 +59,90 @@ func (jb *Jukebox) DefaultPlayer(ctx context.Context) (string, error) {
 }
 
 func (jb *Jukebox) PlayerTrackIndex(ctx context.Context, playerName string) (int, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return -1, err
 	}
-	return pl.TrackIndex()
+	return pl.TrackIndex(ctx)
 }
 
 func (jb *Jukebox) SetPlayerTrackIndex(ctx context.Context, playerName string, index int, relative bool) error {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return err
 	}
 	if relative {
-		cur, err := pl.TrackIndex()
+		cur, err := pl.TrackIndex(ctx)
 		if err != nil {
 			return err
 		}
 		index += cur
 	}
-	return pl.SetTrackIndex(index)
+	return pl.SetTrackIndex(ctx, index)
 }
 
 func (jb *Jukebox) PlayerTime(ctx context.Context, playerName string) (time.Duration, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return 0, err
 	}
-	return pl.Time()
+	return pl.Time(ctx)
 }
 
 func (jb *Jukebox) SetPlayerTime(ctx context.Context, playerName string, t time.Duration) error {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return err
 	}
-	return pl.SetTime(t)
+	return pl.SetTime(ctx, t)
 }
 
 func (jb *Jukebox) PlayerState(ctx context.Context, playerName string) (player.PlayState, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return player.PlayStateInvalid, err
 	}
-	return pl.State()
+	return pl.State(ctx)
 }
 
 func (jb *Jukebox) SetPlayerState(ctx context.Context, playerName string, state player.PlayState) error {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return err
 	}
-	return pl.SetState(state)
+	return pl.SetState(ctx, state)
 }
 
 func (jb *Jukebox) PlayerVolume(ctx context.Context, playerName string) (int, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return 0, err
 	}
-	return pl.Volume()
+	return pl.Volume(ctx)
 }
 
 func (jb *Jukebox) SetPlayerVolume(ctx context.Context, playerName string, vol int) error {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return err
 	}
-	return pl.SetVolume(vol)
+	return pl.SetVolume(ctx, vol)
 }
 
 func (jb *Jukebox) Tracks(ctx context.Context, playerName string) ([]library.Track, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
-	return pl.Library().Tracks()
+	return pl.Library().Tracks(ctx)
 }
 
 func (jb *Jukebox) TrackArt(ctx context.Context, playerName, uri string) (io.Reader, string, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, "", err
 	}
-	return pl.Library().TrackArt(uri)
+	return pl.Library().TrackArt(ctx, uri)
 }
 
 func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, untagged []string) ([]filter.SearchResult, error) {
@@ -150,11 +150,11 @@ func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, u
 	if err != nil {
 		return nil, err
 	}
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
-	tracks, err := pl.Library().Tracks()
+	tracks, err := pl.Library().Tracks(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +167,7 @@ func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, u
 }
 
 func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (player.MetaPlaylist, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +175,7 @@ func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (playe
 }
 
 func (jb *Jukebox) PlayerLibraries(ctx context.Context, playerName string) ([]library.Library, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +183,7 @@ func (jb *Jukebox) PlayerLibraries(ctx context.Context, playerName string) ([]li
 }
 
 func (jb *Jukebox) PlayerLibrary(ctx context.Context, playerName string) (library.Library, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
@@ -191,19 +191,19 @@ func (jb *Jukebox) PlayerLibrary(ctx context.Context, playerName string) (librar
 }
 
 func (jb *Jukebox) PlayerEvents(ctx context.Context, playerName string) (*util.Emitter, error) {
-	pl, err := jb.player(playerName)
+	pl, err := jb.player(ctx, playerName)
 	if err != nil {
 		return nil, err
 	}
 	return pl.Events(), nil
 }
 
-func (jb *Jukebox) player(name string) (player.Player, error) {
+func (jb *Jukebox) player(ctx context.Context, name string) (player.Player, error) {
 	pl, err := jb.players.PlayerByName(name)
 	if err != nil {
 		return nil, err
 	}
-	if !pl.Available() {
+	if !pl.Available(ctx) {
 		return nil, ErrPlayerUnavailable
 	}
 	return pl, nil

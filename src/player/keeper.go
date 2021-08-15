@@ -1,6 +1,7 @@
 package player
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"sync"
@@ -30,8 +31,8 @@ type PlaylistMetaKeeper struct {
 	metaLock sync.Mutex
 }
 
-func (kpr *PlaylistMetaKeeper) update() error {
-	tracks, err := kpr.Playlist.Tracks()
+func (kpr *PlaylistMetaKeeper) update(ctx context.Context) error {
+	tracks, err := kpr.Playlist.Tracks(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,24 +74,24 @@ outer:
 }
 
 // Insert implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Insert(pos int, tracks ...library.Track) error {
+func (kpr *PlaylistMetaKeeper) Insert(ctx context.Context, pos int, tracks ...library.Track) error {
 	meta := make([]TrackMeta, len(tracks))
 	for i := range tracks {
 		meta[i] = TrackMeta{QueuedBy: "user"}
 	}
-	return kpr.InsertWithMeta(pos, tracks, meta)
+	return kpr.InsertWithMeta(ctx, pos, tracks, meta)
 }
 
 // Move implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
+func (kpr *PlaylistMetaKeeper) Move(ctx context.Context, fromPos, toPos int) error {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if kpr.meta == nil {
-		if err := kpr.update(); err != nil {
+		if err := kpr.update(ctx); err != nil {
 			return err
 		}
 	}
-	if err := kpr.Playlist.Move(fromPos, toPos); err != nil {
+	if err := kpr.Playlist.Move(ctx, fromPos, toPos); err != nil {
 		return err
 	}
 
@@ -111,16 +112,16 @@ func (kpr *PlaylistMetaKeeper) Move(fromPos, toPos int) error {
 }
 
 // Remove implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Remove(positions ...int) error {
+func (kpr *PlaylistMetaKeeper) Remove(ctx context.Context, positions ...int) error {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if kpr.meta == nil {
-		if err := kpr.update(); err != nil {
+		if err := kpr.update(ctx); err != nil {
 			return err
 		}
 	}
 	sort.Ints(positions)
-	if err := kpr.Playlist.Remove(positions...); err != nil {
+	if err := kpr.Playlist.Remove(ctx, positions...); err != nil {
 		return err
 	}
 
@@ -136,10 +137,10 @@ func (kpr *PlaylistMetaKeeper) Remove(positions ...int) error {
 }
 
 // Tracks implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Tracks() ([]library.Track, error) {
+func (kpr *PlaylistMetaKeeper) Tracks(ctx context.Context) ([]library.Track, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
-	if err := kpr.update(); err != nil {
+	if err := kpr.update(ctx); err != nil {
 		return nil, err
 	}
 	return kpr.tracks, nil
@@ -149,7 +150,7 @@ func (kpr *PlaylistMetaKeeper) Tracks() ([]library.Track, error) {
 // metadata for all tracks inserted.
 //
 // The tracks and meta slices should have the same length.
-func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, meta []TrackMeta) error {
+func (kpr *PlaylistMetaKeeper) InsertWithMeta(ctx context.Context, pos int, tracks []library.Track, meta []TrackMeta) error {
 	if len(tracks) != len(meta) {
 		return fmt.Errorf("the number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
 	}
@@ -157,11 +158,11 @@ func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, m
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if kpr.meta == nil {
-		if err := kpr.update(); err != nil {
+		if err := kpr.update(ctx); err != nil {
 			return err
 		}
 	}
-	if err := kpr.Playlist.Insert(pos, tracks...); err != nil {
+	if err := kpr.Playlist.Insert(ctx, pos, tracks...); err != nil {
 		return err
 	}
 
@@ -176,10 +177,10 @@ func (kpr *PlaylistMetaKeeper) InsertWithMeta(pos int, tracks []library.Track, m
 }
 
 // Meta loads the metadata associated with each track in the playlist.
-func (kpr *PlaylistMetaKeeper) MetaTracks() ([]MetaTrack, error) {
+func (kpr *PlaylistMetaKeeper) MetaTracks(ctx context.Context) ([]MetaTrack, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
-	if err := kpr.update(); err != nil {
+	if err := kpr.update(ctx); err != nil {
 		return nil, err
 	}
 

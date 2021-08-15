@@ -3,6 +3,7 @@ package stream
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -249,7 +250,7 @@ func (db *DB) StoreStream(stream *Stream) error {
 }
 
 // Tracks implements the library.Library interface.
-func (db *DB) Tracks() ([]library.Track, error) {
+func (db *DB) Tracks(ctx context.Context) ([]library.Track, error) {
 	streams, err := db.Streams()
 	if err != nil {
 		return nil, err
@@ -262,7 +263,7 @@ func (db *DB) Tracks() ([]library.Track, error) {
 }
 
 // TrackInfo implements the library.Library interface.
-func (db *DB) TrackInfo(uris ...string) ([]library.Track, error) {
+func (db *DB) TrackInfo(ctx context.Context, uris ...string) ([]library.Track, error) {
 	tracks := make([]library.Track, len(uris))
 	streams, err := db.Streams()
 	if err != nil {
@@ -279,7 +280,7 @@ func (db *DB) TrackInfo(uris ...string) ([]library.Track, error) {
 }
 
 // TrackArt implements the library.Library interface.
-func (db *DB) TrackArt(track string) (io.ReadCloser, string, error) {
+func (db *DB) TrackArt(ctx context.Context, track string) (io.ReadCloser, string, error) {
 	stream, err := db.streamByURL(track)
 	if stream == nil {
 		return nil, "", fmt.Errorf("%w: no such stream", library.ErrNoArt)

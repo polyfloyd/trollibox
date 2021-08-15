@@ -1,6 +1,7 @@
 package library
 
 import (
+	"context"
 	"io"
 
 	"trollibox/src/util"
@@ -10,12 +11,12 @@ import (
 type DummyLibrary []Track
 
 // Tracks implements the library.Library interface.
-func (lib *DummyLibrary) Tracks() ([]Track, error) {
+func (lib *DummyLibrary) Tracks(ctx context.Context) ([]Track, error) {
 	return *lib, nil
 }
 
 // TrackInfo implements the library.Library interface.
-func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
+func (lib *DummyLibrary) TrackInfo(ctx context.Context, uris ...string) ([]Track, error) {
 	tracks := make([]Track, len(uris))
 	for i, uri := range uris {
 		for _, track := range *lib {
@@ -28,7 +29,7 @@ func (lib *DummyLibrary) TrackInfo(uris ...string) ([]Track, error) {
 }
 
 // TrackArt implements the library.Library interface.
-func (lib *DummyLibrary) TrackArt(uri string) (io.ReadCloser, string, error) {
+func (lib *DummyLibrary) TrackArt(ctx context.Context, uri string) (io.ReadCloser, string, error) {
 	return nil, "", ErrNoArt
 }
 
