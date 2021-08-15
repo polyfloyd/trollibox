@@ -144,7 +144,7 @@ func (pl *Player) withMpd(ctx context.Context, fn func(context.Context, *mpd.Cli
 		client, err = mpd.DialAuthenticated(pl.network, pl.address, pl.passwd)
 		if err != nil {
 			pl.clientPool <- nil
-			return fmt.Errorf("error connecting to MPD: %v", err)
+			return fmt.Errorf("error connecting to MPD: %v / %w", err, player.ErrUnavailable)
 		}
 	}
 

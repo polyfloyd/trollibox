@@ -2,11 +2,16 @@ package player
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"trollibox/src/library"
 	"trollibox/src/util"
 )
+
+// ErrUnavailable is returned from functions that operate on player state when
+// a player unreachable for any reason.
+var ErrUnavailable = errors.New("the player is not available")
 
 // PlayState enumerates all 3 possible states of playback.
 type PlayState string

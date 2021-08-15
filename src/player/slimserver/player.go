@@ -238,6 +238,10 @@ func (pl *Player) TrackInfo(ctx context.Context, uris ...string) ([]library.Trac
 
 // Time implements the player.Player interface.
 func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return 0, err
+	}
+
 	res, err := pl.Serv.request(pl.ID, "time", "?")
 	if err != nil {
 		return 0, err
@@ -251,12 +255,20 @@ func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
 
 // SetTime implements the player.Player interface.
 func (pl *Player) SetTime(ctx context.Context, offset time.Duration) error {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return err
+	}
+
 	_, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second)))
 	return err
 }
 
 // TrackIndex implements the player.Player interface.
 func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return -1, err
+	}
+
 	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
 	if err != nil || numTrackRes[3] == "0" {
 		return -1, err
@@ -274,6 +286,10 @@ func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
 
 // SetTrackIndex implements the player.Player interface.
 func (pl *Player) SetTrackIndex(ctx context.Context, trackIndex int) error {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return err
+	}
+
 	if plistLen, err := pl.Playlist().Len(ctx); err != nil {
 		return err
 	} else if trackIndex >= plistLen {
@@ -285,6 +301,10 @@ func (pl *Player) SetTrackIndex(ctx context.Context, trackIndex int) error {
 
 // State implements the player.Player interface.
 func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return player.PlayStateInvalid, err
+	}
+
 	res, err := pl.Serv.request(pl.ID, "mode", "?")
 	if err != nil {
 		return player.PlayStateInvalid, err
@@ -303,6 +323,10 @@ func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
 
 // SetState implements the player.Player interface.
 func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return err
+	}
+
 	ack := make(chan error, 1)
 	defer close(ack)
 	// SlimServer may have acknowledged the command, but has not processed it.
@@ -347,6 +371,10 @@ func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 
 // Volume implements the player.Player interface.
 func (pl *Player) Volume(ctx context.Context) (int, error) {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return 0, err
+	}
+
 	res, err := pl.Serv.request(pl.ID, "mixer", "volume", "?")
 	if err != nil {
 		return 0, err
@@ -361,6 +389,9 @@ func (pl *Player) Volume(ctx context.Context) (int, error) {
 
 // SetVolume implements the player.Player interface.
 func (pl *Player) SetVolume(ctx context.Context, vol int) error {
+	if err := pl.requireAvailable(ctx); err != nil {
+		return err
+	}
 	// Also unmute the in case the player was muted.
 	_, err := pl.Serv.request(pl.ID, "mixer", "muting", "0")
 	if err != nil {
@@ -393,6 +424,13 @@ func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error)
 		}
 	}
 	return playlists, nil
+}
+
+func (pl *Player) requireAvailable(ctx context.Context) error {
+	if !pl.Available(ctx) {
+		return player.ErrUnavailable
+	}
+	return nil
 }
 
 // Available implements the player.Player interface.
