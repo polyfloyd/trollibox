@@ -49,7 +49,7 @@ Vue.component('player', {
 						:value="time"
 						:disabled="!currentTrack || !currentTrack.duration"
 						title="Seek in the current track"
-						@click="setTime($event.target.value|0)" />
+						@change="setTime($event.target.value|0)" />
 					<span v-if="currentTrack && currentTrack.duration">
 						{{ durationToString(currentTrack.duration) }}
 					</span>
@@ -62,7 +62,7 @@ Vue.component('player', {
 						min="0" max="100" :value="volume * 100"
 						title="Set volume level"
 						:disabled="state == 'stopped'"
-						@click="setVolume($event.target.value/100)" />
+						@change="setVolume($event.target.value/100)" />
 					<span class="glyphicon glyphicon-volume-up"></span>
 				</div>
 
