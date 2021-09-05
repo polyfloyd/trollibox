@@ -51,6 +51,23 @@ Inside the configuration file, you will find some options you may need to change
 
 ## For Users
 
+### Hotkeys
+* `space`: toggle playback
+* `>`: next track
+* `<`: previous track
+* `up`: increase volume
+* `down`: decrease volume
+* `left`: seek backwards in the playing track
+* `right`: seek forwards in the playing track
+* `c`: clear the yet to be played part of the playlist
+* `1`: focus library search
+* `2`: focus album browser
+* `3`: focus genre/artist browser
+* `4`: focus file browser
+* `5`: focus streams library
+* `6`: focus auto queuer configuration
+* `7`: expand player
+
 ### Queueing Tracks
 Tracks may be queued from the browser page using one of the views. Click on a
 track to append it to the queue.
