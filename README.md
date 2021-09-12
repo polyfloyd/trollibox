@@ -55,10 +55,10 @@ Inside the configuration file, you will find some options you may need to change
 * `space`: toggle playback
 * `>`: next track
 * `<`: previous track
-* `up`: increase volume
-* `down`: decrease volume
-* `left`: seek backwards in the playing track
-* `right`: seek forwards in the playing track
+* `+`: increase volume
+* `-`: decrease volume
+* `b`: seek backwards in the playing track
+* `f`: seek forwards in the playing track
 * `c`: clear the yet to be played part of the playlist
 * `1`: focus library search
 * `2`: focus album browser

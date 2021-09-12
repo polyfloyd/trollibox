@@ -188,6 +188,7 @@ Vue.component('player', {
 
 		onKey: function(event) {
 			if (event.target != document.body) return;
+			event.preventDefault();
 			switch (event.key) {
 			case ' ':
 				this.setState(this.state != 'playing' ? 'playing' : 'paused');
@@ -198,16 +199,16 @@ Vue.component('player', {
 			case '>':
 				this.setIndex(1, true);
 				break;
-			case 'ArrowUp':
+			case '+':
 				this.setVolume(this.volume + 0.05);
 				break;
-			case 'ArrowDown':
+			case '-':
 				this.setVolume(this.volume - 0.05);
 				break;
-			case 'ArrowLeft':
+			case 'b':
 				this.setTime(this.time - 5);
 				break;
-			case 'ArrowRight':
+			case 'f':
 				this.setTime(this.time + 5);
 				break;
 			case 'c':
