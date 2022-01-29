@@ -16,3 +16,6 @@
 [submodule "lib/web/jquery.hotkeys"]
 	path = lib/web/jquery.hotkeys
 	url = https://github.com/jeresig/jquery.hotkeys.git
+[submodule "lib/web/vue"]
+	path = lib/web/vue
+	url = https://github.com/vuejs/vue.git
