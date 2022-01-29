@@ -108,12 +108,6 @@ var eventTranslations = []struct {
 			return player.TimeEvent{Time: time.Second * time.Duration(secs)}, nil
 		},
 	},
-	{
-		Exp: regexp.MustCompile(`^\S+ client (?:reconnect|disconnect)`),
-		Event: func(pl *Player, m []string) (player.Event, error) {
-			return player.AvailabilityEvent{Available: m[1] == "reconnect"}, nil
-		},
-	},
 }
 
 // A Player that is part of a Server.
@@ -135,7 +129,6 @@ func (pl *Player) eventLoop() {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
 			log.Debugf("Could not start event loop: %v", err)
-			pl.Emit(player.AvailabilityEvent{Available: false})
 			time.Sleep(time.Second)
 			continue
 		}
@@ -427,23 +420,18 @@ func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error)
 }
 
 func (pl *Player) requireAvailable(ctx context.Context) error {
-	if !pl.Available(ctx) {
-		return player.ErrUnavailable
-	}
-	return nil
-}
-
-// Available implements the player.Player interface.
-func (pl *Player) Available(ctx context.Context) bool {
 	powerRes, err := pl.Serv.request(pl.ID, "power", "?")
 	if err != nil {
-		return false
+		return player.ErrUnavailable
 	}
 	connectedRes, err := pl.Serv.request(pl.ID, "connected", "?")
 	if err != nil {
-		return false
+		return player.ErrUnavailable
 	}
-	return powerRes[2] == "1" && connectedRes[2] == "1"
+	if powerRes[2] != "1" || connectedRes[2] != "1" {
+		return player.ErrUnavailable
+	}
+	return nil
 }
 
 // Playlist implements the player.Player interface.

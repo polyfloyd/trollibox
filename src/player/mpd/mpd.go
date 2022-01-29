@@ -162,7 +162,6 @@ func (pl *Player) eventLoop() {
 			continue
 		}
 		defer watcher.Close()
-		pl.Emit(player.AvailabilityEvent{Available: true})
 
 	loop:
 		for {
@@ -170,7 +169,6 @@ func (pl *Player) eventLoop() {
 			case event := <-watcher.Event:
 				pl.Emit(mpdEvent(event))
 			case <-watcher.Error:
-				pl.Emit(player.AvailabilityEvent{Available: false})
 				break loop
 			}
 		}
@@ -526,13 +524,6 @@ func (pl *Player) SetVolume(ctx context.Context, vol int) error {
 		pl.lastVolume = vol
 		return mpdc.SetVolume(vol)
 	})
-}
-
-// Available implements the player.Player interface.
-func (pl *Player) Available(ctx context.Context) bool {
-	return pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
-		return mpdc.Ping()
-	}) == nil
 }
 
 // Playlist implements the player.Player interface.

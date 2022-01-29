@@ -53,11 +53,6 @@ type (
 	}
 	// ListEvent is emitted after a stored playlist was changed.
 	ListEvent struct{}
-	// AvailabilityEvent is emitted after the player comes online or goes
-	// offline.
-	AvailabilityEvent struct {
-		Available bool
-	}
 )
 
 // The Player is the heart of Trollibox. This interface provides all common
@@ -110,7 +105,4 @@ type Player interface {
 	// Retrieves the custom finite playlists that are stored by the player and
 	// maps them by their unique name.
 	Lists(context.Context) (map[string]Playlist, error)
-
-	// Reports wether the player is online and reachable.
-	Available(context.Context) bool
 }

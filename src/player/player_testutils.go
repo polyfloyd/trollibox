@@ -37,9 +37,6 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 	if err := fillPlaylist(ctx, pl, 3); err != nil {
 		t.Fatal(err)
 	}
-	t.Run("availability", func(t *testing.T) {
-		testAvailability(ctx, t, pl)
-	})
 	t.Run("time", func(t *testing.T) {
 		testTime(ctx, t, pl)
 	})
@@ -64,12 +61,6 @@ func TestPlayerImplementation(t *testing.T, pl Player) {
 	t.Run("volume_event", func(t *testing.T) {
 		testVolumeEvent(ctx, t, pl)
 	})
-}
-
-func testAvailability(ctx context.Context, t *testing.T, pl Player) {
-	if !pl.Available(ctx) {
-		t.Fatal("The player is not available")
-	}
 }
 
 func testTime(ctx context.Context, t *testing.T, pl Player) {

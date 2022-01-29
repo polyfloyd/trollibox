@@ -484,8 +484,6 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 			es.EventJSON("time", map[string]interface{}{"time": int(t.Time / time.Second)})
 		case player.VolumeEvent:
 			es.EventJSON("volume", map[string]interface{}{"volume": t.Volume})
-		case player.AvailabilityEvent:
-			es.EventJSON("availability", map[string]interface{}{"available": t.Available})
 		case library.UpdateEvent:
 			es.EventJSON("library", "")
 		default:
