@@ -1,10 +1,8 @@
 package mpd
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"reflect"
 	"sort"
@@ -532,17 +530,25 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 }
 
 // TrackArt implements the library.Library interface.
-func (pl *Player) TrackArt(ctx context.Context, track string) (image io.ReadCloser, mime string, err error) {
+func (pl *Player) TrackArt(ctx context.Context, track string) (art *library.Art, err error) {
 	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
-		bin, err := mpdc.ReadPicture(uriToMpd(track))
+		tt, err := pl.TrackInfo(ctx, track)
+		if err != nil {
+			return err
+		}
+
+		imageData, err := mpdc.ReadPicture(uriToMpd(track))
 		if err != nil {
 			if err.Error() == "no binary data found in response" {
 				return library.ErrNoArt
 			}
 			return err
 		}
-		image = io.NopCloser(bytes.NewReader(bin))
-		mime = http.DetectContentType(bin)
+		art = &library.Art{
+			ImageData: imageData,
+			MimeType:  http.DetectContentType(imageData),
+			ModTime:   tt[0].ModTime,
+		}
 		return nil
 	})
 	return
@@ -668,6 +674,12 @@ func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) e
 	track.AlbumArtist = (*song)["AlbumArtist"]
 	track.AlbumDisc = (*song)["Disc"]
 	track.AlbumTrack = (*song)["Track"]
+	modTime, err := time.Parse(time.RFC3339, (*song)["Last-Modified"])
+	if err != nil {
+		log.Warnf("Could not parse track mod time: %v", err)
+	} else {
+		track.ModTime = modTime
+	}
 
 	if timeStr := (*song)["Time"]; timeStr != "" {
 		duration, err := strconv.ParseInt(timeStr, 10, 32)

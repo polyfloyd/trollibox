@@ -3,7 +3,6 @@ package jukebox
 import (
 	"context"
 	"fmt"
-	"io"
 	"sort"
 	"time"
 
@@ -137,10 +136,10 @@ func (jb *Jukebox) Tracks(ctx context.Context, playerName string) ([]library.Tra
 	return pl.Library().Tracks(ctx)
 }
 
-func (jb *Jukebox) TrackArt(ctx context.Context, playerName, uri string) (io.Reader, string, error) {
+func (jb *Jukebox) TrackArt(ctx context.Context, playerName, uri string) (*library.Art, error) {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	return pl.Library().TrackArt(ctx, uri)
 }

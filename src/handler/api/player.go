@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -19,8 +18,6 @@ import (
 	"trollibox/src/player"
 	"trollibox/src/util/eventsource"
 )
-
-var httpCacheSince = time.Now()
 
 type playerContextType struct{}
 
@@ -341,10 +338,9 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var image io.ReadCloser
-	var mime string
+	var art *library.Art
 	for _, lib := range libs {
-		image, mime, err = lib.TrackArt(r.Context(), uri)
+		art, err = lib.TrackArt(r.Context(), uri)
 		if err == nil {
 			break
 		}
@@ -356,13 +352,9 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	defer image.Close()
 
-	w.Header().Set("Content-Type", mime)
-	var buf bytes.Buffer
-	// Copy to a buffer so seeking is supported.
-	io.Copy(&buf, image)
-	http.ServeContent(w, r, path.Base(uri), httpCacheSince, bytes.NewReader(buf.Bytes()))
+	w.Header().Set("Content-Type", art.MimeType)
+	http.ServeContent(w, r, path.Base(uri), art.ModTime, bytes.NewReader(art.ImageData))
 }
 
 func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {

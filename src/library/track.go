@@ -24,6 +24,7 @@ type Track struct {
 	AlbumTrack  string        `json:"albumtrack,omitempty"`
 	AlbumDisc   string        `json:"albumdisc,omitempty"`
 	Duration    time.Duration `json:"duration"`
+	ModTime     time.Time     `json:"-"`
 }
 
 // Attr gets an attribute of a track by its name. Accepted names are:

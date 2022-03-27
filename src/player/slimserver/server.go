@@ -28,6 +28,8 @@ type Server struct {
 	// through the player interface, we reuse players instead.
 	playerCache     map[string]*Player
 	playerCacheLock sync.Mutex
+
+	httpCacheSince time.Time
 }
 
 // Connect connects to Logitech SlimServer with an optional username and password.
@@ -65,7 +67,8 @@ func Connect(network, address string, username, password *string, webURL string)
 				return conn
 			},
 		},
-		playerCache: map[string]*Player{},
+		playerCache:    map[string]*Player{},
+		httpCacheSince: time.Now(),
 	}
 
 	// Test connection.

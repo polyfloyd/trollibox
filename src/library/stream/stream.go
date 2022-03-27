@@ -40,6 +40,7 @@ type Stream struct {
 	URL      string `json:"url"`
 	Title    string `json:"title"`
 	ArtURI   string `json:"arturi,omitempty"`
+	modTime  time.Time
 }
 
 func loadM3U(filename string) (*Stream, error) {
@@ -49,7 +50,15 @@ func loadM3U(filename string) (*Stream, error) {
 	}
 	defer fd.Close()
 
-	stream := &Stream{Filename: path.Base(filename)}
+	stat, err := fd.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	stream := &Stream{
+		Filename: path.Base(filename),
+		modTime:  stat.ModTime(),
+	}
 
 	m3u := bufio.NewReader(fd)
 	// The first line should be the M3U header: #EXTM3U
@@ -119,14 +128,23 @@ func (stream *Stream) PlayerTrack() library.Track {
 	}
 }
 
-func (stream *Stream) art() (io.ReadCloser, string, error) {
+func (stream *Stream) art() (*library.Art, error) {
 	if stream.ArtURI == "" {
-		return nil, "", library.ErrNoArt
+		return nil, library.ErrNoArt
 	}
-	if match := dataURIRe.FindStringSubmatch(stream.ArtURI); len(match) > 0 {
-		return ioutil.NopCloser(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2]))), match[1], nil
+	match := dataURIRe.FindStringSubmatch(stream.ArtURI)
+	if len(match) == 0 {
+		return nil, fmt.Errorf("stream %v: malformed stream art", stream.Title)
 	}
-	return nil, "", fmt.Errorf("stream %v: malformed stream art", stream.Title)
+	imageData, err := ioutil.ReadAll(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2])))
+	if err != nil {
+		return nil, err
+	}
+	return &library.Art{
+		ImageData: imageData,
+		MimeType:  match[1],
+		ModTime:   stream.modTime,
+	}, nil
 }
 
 func (stream *Stream) String() string {
@@ -280,13 +298,13 @@ func (db *DB) TrackInfo(ctx context.Context, uris ...string) ([]library.Track, e
 }
 
 // TrackArt implements the library.Library interface.
-func (db *DB) TrackArt(ctx context.Context, track string) (io.ReadCloser, string, error) {
+func (db *DB) TrackArt(ctx context.Context, track string) (*library.Art, error) {
 	stream, err := db.streamByURL(track)
 	if stream == nil {
-		return nil, "", fmt.Errorf("%w: no such stream", library.ErrNoArt)
+		return nil, fmt.Errorf("%w: no such stream", library.ErrNoArt)
 	}
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	return stream.art()
 }

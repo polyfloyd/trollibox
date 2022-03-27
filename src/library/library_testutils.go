@@ -2,7 +2,6 @@ package library
 
 import (
 	"context"
-	"io"
 
 	"trollibox/src/util"
 )
@@ -29,8 +28,8 @@ func (lib *DummyLibrary) TrackInfo(ctx context.Context, uris ...string) ([]Track
 }
 
 // TrackArt implements the library.Library interface.
-func (lib *DummyLibrary) TrackArt(ctx context.Context, uri string) (io.ReadCloser, string, error) {
-	return nil, "", ErrNoArt
+func (lib *DummyLibrary) TrackArt(ctx context.Context, uri string) (*Art, error) {
+	return nil, ErrNoArt
 }
 
 // Events implements the player.Player interface.

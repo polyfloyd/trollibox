@@ -3,7 +3,7 @@ package library
 import (
 	"context"
 	"errors"
-	"io"
+	"time"
 
 	"trollibox/src/util"
 )
@@ -13,6 +13,12 @@ var ErrNoArt = errors.New("track has no art")
 // An UpdateEvent is emitted when the track collection in the library has
 // changed.
 type UpdateEvent struct{}
+
+type Art struct {
+	ImageData []byte
+	MimeType  string
+	ModTime   time.Time
+}
 
 // A Library is a database that is able to recall tracks that can be played.
 type Library interface {
@@ -26,11 +32,11 @@ type Library interface {
 	// zero track is returned at that index.
 	TrackInfo(ctx context.Context, uris ...string) ([]Track, error)
 
-	// Returns the artwork for the track as a reader of image data along with
-	// its MIME type. The caller is responsible for closing the reader.
+	// Returns the artwork for the track as a reader of image data along with its MIME type. The
+	// caller is responsible for closing the reader in the returned Art struct.
 	//
 	// If no art is available, ErrNoArt is returned.
-	TrackArt(ctx context.Context, uri string) (image io.ReadCloser, mime string, err error)
+	TrackArt(ctx context.Context, uri string) (*Art, error)
 }
 
 // AllTrackInfo looks for the track information in all the libraries supplied.

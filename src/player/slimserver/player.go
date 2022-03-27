@@ -440,25 +440,37 @@ func (pl *Player) Playlist() player.MetaPlaylist {
 }
 
 // TrackArt implements the library.Library interface.
-func (pl *Player) TrackArt(ctx context.Context, track string) (io.ReadCloser, string, error) {
+func (pl *Player) TrackArt(ctx context.Context, track string) (*library.Art, error) {
 	attrs, err := pl.Serv.requestAttrs("songinfo", "0", "100", "tags:c", "url:"+encodeURI(track))
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	if pl.Serv.webURL == "" || attrs["coverid"] == "" {
-		return nil, "", library.ErrNoArt
+		return nil, library.ErrNoArt
 	}
 	res, err := http.Get(fmt.Sprintf("%smusic/%s/cover.jpg", pl.Serv.webURL, attrs["coverid"]))
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
+	defer res.Body.Close()
 	if res.StatusCode == 404 {
-		return nil, "", library.ErrNoArt
+		return nil, library.ErrNoArt
 	} else if res.StatusCode != 200 {
-		return nil, "", fmt.Errorf("could not get art: http status %d", res.StatusCode)
+		return nil, fmt.Errorf("could not get art: http status %d", res.StatusCode)
 	}
-	return res.Body, res.Header.Get("Content-Type"), nil
+
+	imageData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	return &library.Art{
+		ImageData: imageData,
+		MimeType:  res.Header.Get("Content-Type"),
+		// There is no Last-Modified header on the response from SlimServer, so we use the start
+		// time of Trollibox itself instead.
+		ModTime: pl.Serv.httpCacheSince,
+	}, nil
 }
 
 // Events implements the player.Player interface.
