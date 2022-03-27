@@ -165,7 +165,7 @@ func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, u
 	return results, nil
 }
 
-func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (player.MetaPlaylist, error) {
+func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (player.Playlist[player.MetaTrack], error) {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {
 		return nil, err

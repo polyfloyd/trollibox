@@ -395,7 +395,7 @@ func (pl *Player) SetVolume(ctx context.Context, vol int) error {
 }
 
 // Lists implements the player.Player interface.
-func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error) {
+func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist[library.Track], error) {
 	countRes, err := pl.Serv.requestAttrs("playlists")
 	if err != nil {
 		return nil, err
@@ -405,7 +405,7 @@ func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error)
 		return nil, err
 	}
 
-	playlists := map[string]player.Playlist{}
+	playlists := map[string]player.Playlist[library.Track]{}
 	for i := 0; i < numPlaylists; i++ {
 		plAttrs, err := pl.Serv.requestAttrs("playlists", strconv.Itoa(i), "1")
 		if err != nil {
@@ -435,7 +435,7 @@ func (pl *Player) requireAvailable(ctx context.Context) error {
 }
 
 // Playlist implements the player.Player interface.
-func (pl *Player) Playlist() player.MetaPlaylist {
+func (pl *Player) Playlist() player.Playlist[player.MetaTrack] {
 	return &pl.playlist
 }
 

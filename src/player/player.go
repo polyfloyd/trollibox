@@ -70,7 +70,7 @@ type Player interface {
 	Library() library.Library
 
 	// Returns the currently playing playlist.
-	Playlist() MetaPlaylist
+	Playlist() Playlist[MetaTrack]
 
 	// Gets the time offset into the currently playing track. 0 if no track is
 	// being played.
@@ -104,5 +104,5 @@ type Player interface {
 
 	// Retrieves the custom finite playlists that are stored by the player and
 	// maps them by their unique name.
-	Lists(context.Context) (map[string]Playlist, error)
+	Lists(context.Context) (map[string]Playlist[library.Track], error)
 }

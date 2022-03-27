@@ -27,6 +27,11 @@ type Track struct {
 	ModTime     time.Time     `json:"-"`
 }
 
+// GetURI implements the PlaylistTrack interface.
+func (t Track) GetURI() string {
+	return t.URI
+}
+
 // Attr gets an attribute of a track by its name. Accepted names are:
 //   "uri"
 //   "artist"

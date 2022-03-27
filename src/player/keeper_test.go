@@ -8,39 +8,44 @@ import (
 )
 
 func TestMetaKeeperPlaylistImplementation(t *testing.T) {
-	tracks := []library.Track{
+	tracks := []MetaTrack{
 		{
-			URI:    "track1",
-			Artist: "Artist 1",
-			Title:  "Title 1",
+			Track: library.Track{
+				URI:    "track1",
+				Artist: "Artist 1",
+				Title:  "Title 1",
+			},
+			TrackMeta: TrackMeta{QueuedBy: "system"},
 		},
 		{
-			URI:    "track2",
-			Artist: "Artist 2",
-			Title:  "Title 2",
+			Track: library.Track{
+				URI:    "track2",
+				Artist: "Artist 2",
+				Title:  "Title 2",
+			},
+			TrackMeta: TrackMeta{QueuedBy: "system"},
 		},
 		{
-			URI:    "track3",
-			Artist: "Artist 3",
-			Title:  "Title 3",
+			Track: library.Track{
+				URI:    "track3",
+				Artist: "Artist 3",
+				Title:  "Title 3",
+			},
+			TrackMeta: TrackMeta{QueuedBy: "system"},
 		},
 	}
 	metapl := &PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
-	TestPlaylistImplementation(t, metapl, tracks)
+	TestPlaylistImplementation[MetaTrack](t, metapl, tracks)
 }
 
 func TestMetaKeeperInsert(t *testing.T) {
 	ctx := context.Background()
 
 	metapl := PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
-	if err := metapl.InsertWithMeta(ctx, 0, []library.Track{{}, {}}, []TrackMeta{{}}); err == nil {
-		t.Fatalf("The Metakeeper should not accept track and meta slices which lengths do not match")
-	}
-
-	if err := metapl.InsertWithMeta(ctx, 0, []library.Track{{}}, []TrackMeta{{QueuedBy: "system"}}); err != nil {
+	if err := metapl.Insert(ctx, 0, MetaTrack{TrackMeta: TrackMeta{QueuedBy: "system"}}); err != nil {
 		t.Fatal(err)
 	}
-	tracks, err := metapl.MetaTracks(ctx)
+	tracks, err := metapl.Tracks(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}

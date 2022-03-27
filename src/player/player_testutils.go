@@ -28,7 +28,15 @@ func fillPlaylist(ctx context.Context, pl Player, numTracks int) error {
 	if len(tracks) < numTracks {
 		return fmt.Errorf("not enough tracks in the library: %v < %v", len(tracks), numTracks)
 	}
-	return pl.Playlist().Insert(ctx, 0, tracks[0:numTracks]...)
+
+	metaTracks := make([]MetaTrack, numTracks)
+	for i, t := range tracks[0:numTracks] {
+		metaTracks[i] = MetaTrack{
+			Track:     t,
+			TrackMeta: TrackMeta{QueuedBy: "system"},
+		}
+	}
+	return pl.Playlist().Insert(ctx, 0, metaTracks...)
 }
 
 // TestPlayerImplementation tests the implementation of the player.Player interface.

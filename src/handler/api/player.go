@@ -201,7 +201,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	tracks, err := plist.MetaTracks(r.Context())
+	tracks, err := plist.Tracks(r.Context())
 	if err != nil {
 		WriteError(w, r, err)
 		return
@@ -244,20 +244,17 @@ func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tracks := make([]library.Track, len(data.Tracks))
+	tracks := make([]player.MetaTrack, len(data.Tracks))
 	for i, uri := range data.Tracks {
 		tracks[i].URI = uri
-	}
-	meta := make([]player.TrackMeta, len(data.Tracks))
-	for i := range data.Tracks {
-		meta[i].QueuedBy = "user"
+		tracks[i].QueuedBy = "user"
 	}
 	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
 	if err != nil {
 		WriteError(w, r, err)
 		return
 	}
-	if err := plist.InsertWithMeta(r.Context(), data.Pos, tracks, meta); err != nil {
+	if err := plist.Insert(r.Context(), data.Pos, tracks...); err != nil {
 		WriteError(w, r, err)
 		return
 	}
@@ -413,7 +410,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tracks, err := plist.MetaTracks(r.Context())
+	tracks, err := plist.Tracks(r.Context())
 	if err != nil {
 		log.Errorf("%v", err)
 		return
@@ -454,7 +451,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 
 		switch t := event.(type) {
 		case player.PlaylistEvent:
-			tracks, err := plist.MetaTracks(r.Context())
+			tracks, err := plist.Tracks(r.Context())
 			if err != nil {
 				log.Errorf("%v", err)
 				return

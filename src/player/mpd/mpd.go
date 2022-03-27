@@ -344,8 +344,8 @@ func (pl *Player) TrackInfo(ctx context.Context, identities ...string) ([]librar
 }
 
 // Lists implements the player.Player interface.
-func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist, error) {
-	playlists := map[string]player.Playlist{}
+func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist[library.Track], error) {
+	playlists := map[string]player.Playlist[library.Track]{}
 	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		plAttrs, err := mpdc.ListPlaylists()
 		if err != nil {
@@ -525,7 +525,7 @@ func (pl *Player) SetVolume(ctx context.Context, vol int) error {
 }
 
 // Playlist implements the player.Player interface.
-func (pl *Player) Playlist() player.MetaPlaylist {
+func (pl *Player) Playlist() player.Playlist[player.MetaTrack] {
 	return &pl.playlist
 }
 

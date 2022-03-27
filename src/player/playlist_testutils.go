@@ -9,7 +9,7 @@ import (
 )
 
 // TestPlaylistImplementation tests the implementation of the playerPlaylist interface.
-func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []library.Track) {
+func TestPlaylistImplementation[T PlaylistTrack](t *testing.T, ls Playlist[T], testTracks []T) {
 	ctx := context.Background()
 	clear := func() {
 		if length, err := ls.Len(ctx); err != nil {
@@ -46,7 +46,7 @@ func TestPlaylistImplementation(t *testing.T, ls Playlist, testTracks []library.
 	})
 }
 
-func testPlaylistLen(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+func testPlaylistLen[T PlaylistTrack](ctx context.Context, t *testing.T, ls Playlist[T], testTracks []T) {
 	if l, err := ls.Len(ctx); err != nil {
 		t.Fatal(err)
 	} else if l != 0 {
@@ -62,7 +62,7 @@ func testPlaylistLen(ctx context.Context, t *testing.T, ls Playlist, testTracks 
 	}
 }
 
-func testPlaylistInsert(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+func testPlaylistInsert[T PlaylistTrack](ctx context.Context, t *testing.T, ls Playlist[T], testTracks []T) {
 	if err := ls.Insert(ctx, 0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +72,7 @@ func testPlaylistInsert(ctx context.Context, t *testing.T, ls Playlist, testTrac
 		t.Fatal(err)
 	}
 	for i, testTrack := range testTracks[1:] {
-		if testTrack.URI != tracks[i].URI {
+		if testTrack.GetURI() != tracks[i].GetURI() {
 			t.Logf("expected: %v", testTracks[1:])
 			t.Logf("got: %v", tracks)
 			t.Fatalf("Mismatched tracks at index %d", i)
@@ -84,14 +84,14 @@ func testPlaylistInsert(ctx context.Context, t *testing.T, ls Playlist, testTrac
 	}
 	if tracks, err = ls.Tracks(ctx); err != nil {
 		t.Fatal(err)
-	} else if tracks[0].URI != testTracks[0].URI {
-		t.Logf("expected %q at index 0", testTracks[0].URI)
+	} else if tracks[0].GetURI() != testTracks[0].GetURI() {
+		t.Logf("expected %q at index 0", testTracks[0].GetURI())
 		t.Logf("got: %v", tracks)
-		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].URI)
+		t.Fatalf("Insert error: %q not inserted at position 0", testTracks[0].GetURI())
 	}
 }
 
-func testPlaylistAppend(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+func testPlaylistAppend[T PlaylistTrack](ctx context.Context, t *testing.T, ls Playlist[T], testTracks []T) {
 	if err := ls.Insert(ctx, 0, testTracks[1:]...); err != nil {
 		t.Fatal(err)
 	}
@@ -102,12 +102,12 @@ func testPlaylistAppend(ctx context.Context, t *testing.T, ls Playlist, testTrac
 	if err != nil {
 		t.Fatal(err)
 	}
-	if tracks[len(tracks)-1].URI != testTracks[0].URI {
+	if tracks[len(tracks)-1].GetURI() != testTracks[0].GetURI() {
 		t.Fatalf("Insert error: track not appended")
 	}
 }
 
-func testPlaylistMove(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+func testPlaylistMove[T PlaylistTrack](ctx context.Context, t *testing.T, ls Playlist[T], testTracks []T) {
 	if err := ls.Insert(ctx, -1, testTracks...); err != nil {
 		t.Fatal(err)
 	}
@@ -117,20 +117,20 @@ func testPlaylistMove(ctx context.Context, t *testing.T, ls Playlist, testTracks
 	}
 	if tracks, err := ls.Tracks(ctx); err != nil {
 		t.Fatal(err)
-	} else if tracks[1].URI != testTracks[0].URI {
+	} else if tracks[1].GetURI() != testTracks[0].GetURI() {
 		t.Logf("Tracks before:")
 		for _, track := range tracksBefore {
-			t.Logf("  %s", track.URI)
+			t.Logf("  %v", track)
 		}
 		t.Logf("Tracks after:")
 		for _, track := range tracks {
-			t.Logf("  %s", track.URI)
+			t.Logf("  %v", track)
 		}
 		t.Fatalf("Track was not moved or moved to the wrong index")
 	}
 }
 
-func testPlaylistRemove(ctx context.Context, t *testing.T, ls Playlist, testTracks []library.Track) {
+func testPlaylistRemove[T PlaylistTrack](ctx context.Context, t *testing.T, ls Playlist[T], testTracks []T) {
 	if err := ls.Insert(ctx, -1, testTracks...); err != nil {
 		t.Fatal(err)
 	}

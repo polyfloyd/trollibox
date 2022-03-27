@@ -24,5 +24,5 @@ func TestDummyPlaylistImplementation(t *testing.T) {
 			Title:  "Title 3",
 		},
 	}
-	TestPlaylistImplementation(t, &DummyPlaylist{}, tracks)
+	TestPlaylistImplementation[library.Track](t, &DummyPlaylist{}, tracks)
 }

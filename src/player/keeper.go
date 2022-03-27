@@ -24,12 +24,14 @@ type TrackMeta struct {
 // Any operation performed on this playlist is propagated to the wrapped
 // playlist and are safe for concurrent use.
 type PlaylistMetaKeeper struct {
-	Playlist
+	Playlist[library.Track]
 
 	tracks   []library.Track
 	meta     []TrackMeta
 	metaLock sync.Mutex
 }
+
+var _ Playlist[MetaTrack] = &PlaylistMetaKeeper{} // Enforce interface implementation.
 
 func (kpr *PlaylistMetaKeeper) update(ctx context.Context) error {
 	tracks, err := kpr.Playlist.Tracks(ctx)
@@ -74,12 +76,33 @@ outer:
 }
 
 // Insert implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Insert(ctx context.Context, pos int, tracks ...library.Track) error {
-	meta := make([]TrackMeta, len(tracks))
-	for i := range tracks {
-		meta[i] = TrackMeta{QueuedBy: "user"}
+func (kpr *PlaylistMetaKeeper) Insert(ctx context.Context, pos int, metaTracks ...MetaTrack) error {
+	kpr.metaLock.Lock()
+	defer kpr.metaLock.Unlock()
+	if kpr.meta == nil {
+		if err := kpr.update(ctx); err != nil {
+			return err
+		}
 	}
-	return kpr.InsertWithMeta(ctx, pos, tracks, meta)
+
+	tracks := make([]library.Track, len(metaTracks))
+	meta := make([]TrackMeta, len(metaTracks))
+	for i, mt := range metaTracks {
+		tracks[i] = mt.Track
+		meta[i] = mt.TrackMeta
+	}
+	if err := kpr.Playlist.Insert(ctx, pos, tracks...); err != nil {
+		return err
+	}
+
+	if pos == -1 {
+		kpr.tracks = append(kpr.tracks, tracks...)
+		kpr.meta = append(kpr.meta, meta...)
+	} else {
+		kpr.tracks = append(kpr.tracks[:pos], append(tracks, kpr.tracks[pos:]...)...)
+		kpr.meta = append(kpr.meta[:pos], append(meta, kpr.meta[pos:]...)...)
+	}
+	return nil
 }
 
 // Move implements the player.Playlist interface.
@@ -137,47 +160,7 @@ func (kpr *PlaylistMetaKeeper) Remove(ctx context.Context, positions ...int) err
 }
 
 // Tracks implements the player.Playlist interface.
-func (kpr *PlaylistMetaKeeper) Tracks(ctx context.Context) ([]library.Track, error) {
-	kpr.metaLock.Lock()
-	defer kpr.metaLock.Unlock()
-	if err := kpr.update(ctx); err != nil {
-		return nil, err
-	}
-	return kpr.tracks, nil
-}
-
-// InsertWithMeta performs a regular playlist insertion but records the
-// metadata for all tracks inserted.
-//
-// The tracks and meta slices should have the same length.
-func (kpr *PlaylistMetaKeeper) InsertWithMeta(ctx context.Context, pos int, tracks []library.Track, meta []TrackMeta) error {
-	if len(tracks) != len(meta) {
-		return fmt.Errorf("the number of tracks to insert, %v, mismatches that of the metadata: %v", len(tracks), len(meta))
-	}
-
-	kpr.metaLock.Lock()
-	defer kpr.metaLock.Unlock()
-	if kpr.meta == nil {
-		if err := kpr.update(ctx); err != nil {
-			return err
-		}
-	}
-	if err := kpr.Playlist.Insert(ctx, pos, tracks...); err != nil {
-		return err
-	}
-
-	if pos == -1 {
-		kpr.tracks = append(kpr.tracks, tracks...)
-		kpr.meta = append(kpr.meta, meta...)
-	} else {
-		kpr.tracks = append(kpr.tracks[:pos], append(tracks, kpr.tracks[pos:]...)...)
-		kpr.meta = append(kpr.meta[:pos], append(meta, kpr.meta[pos:]...)...)
-	}
-	return nil
-}
-
-// Meta loads the metadata associated with each track in the playlist.
-func (kpr *PlaylistMetaKeeper) MetaTracks(ctx context.Context) ([]MetaTrack, error) {
+func (kpr *PlaylistMetaKeeper) Tracks(ctx context.Context) ([]MetaTrack, error) {
 	kpr.metaLock.Lock()
 	defer kpr.metaLock.Unlock()
 	if err := kpr.update(ctx); err != nil {

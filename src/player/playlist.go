@@ -5,11 +5,17 @@ import (
 	"trollibox/src/library"
 )
 
+type PlaylistTrack interface {
+	library.Track | MetaTrack
+
+	GetURI() string
+}
+
 // A Playlist is a mutable ordered collection of tracks.
-type Playlist interface {
+type Playlist[T PlaylistTrack] interface {
 	// Insert a bunch of tracks into the playlist starting at the specified
 	// position. Position -1 can be used to append to the end of the playlist.
-	Insert(ctx context.Context, pos int, tracks ...library.Track) error
+	Insert(ctx context.Context, pos int, tracks ...T) error
 
 	// Moves a track from position A to B. An error is returned if at least one
 	// of the positions is out of range.
@@ -19,7 +25,7 @@ type Playlist interface {
 	Remove(ctx context.Context, pos ...int) error
 
 	// Returns all tracks in the playlist.
-	Tracks(ctx context.Context) ([]library.Track, error)
+	Tracks(ctx context.Context) ([]T, error)
 
 	// Len() returns the total number of tracks in the playlist. It's much the
 	// same as getting the length of the slice returned by Tracks(), but
@@ -30,15 +36,6 @@ type Playlist interface {
 type MetaTrack struct {
 	library.Track
 	TrackMeta
-}
-
-// A MetaPlaylist is used as the main playlist of a player. It allows metadata
-// specific to tracks in the playlist to be persisted.
-type MetaPlaylist interface {
-	Playlist
-
-	InsertWithMeta(ctx context.Context, pos int, tracks []library.Track, meta []TrackMeta) error
-	MetaTracks(ctx context.Context) ([]MetaTrack, error)
 }
 
 // A TrackIterator is a type that produces a finite or infinite stream of tracks.
@@ -93,7 +90,7 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 				if !ok {
 					break outer
 				}
-				if err := plist.InsertWithMeta(ctx, -1, []library.Track{track}, []TrackMeta{meta}); err != nil {
+				if err := plist.Insert(ctx, -1, MetaTrack{Track: track, TrackMeta: meta}); err != nil {
 					errc <- err
 					return
 				}

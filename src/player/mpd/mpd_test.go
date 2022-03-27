@@ -32,7 +32,13 @@ func TestPlaylistImplementation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	player.TestPlaylistImplementation(t, pl.Playlist(), tracks[:3])
+	metaTracks := make([]player.MetaTrack, 3)
+	for i, t := range tracks[:len(metaTracks)] {
+		metaTracks[i].Track = t
+		metaTracks[i].QueuedBy = "system"
+	}
+
+	player.TestPlaylistImplementation[player.MetaTrack](t, pl.Playlist(), metaTracks)
 }
 
 func TestUpdateEvent(t *testing.T) {
