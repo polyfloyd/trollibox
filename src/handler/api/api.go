@@ -64,7 +64,7 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 	if data == nil {
 		data = []byte("{}")
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 		"data":  (*json.RawMessage)(&data),
 	})

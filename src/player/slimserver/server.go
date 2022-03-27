@@ -44,11 +44,12 @@ func Connect(network, address string, username, password *string, webURL string)
 		}
 
 		if username != nil && password != nil {
-			conn.Write([]byte(fmt.Sprintf(
-				"login %s %s\n",
+			if _, err := fmt.Fprintf(conn, "login %s %s\n",
 				queryEscape(*username),
 				queryEscape(*password),
-			)))
+			); err != nil {
+				return nil, fmt.Errorf("could not login: %v", err)
+			}
 			if scanner := bufio.NewScanner(conn); !scanner.Scan() {
 				return nil, fmt.Errorf("could not login")
 			}
@@ -99,9 +100,13 @@ func (serv *Server) requestRaw(p0 string, pn ...string) (net.Conn, func(), error
 	}
 
 	// Write the request.
-	conn.Write([]byte(queryEscape(p0)))
+	if _, err := conn.Write([]byte(queryEscape(p0))); err != nil {
+		return nil, nil, err
+	}
 	for _, param := range pn {
-		conn.Write([]byte(" " + queryEscape(param)))
+		if _, err := conn.Write([]byte(" " + queryEscape(param))); err != nil {
+			return nil, nil, err
+		}
 	}
 	if _, err := conn.Write([]byte("\n")); err != nil {
 		conn.Close()

@@ -104,8 +104,14 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 					errc <- err
 					return
 				}
-				pl.SetState(ctx, PlayStatePlaying)
-				pl.SetTrackIndex(ctx, plistLen-1)
+				if err := pl.SetState(ctx, PlayStatePlaying); err != nil {
+					errc <- err
+					return
+				}
+				if err := pl.SetTrackIndex(ctx, plistLen-1); err != nil {
+					errc <- err
+					return
+				}
 
 			case <-cancel:
 				break outer

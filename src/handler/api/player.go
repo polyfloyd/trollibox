@@ -19,8 +19,6 @@ import (
 	"trollibox/src/util/eventsource"
 )
 
-type playerContextType struct{}
-
 type rawJsonTrack struct {
 	URI         string `json:"uri"`
 	Artist      string `json:"artist,omitempty"`
@@ -100,7 +98,7 @@ func (api *API) playerNext(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playerSetCurrent(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +116,7 @@ func (api *API) playerSetCurrent(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playerSetTime(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +133,7 @@ func (api *API) playerSetTime(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playerGetTime(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +142,7 @@ func (api *API) playerGetTime(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"time": int(tim / time.Second),
 	})
 }
@@ -155,7 +153,7 @@ func (api *API) playerGetPlaystate(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"playstate": playstate,
 	})
 }
@@ -174,7 +172,7 @@ func (api *API) playerSetPlaystate(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playerGetVolume(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +181,7 @@ func (api *API) playerGetVolume(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"volume": float32(volume) / 100.0,
 	})
 }
@@ -202,7 +200,7 @@ func (api *API) playerSetVolume(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
@@ -269,7 +267,7 @@ func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playlistMove(w http.ResponseWriter, r *http.Request) {
@@ -293,7 +291,7 @@ func (api *API) playlistMove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playlistRemove(w http.ResponseWriter, r *http.Request) {
@@ -316,7 +314,7 @@ func (api *API) playlistRemove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
@@ -331,7 +329,7 @@ func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"tracks": jsonTracks(tracks),
 	})
 }
@@ -383,7 +381,7 @@ func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 			"track":   jsonTrack(&w.Track),
 		}
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"tracks": mappedResults,
 	})
 }

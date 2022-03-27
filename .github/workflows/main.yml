@@ -1,6 +1,8 @@
 name: CI
 
-on: [push]
+on:
+  push:
+  pull_request:
 
 jobs:
 
@@ -38,3 +40,14 @@ jobs:
     - run: ./build.sh
     - run: RELEASE=1 ./build.sh
     - run: go test -race -cover ./src/...
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.18'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2

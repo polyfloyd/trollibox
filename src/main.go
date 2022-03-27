@@ -216,7 +216,9 @@ func connectToPlayers(config *config) (player.List, error) {
 		if _, ok := mpdPlayers[mpdConf.Name]; ok {
 			return nil, fmt.Errorf("duplicate player name: %q", mpdConf.Name)
 		}
-		mpdPlayers.Set(mpdConf.Name, mpdPlayer)
+		if err := mpdPlayers.Set(mpdConf.Name, mpdPlayer); err != nil {
+			return nil, err
+		}
 	}
 
 	if config.SlimServer != nil {

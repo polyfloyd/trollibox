@@ -79,7 +79,9 @@ func loadM3U(filename string) (*Stream, error) {
 		}
 
 		if string(lineStart) == "#EXTART" {
-			m3u.Discard(len("#EXTART:"))
+			if _, err := m3u.Discard(len("#EXTART:")); err != nil {
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
+			}
 			art, err := m3u.ReadString('\n')
 			if err != nil {
 				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
@@ -87,7 +89,9 @@ func loadM3U(filename string) (*Stream, error) {
 			stream.ArtURI = art[0 : len(art)-1]
 
 		} else if string(lineStart) == "#EXTINF" {
-			m3u.ReadString(',')
+			if _, err := m3u.ReadString(','); err != nil {
+				return nil, fmt.Errorf("error loading stream from M3U: %v", err)
+			}
 			title, err := m3u.ReadString('\n')
 			if err != nil {
 				return nil, fmt.Errorf("error loading stream from M3U: %v", err)

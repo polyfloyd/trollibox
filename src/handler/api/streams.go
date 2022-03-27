@@ -30,7 +30,7 @@ func (api *API) streamsList(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"streams": jsonStreams(streams),
 	})
 }
@@ -59,7 +59,7 @@ func (api *API) streamsAdd(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) streamsRemove(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +68,7 @@ func (api *API) streamsRemove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {

@@ -25,6 +25,7 @@ const uriSchema = "mpd://"
 // Event is an event which signals a change in one of MPD's subsystems.
 type mpdEvent string
 
+// nolint:deadcode,varcheck
 const (
 	// databaseEvent is emitted when the song database has been modified after update.
 	databaseEvent = mpdEvent("database")
@@ -587,7 +588,9 @@ func (plist mpdPlaylist) Insert(ctx context.Context, pos int, tracks ...library.
 			}
 		}
 		if length == 0 {
-			mpdc.Play(0)
+			if err := mpdc.Play(0); err != nil {
+				return err
+			}
 			// Play the 0th track in the playlist if there were no tracks in the playlist before queing the requested track(s)
 			// otherwise the track(s) will be queued before a random autoplayer track
 		}

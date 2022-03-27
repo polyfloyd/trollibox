@@ -18,7 +18,7 @@ func (api *API) filterList(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"filters": names,
 	})
 }
@@ -35,7 +35,7 @@ func (api *API) filterGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"filter": filter,
 	})
 }
@@ -46,7 +46,7 @@ func (api *API) filterRemove(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) filterSet(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +69,7 @@ func (api *API) filterSet(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, r, err)
 		return
 	}
-	w.Write([]byte("{}"))
+	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
