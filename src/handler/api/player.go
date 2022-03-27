@@ -21,42 +21,50 @@ import (
 
 type playerContextType struct{}
 
-func jsonTrack(tr *library.Track, meta *player.TrackMeta) interface{} {
+type rawJsonTrack struct {
+	URI         string `json:"uri"`
+	Artist      string `json:"artist,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Genre       string `json:"genre,omitempty"`
+	Album       string `json:"album,omitempty"`
+	AlbumArtist string `json:"albumartist,omitempty"`
+	AlbumTrack  string `json:"albumtrack,omitempty"`
+	AlbumDisc   string `json:"albumdisc,omitempty"`
+	Duration    int    `json:"duration"`
+
+	QueuedBy string `json:"queuedby,omitempty"`
+}
+
+func jsonTrack(tr *library.Track) *rawJsonTrack {
 	if tr == nil {
 		return nil
 	}
-	var struc struct {
-		URI         string `json:"uri"`
-		Artist      string `json:"artist,omitempty"`
-		Title       string `json:"title,omitempty"`
-		Genre       string `json:"genre,omitempty"`
-		Album       string `json:"album,omitempty"`
-		AlbumArtist string `json:"albumartist,omitempty"`
-		AlbumTrack  string `json:"albumtrack,omitempty"`
-		AlbumDisc   string `json:"albumdisc,omitempty"`
-		Duration    int    `json:"duration"`
+	return &rawJsonTrack{
+		URI:         tr.URI,
+		Artist:      tr.Artist,
+		Title:       tr.Title,
+		Genre:       tr.Genre,
+		Album:       tr.Album,
+		AlbumArtist: tr.AlbumArtist,
+		AlbumTrack:  tr.AlbumTrack,
+		AlbumDisc:   tr.AlbumDisc,
+		Duration:    int(tr.Duration / time.Second),
+	}
+}
 
-		QueuedBy string `json:"queuedby,omitempty"`
+func jsonMetaTrack(tr *player.MetaTrack) *rawJsonTrack {
+	jt := jsonTrack(&tr.Track)
+	if jt == nil {
+		return nil
 	}
-	struc.URI = tr.URI
-	struc.Artist = tr.Artist
-	struc.Title = tr.Title
-	struc.Genre = tr.Genre
-	struc.Album = tr.Album
-	struc.AlbumArtist = tr.AlbumArtist
-	struc.AlbumTrack = tr.AlbumTrack
-	struc.AlbumDisc = tr.AlbumDisc
-	struc.Duration = int(tr.Duration / time.Second)
-	if meta != nil {
-		struc.QueuedBy = meta.QueuedBy
-	}
-	return struc
+	jt.QueuedBy = tr.QueuedBy
+	return jt
 }
 
 func jsonTracks(inList []library.Track) []interface{} {
 	outList := make([]interface{}, len(inList))
 	for i, tr := range inList {
-		outList[i] = jsonTrack(&tr, nil)
+		outList[i] = jsonTrack(&tr)
 	}
 	return outList
 }
@@ -73,7 +81,10 @@ func jsonPlaylistTracks(ctx context.Context, inList []player.MetaTrack, libs []l
 
 	outList := make([]interface{}, len(inList))
 	for i, tr := range tracks {
-		outList[i] = jsonTrack(&tr, &inList[i].TrackMeta)
+		outList[i] = jsonMetaTrack(&player.MetaTrack{
+			Track:    tr,
+			QueuedBy: inList[i].QueuedBy,
+		})
 	}
 	return outList, nil
 }
@@ -369,7 +380,7 @@ func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	for i, w := range results {
 		mappedResults[i] = map[string]interface{}{
 			"matches": w.Matches,
-			"track":   jsonTrack(&w.Track, nil),
+			"track":   jsonTrack(&w.Track),
 		}
 	}
 	json.NewEncoder(w).Encode(map[string]interface{}{

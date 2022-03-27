@@ -23,15 +23,18 @@ func RandomIterator(filter Filter) player.TrackIterator {
 	}
 }
 
-func (it randFilterIterator) NextTrack(ctx context.Context, lib library.Library) (library.Track, player.TrackMeta, bool) {
+func (it randFilterIterator) NextTrack(ctx context.Context, lib library.Library) (player.MetaTrack, bool) {
 	tracks, err := lib.Tracks(ctx)
 	if err != nil {
-		return library.Track{}, player.TrackMeta{}, false
+		return player.MetaTrack{}, false
 	}
 
 	results, _ := Tracks(ctx, it.filter, tracks)
 	if len(results) == 0 {
-		return library.Track{}, player.TrackMeta{}, false
+		return player.MetaTrack{}, false
 	}
-	return results[it.rand.Intn(len(results))].Track, player.TrackMeta{QueuedBy: "system"}, true
+	return player.MetaTrack{
+		Track:    results[it.rand.Intn(len(results))].Track,
+		QueuedBy: "system",
+	}, true
 }

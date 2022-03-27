@@ -33,9 +33,14 @@ type Playlist[T PlaylistTrack] interface {
 	Len(ctx context.Context) (int, error)
 }
 
+// MetaTrack is a track that is queued in the playlist of a player.
+//
+// It augments a regular library track with fields that are valid while the track is queued.
 type MetaTrack struct {
 	library.Track
-	TrackMeta
+	// QueuedBy indicates by what entity a track was added.
+	// Can be either "user" or "system".
+	QueuedBy string
 }
 
 // A TrackIterator is a type that produces a finite or infinite stream of tracks.
@@ -45,7 +50,7 @@ type TrackIterator interface {
 	// Returns the next track from the iterator. If the bool flag is false, the
 	// iterator has reached the end. The player that is requesting the next
 	// track is specified.
-	NextTrack(ctx context.Context, lib library.Library) (library.Track, TrackMeta, bool)
+	NextTrack(ctx context.Context, lib library.Library) (MetaTrack, bool)
 }
 
 // AutoAppend attaches a listener to the specified player. The iterator is used
@@ -86,11 +91,11 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 					continue
 				}
 
-				track, meta, ok := iter.NextTrack(ctx, pl.Library())
+				metaTrack, ok := iter.NextTrack(ctx, pl.Library())
 				if !ok {
 					break outer
 				}
-				if err := plist.Insert(ctx, -1, MetaTrack{Track: track, TrackMeta: meta}); err != nil {
+				if err := plist.Insert(ctx, -1, metaTrack); err != nil {
 					errc <- err
 					return
 				}

@@ -32,8 +32,8 @@ func fillPlaylist(ctx context.Context, pl Player, numTracks int) error {
 	metaTracks := make([]MetaTrack, numTracks)
 	for i, t := range tracks[0:numTracks] {
 		metaTracks[i] = MetaTrack{
-			Track:     t,
-			TrackMeta: TrackMeta{QueuedBy: "system"},
+			Track:    t,
+			QueuedBy: "system",
 		}
 	}
 	return pl.Playlist().Insert(ctx, 0, metaTracks...)

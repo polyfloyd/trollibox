@@ -15,7 +15,7 @@ func TestMetaKeeperPlaylistImplementation(t *testing.T) {
 				Artist: "Artist 1",
 				Title:  "Title 1",
 			},
-			TrackMeta: TrackMeta{QueuedBy: "system"},
+			QueuedBy: "system",
 		},
 		{
 			Track: library.Track{
@@ -23,7 +23,7 @@ func TestMetaKeeperPlaylistImplementation(t *testing.T) {
 				Artist: "Artist 2",
 				Title:  "Title 2",
 			},
-			TrackMeta: TrackMeta{QueuedBy: "system"},
+			QueuedBy: "system",
 		},
 		{
 			Track: library.Track{
@@ -31,7 +31,7 @@ func TestMetaKeeperPlaylistImplementation(t *testing.T) {
 				Artist: "Artist 3",
 				Title:  "Title 3",
 			},
-			TrackMeta: TrackMeta{QueuedBy: "system"},
+			QueuedBy: "system",
 		},
 	}
 	metapl := &PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
@@ -42,7 +42,7 @@ func TestMetaKeeperInsert(t *testing.T) {
 	ctx := context.Background()
 
 	metapl := PlaylistMetaKeeper{Playlist: &DummyPlaylist{}}
-	if err := metapl.Insert(ctx, 0, MetaTrack{TrackMeta: TrackMeta{QueuedBy: "system"}}); err != nil {
+	if err := metapl.Insert(ctx, 0, MetaTrack{QueuedBy: "system"}); err != nil {
 		t.Fatal(err)
 	}
 	tracks, err := metapl.Tracks(ctx)
