@@ -173,6 +173,25 @@ func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (playe
 	return pl.Playlist(), nil
 }
 
+func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at string, pos int, tracks []player.MetaTrack) error {
+	pl, err := jb.players.PlayerByName(playerName)
+	if err != nil {
+		return err
+	}
+
+	if at == "Next" {
+		index, err := pl.TrackIndex(ctx)
+		if err != nil {
+			return err
+		}
+		pos = index + 1
+	} else if at == "End" {
+		pos = -1
+	}
+
+	return pl.Playlist().Insert(ctx, pos, tracks...)
+}
+
 func (jb *Jukebox) PlayerLibraries(ctx context.Context, playerName string) ([]library.Library, error) {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {

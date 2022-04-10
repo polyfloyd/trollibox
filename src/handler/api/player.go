@@ -244,6 +244,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
 	playerName := chi.URLParam(r, "playerName")
 	var data struct {
+		At     string   `json:"at"`
 		Pos    int      `json:"position"`
 		Tracks []string `json:"tracks"`
 	}
@@ -258,12 +259,7 @@ func (api *API) playlistInsert(w http.ResponseWriter, r *http.Request) {
 		tracks[i].URI = uri
 		tracks[i].QueuedBy = "user"
 	}
-	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-	if err := plist.Insert(r.Context(), data.Pos, tracks...); err != nil {
+	if err := api.jukebox.PlayerPlaylistInsertAt(r.Context(), playerName, data.At, data.Pos, tracks); err != nil {
 		WriteError(w, r, err)
 		return
 	}

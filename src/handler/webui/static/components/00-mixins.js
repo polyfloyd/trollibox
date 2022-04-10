@@ -66,10 +66,15 @@ let PlaylistMixin = {
 				document.body.removeChild(anim)
 			}, 1500);
 
+			let at = event.ctrlKey ? 'Next'
+				: index == -1 ? 'End'
+				: null;
+
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/playlist`, {
 				method: 'PUT',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
+					at,
 					position: index,
 					tracks: tracks.map(track => track.uri),
 				}),
