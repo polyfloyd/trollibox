@@ -25,7 +25,7 @@ const uriSchema = "mpd://"
 // Event is an event which signals a change in one of MPD's subsystems.
 type mpdEvent string
 
-// nolint:deadcode,varcheck
+// nolint:deadcode,varcheck,unused
 const (
 	// databaseEvent is emitted when the song database has been modified after update.
 	databaseEvent = mpdEvent("database")
