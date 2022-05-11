@@ -1,21 +1,3 @@
 [submodule "lib/web/bootstrap"]
 	path = lib/web/bootstrap
 	url = https://github.com/twbs/bootstrap.git
-[submodule "lib/web/jquery"]
-	path = lib/web/jquery
-	url = https://github.com/jquery/jquery.git
-[submodule "lib/web/underscore"]
-	path = lib/web/underscore
-	url = https://github.com/jashkenas/underscore.git
-[submodule "lib/web/backbone"]
-	path = lib/web/backbone
-	url = https://github.com/jashkenas/backbone.git
-[submodule "lib/web/html5sortable"]
-	path = lib/web/html5sortable
-	url = https://github.com/voidberg/html5sortable.git
-[submodule "lib/web/jquery.hotkeys"]
-	path = lib/web/jquery.hotkeys
-	url = https://github.com/jeresig/jquery.hotkeys.git
-[submodule "lib/web/vue"]
-	path = lib/web/vue
-	url = https://github.com/vuejs/vue.git
