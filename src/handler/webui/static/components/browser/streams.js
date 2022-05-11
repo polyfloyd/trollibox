@@ -1,4 +1,4 @@
-Vue.component('browser-streams', {
+app.component('browser-streams', {
 	mixins: [ApiMixin, PlaylistMixin],
 	data: function() {
 		return {

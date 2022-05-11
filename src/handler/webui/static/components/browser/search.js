@@ -1,4 +1,4 @@
-Vue.component('browser-search-result', {
+app.component('browser-search-result', {
 	mixins: [TrackMixin],
 	props: {
 		track: {required: true, type: Object},
@@ -55,7 +55,7 @@ Vue.component('browser-search-result', {
 });
 
 
-Vue.component('browser-search', {
+app.component('browser-search', {
 	mixins: [ApiMixin, PlaylistMixin],
 	data: function() {
 		return {

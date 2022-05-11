@@ -1,6 +1,6 @@
 let trackArtImageCache = new Map();
 
-Vue.component('track-art', {
+app.component('track-art', {
 	mixins: [ApiMixin],
 	props: {
 		track: Object,

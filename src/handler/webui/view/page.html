@@ -149,19 +149,13 @@
 </div>
 
 {{ if eq .build "debug" }}
-<script src="//cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-<script src="//cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sortablejs@1"></script>
+<script src="//cdn.jsdelivr.net/npm/vuedraggable@4"></script>
 {{ else }}
-<script src="//cdn.jsdelivr.net/npm/vue@2"></script>
-<script src="//cdn.jsdelivr.net/npm/sortablejs@1/Sortable.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/Vue.Draggable/2.20.0/vuedraggable.umd.min.js"></script>
-{{ end }}
-
-{{ with $v := . }}
-	{{ range $v.assets.JS }}
-		<script src="{{ $v.urlroot }}{{ . }}"></script>
-	{{ end }}
+<script src="//cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sortablejs@1"></script>
+<script src="//cdn.jsdelivr.net/npm/vuedraggable@4"></script>
 {{ end }}
 
 <script>
@@ -173,9 +167,12 @@
 		library: [],
 		showNavbar: false,
 	};
-	let app = new Vue({
-		el: '#app',
-		data,
+
+	let { createApp } = Vue;
+	let app = createApp({
+		data() {
+			return data;
+		},
 		watch: {
 			currentView: function(view) {
 				this.showNavbar = false;
@@ -185,6 +182,7 @@
 			},
 		},
 	});
+
 	document.body.addEventListener('keypress', event => {
 		if (event.target != document.body) return;
 		// Map number keys to views.
@@ -195,5 +193,15 @@
 		}
 	});
 </script>
+
+{{ with $v := . }}
+	{{ range $v.assets.JS }}
+		<script src="{{ $v.urlroot }}{{ . }}"></script>
+	{{ end }}
+{{ end }}
+<script>
+	app.mount('#app');
+</script>
+
 </body>
 </html>

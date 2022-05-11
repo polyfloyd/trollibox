@@ -1,9 +1,10 @@
-Vue.component('player-playlist-track', {
+app.component('player-playlist-track', {
 	props: {
 		title: {required: true, type: String},
 		artist: String,
 		queuedby: {required: true, type: String},
 	},
+	emits: ['remove'],
 	template: `
 		<li class="track-item" :class="['queuedby-'+queuedby]" >
 			<button class="glyphicon glyphicon-remove do-remove" @click="$emit('remove')"></button>
@@ -12,13 +13,14 @@ Vue.component('player-playlist-track', {
 	`,
 });
 
-
-Vue.component('player', {
+app.component('player', {
 	mixins: [ApiMixin, TrackMixin, PlayerMixin],
+	components: {draggable: vuedraggable},
+	emits: ['update:tracks'],
 	data: function() {
 		return {
 			playlist: [],
-			index: -1,
+			currentIndex: -1,
 			state: 'stopped',
 			time: 0,
 			volume: 0,
@@ -28,10 +30,10 @@ Vue.component('player', {
 	template: `
 		<div class="player" :class="['player-'+state]">
 			<draggable class="player-playlist player-past"
-				v-model="pastPlaylist" group="playlist" @end="dragEnd">
-				<player-playlist-track v-for="(track, i) in pastPlaylist" :key="i"
-					v-bind="track"
-					@remove="removeFromPlaylist(i)" />
+				v-model="pastPlaylist" item-key="key" group="playlist" @end="dragEnd">
+				<template #item="{element, index}">
+					<player-playlist-track v-bind="element" @remove="removeFromPlaylist(index)" />
+				</template>
 			</draggable>
 
 			<div class="player-current"
@@ -85,10 +87,10 @@ Vue.component('player', {
 			</div>
 
 			<draggable class="player-playlist player-future"
-				v-model="futurePlaylist" group="playlist" @end="dragEnd">
-				<player-playlist-track v-for="(track, i) in futurePlaylist" :key="i"
-					v-bind="track"
-					@remove="removeFromPlaylist(i + index + 1)" />
+				v-model="futurePlaylist" item-key="key" group="playlist" @end="dragEnd">
+				<template #item="{element, index}">
+					<player-playlist-track v-bind="element" @remove="removeFromPlaylist(currentIndex + index + 1)" />
+				</template>
 			</draggable>
 		</div>
 	`,
@@ -107,39 +109,39 @@ Vue.component('player', {
 	computed: {
 		pastPlaylist: {
 			get: function() {
-				if (this.index == -1) return [];
-				return this.playlist.slice(0, this.index);
+				if (this.currentIndex == -1) return [];
+				return this.playlist.slice(0, this.currentIndex);
 			},
 			set: function() {}, // Implemented by dragEnd.
 		},
 		futurePlaylist: {
 			get: function() {
-				if (this.index == -1) return this.playlist;
-				return this.playlist.slice(this.index + 1);
+				if (this.currentIndex == -1) return this.playlist;
+				return this.playlist.slice(this.currentIndex + 1);
 			},
 			set: function() {}, // Implemented by dragEnd.
 		},
 		currentTrack: function() {
-			if (this.index == -1) return null;
-			return this.playlist[this.index];
+			if (this.currentIndex == -1) return null;
+			return this.playlist[this.currentIndex];
 		},
 	},
 	watch: {
 		playlist: function() {
 			// Scroll to the current track so it is aligned to the top of the
 			// container. But only if the player is the initialy selected view.
-			if (window.innerWidth >= 992) {
+			if (window.innerWidth >= 992 && this.$el) {
 				this.$el.querySelector('.player-current').scrollIntoView();
 			}
 		},
 		state: function() { this.reloadProgressUpdater(); },
 		time: function() { this.reloadProgressUpdater(); },
-		index: function() { this.reloadProgressUpdater(); },
+		currentIndex: function() { this.reloadProgressUpdater(); },
 	},
 	methods: {
 		reloadProgressUpdater: function() {
 			clearInterval(this.timeUpdater);
-			if (this.index != -1 && this.state === 'playing') {
+			if (this.currentIndex != -1 && this.state === 'playing') {
 				this.timeUpdater = setInterval(() => { this.time += 1; }, 1000);
 			}
 		},
@@ -158,8 +160,10 @@ Vue.component('player', {
 			this.connectionState = 'connecting';
 			this.ev.addEventListener('playlist', async event => {
 				let { index, tracks, time } = JSON.parse(event.data);
-				this.index = index;
-				this.playlist = tracks;
+				this.currentIndex = index;
+				this.playlist = tracks.map(track => {
+					return {key: `${track.uri}__${track.index}`, ...track};
+				});
 				this.time = time;
 			});
 			this.ev.addEventListener('state', event => {

@@ -1,4 +1,4 @@
-Vue.component('browser-files', {
+app.component('browser-files', {
 	mixins: [ApiMixin, TrackMixin, PlaylistMixin],
 	props: {
 		library: {required: true, type: Array},
@@ -14,19 +14,23 @@ Vue.component('browser-files', {
 					<h2 @click="appendNodeToPlaylist(node, $event)">{{ node.name }}/</h2>
 				</div>
 				<ul class="result-list">
-					<li v-for="file in node.files" v-if="!file.track"
-						class="type-dir" :class="{active: (path+'/').indexOf(file.path+'/') == 0}"
-						@click="path = file.path">{{ file.name }}/</li>
-					<li v-for="file in node.files" v-if="file.track"
-						class="type-track"
-						:title="formatTrackTitle(file.track)"
-						@click="appendNodeToPlaylist(file, $event)">
-						<span class="track-artist">{{ file.track.artist }}</span>
-						<span class="track-title">{{ file.track.title }}</span>
-						<span class="track-duration">{{ durationToString(file.track.duration) }}</span>
-						<span class="track-album">{{ file.track.album }}</span>
-						<span class="glyphicon glyphicon-plus"></span>
-					</li>
+					<template v-for="file in node.files">
+						<li v-if="!file.track"
+							class="type-dir" :class="{active: (path+'/').indexOf(file.path+'/') == 0}"
+							@click="path = file.path">{{ file.name }}/</li>
+					</template>
+					<template v-for="file in node.files">
+						<li v-if="file.track"
+							class="type-track"
+							:title="formatTrackTitle(file.track)"
+							@click="appendNodeToPlaylist(file, $event)">
+							<span class="track-artist">{{ file.track.artist }}</span>
+							<span class="track-title">{{ file.track.title }}</span>
+							<span class="track-duration">{{ durationToString(file.track.duration) }}</span>
+							<span class="track-album">{{ file.track.album }}</span>
+							<span class="glyphicon glyphicon-plus"></span>
+						</li>
+					</template>
 				</ul>
 			</div>
 		</div>

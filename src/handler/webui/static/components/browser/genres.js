@@ -1,4 +1,4 @@
-Vue.component('browser-genres', {
+app.component('browser-genres', {
 	mixins: [ApiMixin, TrackMixin, PlaylistMixin],
 	props: {
 		library: {required: true, type: Array},

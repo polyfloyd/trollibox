@@ -1,4 +1,4 @@
-Vue.component('browser-albums', {
+app.component('browser-albums', {
 	mixins: [TrackMixin, PlaylistMixin],
 	props: {
 		library: {required: true, type: Array},

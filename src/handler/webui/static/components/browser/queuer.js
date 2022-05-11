@@ -17,7 +17,7 @@ const queuerViewOps = [
 	{name: 'matches', types: ['string']},
 ];
 
-Vue.component('browser-queuer', {
+app.component('browser-queuer', {
 	mixins: [TrackMixin],
 	props: {
 		urlroot: {required: true, type: String},

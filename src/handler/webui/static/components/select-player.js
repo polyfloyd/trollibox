@@ -1,4 +1,4 @@
-Vue.component('select-player', {
+app.component('select-player', {
 	props: {
 		urlroot: {required: true, type: String},
 		players: {required: true, type: Array},
