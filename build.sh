@@ -8,7 +8,7 @@ WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
 LIB="$WORKSPACE/lib"
 ASSETS="$WORKSPACE/src/handler/webui"
-GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify"
+GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify@latest"
 
 mkdir -p "$BIN"
 mkdir -p "$LIB"
