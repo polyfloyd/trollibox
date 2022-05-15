@@ -19,16 +19,17 @@ Features:
 
 ## Installing
 The following tools are required to build Trollibox:
-* [Golang](https://golang.org/)
+* Golang
+* NodeJS
 
 To build:
 ```sh
 # Download Trollibox
-git clone --recurse-submodules https://github.com/polyfloyd/trollibox.git trollibox
+git clone https://github.com/polyfloyd/trollibox.git
 cd trollibox
 
 # Build a release version of Trollibox containing all of its assets.
-RELEASE=1 ./build.sh
+make
 
 # Copy and edit the configuration
 cp config.example.yaml config.yaml
