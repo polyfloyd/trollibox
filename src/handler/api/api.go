@@ -16,8 +16,8 @@ import (
 // InitRouter attaches all API routes to the specified router.
 func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 	api := API{jukebox: jukebox}
+	r.Use(jsonCtx)
 	r.Route("/player/{playerName}", func(r chi.Router) {
-		r.Use(jsonCtx)
 		r.Route("/playlist", func(r chi.Router) {
 			r.Get("/", api.playlistContents)
 			r.Put("/", api.playlistInsert)
