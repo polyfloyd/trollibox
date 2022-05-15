@@ -1,9 +1,0 @@
-.track-art {
-	background-size: cover;
-	background-position: center;
-	background-repeat: no-repeat;
-}
-
-.track-art.placeholder {
-	background-image: url('../img/default-album-art.svg');
-}

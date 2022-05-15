@@ -7,15 +7,19 @@ import (
 	"os"
 )
 
-//go:embed *
-var files embed.FS
+//go:embed build/release/*
+var release embed.FS
 
 func Files(build string) fs.FS {
 	if build == "release" {
-		return files
+		sub, err := fs.Sub(release, "build/release")
+		if err != nil {
+			panic(err)
+		}
+		return sub
 	}
 	if build == "debug" {
-		return os.DirFS("src/handler/webui")
+		return os.DirFS("src/handler/webui/build/dev")
 	}
 	panic(fmt.Errorf("invalid build: %q", build))
 }

@@ -2,9 +2,7 @@
 *~
 *.sw*
 
+/src/handler/webui/build
+/src/handler/webui/node_modules
 /bin
 /config.yaml
-/src/handler/webui/static/*/app.*
-/src/handler/webui/static/fonts
-
-/vendor

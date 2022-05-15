@@ -1,43 +1,24 @@
-#! /bin/bash
+#!/bin/bash
 
-set -eu
+set -eux
 cd `dirname $0`
 
 NAME="trollibox"
 WORKSPACE="$PWD"
 BIN="$WORKSPACE/bin"
-LIB="$WORKSPACE/lib"
-ASSETS="$WORKSPACE/src/handler/webui"
-GO_MINIFY="github.com/tdewolff/minify/v2/cmd/minify@latest"
+WEBUI="$WORKSPACE/src/handler/webui"
 
 mkdir -p "$BIN"
-mkdir -p "$LIB"
 
-rm "$ASSETS/static/js/app.js" || true
-rm "$ASSETS/static/css/app.css" || true
+cd $WEBUI
+npm run build
+cd $WORKSPACE
 
-echo "*** Building Project ***"
 if [ ${RELEASE:-} ]; then
-    mkdir -p "$ASSETS/static/js"
-    cat `find "$ASSETS" -name "*.js" | sort` \
-        | go run $GO_MINIFY --type=js \
-        > "$ASSETS/static/js/app.js"
-
-    mkdir -p "$ASSETS/static/css"
-    cat `find "$ASSETS" -name "*.css" | sort` \
-        | go run $GO_MINIFY --type=css \
-        > "$ASSETS/static/css/app.css"
-
-    rsync -rL "$ASSETS/static/00-dep/fonts/" "$ASSETS/static/fonts/"
-
     BUILD="release"
-
 else
-    INCLUDE_DIR="$ASSETS"
-    INCLUDE_FLAGS="-debug"
     BUILD="debug"
 fi
-
 VERSION="$(git describe --always --dirty)"
 VERSION_DATE="$(date --date="@$(git show -s --format='%ct' HEAD)" '+%F')"
 
