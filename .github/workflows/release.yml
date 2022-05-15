@@ -1,0 +1,58 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: false
+        prerelease: false
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+        - x86_64-unknown-linux-gnu
+        include:
+        - target: x86_64-unknown-linux-gnu
+          goarch: amd64
+          goos: linux
+
+    needs:
+    - release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-go@v3
+      with:
+        go-version: '1.18'
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 17
+
+    - run: make
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+    - run: tar -czf trollibox-${{ matrix.target }}.tar.gz -C ./bin trollibox ../config.example.yaml
+
+    - name: Upload binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: trollibox-${{ matrix.target }}.tar.gz
+        tag: ${{ github.ref }}
