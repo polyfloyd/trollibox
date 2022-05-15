@@ -2,6 +2,7 @@ package filter
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path"
 	"testing"
@@ -109,12 +110,8 @@ func TestDBGetNonExistent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	filter, err := db.Get("non-existing")
-	if err != nil {
-		t.Fatalf("Getting a non-existing filter should return no error, got: %v", err)
-	}
-	if filter != nil {
-		t.Fatalf("A %#v was loaded from a non-existing filter", filter)
+	if _, err := db.Get("non-existing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Unexpected %v", err)
 	}
 }
 
@@ -124,8 +121,8 @@ func TestDBRemoveNonExistent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := db.Remove("non-existing"); err != nil {
-		t.Fatalf("Removing non-existing filters should return no error, got: %v", err)
+	if err := db.Remove("non-existing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Unexpected %v", err)
 	}
 }
 

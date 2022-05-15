@@ -2,6 +2,7 @@ package filter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -13,6 +14,8 @@ import (
 
 	"trollibox/src/util"
 )
+
+var ErrNotFound = errors.New("filter not found")
 
 // An UpdateEvent is emitted when the database has changed.
 type UpdateEvent struct {
@@ -103,7 +106,7 @@ func (db *DB) Get(name string) (Filter, error) {
 
 	b, err := os.ReadFile(db.filterFile(name))
 	if os.IsNotExist(err) {
-		return nil, nil
+		return nil, fmt.Errorf("%w, no filter with name %q", ErrNotFound, name)
 	} else if err != nil {
 		return nil, err
 	}
@@ -139,7 +142,7 @@ func (db *DB) Set(name string, filter Filter) error {
 func (db *DB) Remove(name string) error {
 	db.cache.Delete(name)
 	if err := os.Remove(db.filterFile(name)); os.IsNotExist(err) {
-		return nil
+		return fmt.Errorf("%w, no filter with name %q", ErrNotFound, name)
 	} else if err != nil {
 		return err
 	}

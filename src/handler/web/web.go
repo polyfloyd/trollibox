@@ -122,7 +122,8 @@ func (web *webUI) browserPage(w http.ResponseWriter, r *http.Request) {
 func (web *webUI) redirectToDefaultPlayer(w http.ResponseWriter, r *http.Request) {
 	defaultPlayer, err := web.jukebox.DefaultPlayer(r.Context())
 	if err != nil {
-		api.WriteError(w, r, fmt.Errorf("error finding a player to redirect to: %v", err))
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = fmt.Fprintf(w, "could not find a player to redirect to: %v", err)
 		return
 	}
 	http.Redirect(w, r, fmt.Sprintf("/player/%s", defaultPlayer), http.StatusTemporaryRedirect)

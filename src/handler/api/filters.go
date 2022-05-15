@@ -14,10 +14,10 @@ import (
 
 func (api *API) filterList(w http.ResponseWriter, r *http.Request) {
 	names, err := api.jukebox.FilterDB().Names()
-	if err != nil {
-		WriteError(w, r, err)
+	if api.mapError(w, r, err) {
 		return
 	}
+
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"filters": names,
 	})
@@ -25,13 +25,7 @@ func (api *API) filterList(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) filterGet(w http.ResponseWriter, r *http.Request) {
 	filter, err := api.jukebox.FilterDB().Get(chi.URLParam(r, "name"))
-	if err != nil {
-		WriteError(w, r, err)
-		return
-	}
-	if filter == nil {
-		// TODO: Return a proper response code.
-		WriteError(w, r, fmt.Errorf("not found"))
+	if api.mapError(w, r, err) {
 		return
 	}
 
@@ -42,10 +36,10 @@ func (api *API) filterGet(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) filterRemove(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
-	if err := api.jukebox.FilterDB().Remove(name); err != nil {
-		WriteError(w, r, err)
+	if err := api.jukebox.FilterDB().Remove(name); api.mapError(w, r, err) {
 		return
 	}
+
 	_, _ = w.Write([]byte("{}"))
 }
 
@@ -53,29 +47,25 @@ func (api *API) filterSet(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Filter json.RawMessage `json:"filter"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		WriteError(w, r, err)
+	if receiveJSONForm(w, r, &data) {
 		return
 	}
-
 	filter, err := filter.UnmarshalJSON(data.Filter)
-	if err != nil {
-		WriteError(w, r, err)
+	if api.mapError(w, r, err) {
 		return
 	}
 
 	name := chi.URLParam(r, "name")
-	if err := api.jukebox.FilterDB().Set(name, filter); err != nil {
-		WriteError(w, r, err)
+	if err := api.jukebox.FilterDB().Set(name, filter); api.mapError(w, r, err) {
 		return
 	}
+
 	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 	es, err := eventsource.Begin(w, r)
-	if err != nil {
-		WriteError(w, r, err)
+	if api.mapError(w, r, err) {
 		return
 	}
 	listener := api.jukebox.FilterDB().Listen()

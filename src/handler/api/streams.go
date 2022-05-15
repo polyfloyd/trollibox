@@ -26,10 +26,10 @@ func jsonStreams(streams []stream.Stream) interface{} {
 
 func (api *API) streamsList(w http.ResponseWriter, r *http.Request) {
 	streams, err := api.jukebox.StreamDB().Streams()
-	if err != nil {
-		WriteError(w, r, err)
+	if api.mapError(w, r, err) {
 		return
 	}
+
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"streams": jsonStreams(streams),
 	})
@@ -39,42 +39,37 @@ func (api *API) streamsAdd(w http.ResponseWriter, r *http.Request) {
 	var data struct {
 		Stream stream.Stream `json:"stream"`
 	}
-	defer r.Body.Close()
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		WriteError(w, r, err)
+	if receiveJSONForm(w, r, &data) {
 		return
 	}
 
 	if data.Stream.ArtURI == "" && data.Stream.Filename != "" {
 		// Retain the artwork if no new uri is provided.
 		tmpl, err := api.jukebox.StreamDB().StreamByFilename(data.Stream.Filename)
-		if err != nil {
-			WriteError(w, r, err)
+		if api.mapError(w, r, err) {
 			return
 		}
 		data.Stream.ArtURI = tmpl.ArtURI
 	}
-
-	if err := api.jukebox.StreamDB().StoreStream(&data.Stream); err != nil {
-		WriteError(w, r, err)
+	if err := api.jukebox.StreamDB().StoreStream(&data.Stream); api.mapError(w, r, err) {
 		return
 	}
+
 	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) streamsRemove(w http.ResponseWriter, r *http.Request) {
 	stream := stream.Stream{Filename: r.FormValue("filename")}
-	if err := api.jukebox.StreamDB().RemoveStream(&stream); err != nil {
-		WriteError(w, r, err)
+	if err := api.jukebox.StreamDB().RemoveStream(&stream); api.mapError(w, r, err) {
 		return
 	}
+
 	_, _ = w.Write([]byte("{}"))
 }
 
 func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {
 	es, err := eventsource.Begin(w, r)
-	if err != nil {
-		WriteError(w, r, err)
+	if api.mapError(w, r, err) {
 		return
 	}
 	listener := api.jukebox.StreamDB().Listen()

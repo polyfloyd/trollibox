@@ -1,12 +1,15 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
 
+	"trollibox/src/filter"
 	"trollibox/src/jukebox"
 )
 
@@ -53,12 +56,31 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 	})
 }
 
-// WriteError writes an error to the client or an empty object if err is nil.
-//
-// An attempt is made to tune the response format to the requestor.
-func WriteError(w http.ResponseWriter, r *http.Request, err error) {
-	log.Errorf("Error serving %s: %v", r.RemoteAddr, err)
-	w.WriteHeader(http.StatusBadRequest)
+func (api *API) mapError(w http.ResponseWriter, r *http.Request, err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.Canceled) {
+		return true
+	}
+
+	status := http.StatusInternalServerError
+	if errors.Is(err, filter.ErrNotFound) {
+		status = http.StatusNotFound
+	}
+
+	respondError(w, r, status, err)
+	return true
+}
+
+func respondError(w http.ResponseWriter, r *http.Request, status int, err error) {
+	w.WriteHeader(status)
+
+	if status >= 500 {
+		log.Errorf("Error serving %s: %v", r.RemoteAddr, err)
+	} else {
+		log.Warnf("Error serving %s: %v", r.RemoteAddr, err)
+	}
 
 	data, _ := json.Marshal(err)
 	if data == nil {
@@ -68,6 +90,14 @@ func WriteError(w http.ResponseWriter, r *http.Request, err error) {
 		"error": err.Error(),
 		"data":  (*json.RawMessage)(&data),
 	})
+}
+
+func receiveJSONForm[T any](w http.ResponseWriter, r *http.Request, recv *T) bool {
+	if err := json.NewDecoder(r.Body).Decode(recv); err != nil {
+		respondError(w, r, http.StatusBadRequest, err)
+		return true
+	}
+	return false
 }
 
 func jsonCtx(next http.Handler) http.Handler {
