@@ -11,14 +11,14 @@ dev: frontend-watch backend-watch
 bin/trollibox: frontend-release
 	go build -ldflags "-X main.build=release -X main.version=${VERSION} -X main.versionDate=${VERSION_DATE}" -o $@ ./src
 
-.PHONY: frontend-deps frontend-release frontend-watch
-frontend-deps: src/handler/webui/package.json src/handler/webui/package-lock.json
+src/handler/webui/node_modules: src/handler/webui/package.json src/handler/webui/package-lock.json
 	cd src/handler/webui && npm ci
 
-frontend-release: frontend-deps $(find src/handler/webui -not -path '*/build/*')
+.PHONY: frontend-release frontend-watch
+frontend-release: src/handler/webui/node_modules $(find src/handler/webui -not -path '*/build/*')
 	cd src/handler/webui && npm run build
 
-frontend-watch: frontend-deps
+frontend-watch: src/handler/webui/node_modules
 	cd src/handler/webui && npm run watch
 
 .PHONY: backend-watch
