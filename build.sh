@@ -11,6 +11,7 @@ WEBUI="$WORKSPACE/src/handler/webui"
 mkdir -p "$BIN"
 
 cd $WEBUI
+npm ci
 npm run build
 cd $WORKSPACE
 
