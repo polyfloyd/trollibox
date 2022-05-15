@@ -1,5 +1,5 @@
 <template>
-  <div class="track-art" :style="{backgroundImage: `url('${cssImageUrl}')`}"></div>
+	<div class="track-art" :class="{placeholder: !blobUrl}" :style="{backgroundImage: `url('${cssImageUrl}')`}"></div>
 </template>
 
 <script>
