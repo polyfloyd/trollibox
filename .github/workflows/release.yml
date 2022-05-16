@@ -26,10 +26,24 @@ jobs:
       fail-fast: false
       matrix:
         target:
-        - x86_64-unknown-linux-gnu
+        - linux-amd64
+        - linux-arm6
+        - linux-arm7
+        - linux-arm64
         include:
-        - target: x86_64-unknown-linux-gnu
+        - target: linux-amd64
           goarch: amd64
+          goos: linux
+        - target: linux-arm6
+          goarch: arm
+          goos: linux
+          goarm: 6
+        - target: linux-arm7
+          goarch: arm
+          goos: linux
+          goarm: 7
+        - target: linux-arm64
+          goarch: arm64
           goos: linux
 
     needs:
@@ -48,6 +62,7 @@ jobs:
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
+        GOARM: ${{ matrix.goarm }}
     - run: tar -czf trollibox-${{ matrix.target }}.tar.gz -C ./bin trollibox ../config.example.yaml
 
     - name: Upload binary to release
