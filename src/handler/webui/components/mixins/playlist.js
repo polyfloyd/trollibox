@@ -53,9 +53,9 @@ export default {
 			}
 		},
 		clearPlaylist: function() {
-			if (this.playlist.length <= this.index + 1) return;
+			if (this.playlist.length <= this.currentIndex + 1) return;
 			let rem = [];
-			for (let i = this.index+1; i < this.playlist.length; i++) {
+			for (let i = this.currentIndex+1; i < this.playlist.length; i++) {
 				rem.push(i);
 			}
 			this.removeFromPlaylist(rem);
