@@ -85,6 +85,8 @@ one or more rules on the Queuer page.
 Such rules consist of simple expressions that evaluate to a boolean value. A
 track must pass all rules set for it to be eligible for playing.
 
+The `equals` and `contains` operations are case insensitive.
+
 The `matches` operation takes a regular expression in
 [Go's regexp format](https://golang.org/pkg/regexp/syntax/).
 

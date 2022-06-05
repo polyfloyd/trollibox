@@ -31,6 +31,19 @@ func TestMatchEquals(t *testing.T) {
 			track: library.Track{
 				Artist: "Foo Bar",
 			},
+			shouldMatch: true,
+			rules: []Rule{
+				{
+					Attribute: "artist",
+					Operation: Equals,
+					Value:     "foo bar",
+				},
+			},
+		},
+		{
+			track: library.Track{
+				Artist: "Foo Bar",
+			},
 			shouldMatch: false,
 			rules: []Rule{
 				{
@@ -84,6 +97,19 @@ func TestMatchContains(t *testing.T) {
 					Attribute: "artist",
 					Operation: Contains,
 					Value:     "Foo",
+				},
+			},
+		},
+		{
+			track: library.Track{
+				Artist: "Foo Bar",
+			},
+			shouldMatch: true,
+			rules: []Rule{
+				{
+					Attribute: "artist",
+					Operation: Contains,
+					Value:     "foo",
 				},
 			},
 		},

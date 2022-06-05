@@ -97,8 +97,10 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
 		case Contains:
+			strVal = strings.ToLower(strVal)
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
-				idx := strings.Index(track.Attr(rule.Attribute).(string), strVal)
+				trackVal := strings.ToLower(track.Attr(rule.Attribute).(string))
+				idx := strings.Index(trackVal, strVal)
 				if idx == -1 {
 					return nil, inv(false)
 				}
@@ -107,8 +109,10 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 				}}, inv(true)
 			}, nil
 		case Equals:
+			strVal = strings.ToLower(strVal)
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
-				if inv(track.Attr(rule.Attribute).(string) == strVal) {
+				trackVal := strings.ToLower(track.Attr(rule.Attribute).(string))
+				if inv(trackVal == strVal) {
 					return []filter.SearchMatch{{
 						Start: 0, End: len(strVal),
 					}}, true
