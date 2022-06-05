@@ -14,7 +14,9 @@
 		<ul class="result-list search-results">
 			<search-result v-for="(result, i) in results" :key="i"
 				v-bind="result"
-				@click.native="appendToPlaylist(result.track, $event)" />
+				@click="appendToPlaylist(result.track, $event)"
+				@click:album="$emit('show:album', result.track)"
+			/>
 		</ul>
 	</div>
 </template>
@@ -37,6 +39,7 @@
 				ctx: null,
 			};
 		},
+		emits: ['show:album'],
 		mounted: function() {
 			this.$el.querySelector('input').focus();
 		},

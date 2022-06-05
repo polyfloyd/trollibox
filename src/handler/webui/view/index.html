@@ -115,10 +115,12 @@
 		<div class="views-container">
 			<browser-search v-if="currentView == 'search'" class="view"
 				:urlroot="urlroot"
-				:selected-player="selectedPlayer"></browser-search>
+				:selected-player="selectedPlayer"
+				@show:album="selectAlbumByTrack = $event; currentView = 'albums'"></browser-search>
 			<browser-albums v-else-if="currentView == 'albums'" class="view"
 				:urlroot="urlroot"
 				:selected-player="selectedPlayer"
+				:show-album-by-track="selectAlbumByTrack"
 				:library="library"></browser-albums>
 			<browser-genres v-else-if="currentView == 'genres'" class="view"
 				:urlroot="urlroot"

@@ -30,7 +30,10 @@ let app = createApp({
 		SelectPlayer,
 	},
 	data() {
-		return initialData;
+		return {
+			selectAlbumByTrack: null,
+			...initialData,
+		};
 	},
 	watch: {
 		currentView: function(view) {

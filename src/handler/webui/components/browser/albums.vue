@@ -5,7 +5,7 @@
 			<div class="grid-list">
 				<div class="grid-item" v-for="(album, i) in albums" :key="i"
 					:title="album.artist+' - '+album.title+' ('+durationToString(album.duration)+')'"
-					@click="detailAlbumIndex = i">
+					@click="showAlbumByIndex(i)">
 					<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="album.tracks[0]" />
 					<span class="album-artist">{{ album.artist }}</span>
 					<span class="album-title">{{ album.title }}</span>
@@ -15,7 +15,7 @@
 
 		<div class="tab tab-name-album" v-if="detailAlbum">
 			<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="detailAlbum.tracks[0]" />
-			<a class="glyphicon glyphicon-arrow-left do-pop-tab" @click="detailAlbumIndex = -1"></a>
+				<a class="glyphicon glyphicon-arrow-left do-pop-tab" @click="closeAlbumDetail()"></a>
 			<p class="album-info" @click="appendToPlaylist(detailAlbum.tracks, $event)">
 				<span class="album-title">{{ detailAlbum.title }}</span>
 				<span class="album-duration track-duration">{{ durationToString(detailAlbum.duration) }}</span>
@@ -51,13 +51,29 @@
 			TrackArt,
 		},
 		props: {
+			showAlbumByTrack: {type: Object},
 			library: {required: true, type: Array},
 		},
 		data: function() {
-			return {detailAlbumIndex: -1};
+			return {detailSelector: this.showAlbumByTrack};
 		},
 		computed: {
-			albums: function() {
+			detailIndex() {
+				if (this.detailSelector === null) {
+					return -1;
+
+				} else if (typeof this.detailSelector == 'number') {
+					return this.detailSelector;
+
+				} else if (typeof this.detailSelector == 'object') {
+					let {album, albumartist} = this.detailSelector;
+					return this.albums.findIndex(item => {
+						return item.artist == albumartist && item.title == album;
+					});
+				}
+				throw new Error('invalid selector type');
+			},
+			albums() {
 				// Get a list of tracks which belong to an album.
 				let albumTracks = this.library.filter(track => track.album && track.albumartist);
 
@@ -91,10 +107,10 @@
 					}, []);
 				return albums;
 			},
-			detailAlbum: function() {
-				if (this.detailAlbumIndex == -1) return null;
+			detailAlbum() {
+				if (this.detailIndex == -1) return null;
 
-				let album = this.albums[this.detailAlbumIndex];
+				let album = this.albums[this.detailIndex];
 
 				album.tracks.sort((a, b) => {
 					let at = a.albumtrack || '';
@@ -125,6 +141,19 @@
 				});
 
 				return {...album, discs};
+			},
+		},
+		watch: {
+			showAlbumByTrack(track) {
+				this.reloadShowAlbumByTrack();
+			},
+		},
+		methods: {
+			closeAlbumDetail() {
+				this.detailSelector = null;
+			},
+			showAlbumByIndex(i) {
+				this.detailSelector = i;
 			},
 		},
 	}

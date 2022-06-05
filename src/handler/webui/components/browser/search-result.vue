@@ -7,7 +7,7 @@
 			<template v-for="em in title">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
 		</span>
 		<span class="track-duration">{{ durationToString(track.duration) }}</span>
-		<span class="track-album">
+		<span class="track-album" @click.stop="$emit('click:album')">
 			<template v-for="em in album">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
 		</span>
 		<span class="glyphicon glyphicon-plus"></span>
@@ -58,3 +58,9 @@
 		},
 	}
 </script>
+
+<style scoped>
+	.track-album:hover {
+		text-decoration: underline;
+	}
+</style>
