@@ -21,7 +21,7 @@ func TestMatchEquals(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opEquals,
+					Operation: Equals,
 					Value:     "Foo Bar",
 				},
 			},
@@ -34,7 +34,7 @@ func TestMatchEquals(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opEquals,
+					Operation: Equals,
 					Value:     "Foo Bar",
 					Invert:    true,
 				},
@@ -48,7 +48,7 @@ func TestMatchEquals(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opEquals,
+					Operation: Equals,
 					Value:     "Baz",
 				},
 			},
@@ -79,7 +79,7 @@ func TestMatchContains(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opContains,
+					Operation: Contains,
 					Value:     "Foo",
 				},
 			},
@@ -92,7 +92,7 @@ func TestMatchContains(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opContains,
+					Operation: Contains,
 					Value:     "Kevin",
 					Invert:    true,
 				},
@@ -106,7 +106,7 @@ func TestMatchContains(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opContains,
+					Operation: Contains,
 					Value:     "Baz",
 				},
 			},
@@ -137,7 +137,7 @@ func TestMatchMatches(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opMatches,
+					Operation: Matches,
 					Value:     "(?i)foo",
 				},
 			},
@@ -150,7 +150,7 @@ func TestMatchMatches(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opMatches,
+					Operation: Matches,
 					Value:     "F{2,}",
 				},
 			},
@@ -163,7 +163,7 @@ func TestMatchMatches(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "artist",
-					Operation: opMatches,
+					Operation: Matches,
 					Value:     "asdfasdf",
 					Invert:    true,
 				},
@@ -195,7 +195,7 @@ func TestMatchGreater(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "duration",
-					Operation: opGreater,
+					Operation: Greater,
 					Value:     12.0,
 				},
 			},
@@ -208,7 +208,7 @@ func TestMatchGreater(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "duration",
-					Operation: opGreater,
+					Operation: Greater,
 					Value:     12.0,
 					Invert:    true,
 				},
@@ -222,7 +222,7 @@ func TestMatchGreater(t *testing.T) {
 			rules: []Rule{
 				{
 					Attribute: "duration",
-					Operation: opGreater,
+					Operation: Greater,
 					Value:     int64(64),
 				},
 			},
@@ -243,7 +243,7 @@ func TestMatchesError(t *testing.T) {
 	_, err := BuildFilter([]Rule{
 		{
 			Attribute: "artist",
-			Operation: opMatches,
+			Operation: Matches,
 			Value:     "{1}",
 		},
 	})

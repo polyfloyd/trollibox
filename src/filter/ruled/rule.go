@@ -12,12 +12,14 @@ import (
 	"trollibox/src/library"
 )
 
+type Op string
+
 const (
-	opContains = "contains"
-	opEquals   = "equals"
-	opGreater  = "greater"
-	opLess     = "less"
-	opMatches  = "matches"
+	Contains Op = "contains"
+	Equals   Op = "equals"
+	Greater  Op = "greater"
+	Less     Op = "less"
+	Matches  Op = "matches"
 )
 
 func init() {
@@ -32,13 +34,8 @@ type Rule struct {
 	// Name of the track attribute to match.
 	Attribute string `json:"attribute"`
 
-	// How to interpret Value. Can be any of the following:
-	//   opContains
-	//   opEquals
-	//   opGreater
-	//   opLess
-	//   opRegex
-	Operation string `json:"operation"`
+	// How to interpret Value.
+	Operation Op `json:"operation"`
 
 	// Invert this rule's operation.
 	Invert bool `json:"invert"`
@@ -77,33 +74,29 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 	// The duration is currently the only integer attribute.
 	if rule.Attribute == "duration" {
 		var durVal time.Duration
-		f64Val, okF64 := rule.Value.(float64)
-		i64Val, okI64 := rule.Value.(int64)
-		if okF64 {
-			durVal = time.Duration(f64Val) * time.Second
-		} else if okI64 {
-			durVal = time.Duration(i64Val) * time.Second
+		if v, ok := rule.Value.(float64); ok {
+			durVal = time.Duration(v) * time.Second
+		} else if v, ok := rule.Value.(int64); ok {
+			durVal = time.Duration(v) * time.Second
 		}
-		if okF64 || okI64 {
-			switch rule.Operation {
-			case opEquals:
-				return func(track library.Track) ([]filter.SearchMatch, bool) {
-					return nil, inv(track.Duration == durVal)
-				}, nil
-			case opGreater:
-				return func(track library.Track) ([]filter.SearchMatch, bool) {
-					return nil, inv(track.Duration > durVal)
-				}, nil
-			case opLess:
-				return func(track library.Track) ([]filter.SearchMatch, bool) {
-					return nil, inv(track.Duration < durVal)
-				}, nil
-			}
+		switch rule.Operation {
+		case Equals:
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration == durVal)
+			}, nil
+		case Greater:
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration > durVal)
+			}, nil
+		case Less:
+			return func(track library.Track) ([]filter.SearchMatch, bool) {
+				return nil, inv(track.Duration < durVal)
+			}, nil
 		}
 
 	} else if strVal, ok := rule.Value.(string); ok {
 		switch rule.Operation {
-		case opContains:
+		case Contains:
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
 				idx := strings.Index(track.Attr(rule.Attribute).(string), strVal)
 				if idx == -1 {
@@ -113,7 +106,7 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 					Start: idx, End: idx + len(strVal),
 				}}, inv(true)
 			}, nil
-		case opEquals:
+		case Equals:
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
 				if inv(track.Attr(rule.Attribute).(string) == strVal) {
 					return []filter.SearchMatch{{
@@ -122,15 +115,15 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 				}
 				return nil, false
 			}, nil
-		case opGreater:
+		case Greater:
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
 				return nil, inv(track.Attr(rule.Attribute).(string) > strVal)
 			}, nil
-		case opLess:
+		case Less:
 			return func(track library.Track) ([]filter.SearchMatch, bool) {
 				return nil, inv(track.Attr(rule.Attribute).(string) < strVal)
 			}, nil
-		case opMatches:
+		case Matches:
 			pat, err := regexp.Compile(strVal)
 			if err != nil {
 				return nil, err
