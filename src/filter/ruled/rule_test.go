@@ -1,6 +1,7 @@
 package ruled
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ func TestMatchEquals(t *testing.T) {
 	tt := []struct {
 		track       library.Track
 		shouldMatch bool
-		rules       []Rule
+		rules       rules
 	}{
 		{
 			track: library.Track{
@@ -54,14 +55,16 @@ func TestMatchEquals(t *testing.T) {
 			},
 		},
 	}
-	for i, tc := range tt {
-		f, err := BuildFilter(tc.rules)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
-			t.Fatalf("unexpected result for test case %d", i)
-		}
+	for _, tc := range tt {
+		t.Run(tc.rules.String(), func(t *testing.T) {
+			f, err := BuildFilter(tc.rules)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
+				t.Fatalf("unexpected result: exp %v, got %v", tc.shouldMatch, matched)
+			}
+		})
 	}
 }
 
@@ -69,7 +72,7 @@ func TestMatchContains(t *testing.T) {
 	tt := []struct {
 		track       library.Track
 		shouldMatch bool
-		rules       []Rule
+		rules       rules
 	}{
 		{
 			track: library.Track{
@@ -112,14 +115,16 @@ func TestMatchContains(t *testing.T) {
 			},
 		},
 	}
-	for i, tc := range tt {
-		f, err := BuildFilter(tc.rules)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
-			t.Fatalf("unexpected result for test case %d", i)
-		}
+	for _, tc := range tt {
+		t.Run(tc.rules.String(), func(t *testing.T) {
+			f, err := BuildFilter(tc.rules)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
+				t.Fatalf("unexpected result: exp %v, got %v", tc.shouldMatch, matched)
+			}
+		})
 	}
 }
 
@@ -127,7 +132,7 @@ func TestMatchMatches(t *testing.T) {
 	tt := []struct {
 		track       library.Track
 		shouldMatch bool
-		rules       []Rule
+		rules       rules
 	}{
 		{
 			track: library.Track{
@@ -170,14 +175,16 @@ func TestMatchMatches(t *testing.T) {
 			},
 		},
 	}
-	for i, tc := range tt {
-		f, err := BuildFilter(tc.rules)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
-			t.Fatalf("unexpected result for test case %d", i)
-		}
+	for _, tc := range tt {
+		t.Run(tc.rules.String(), func(t *testing.T) {
+			f, err := BuildFilter(tc.rules)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
+				t.Fatalf("unexpected result: exp %v, got %v", tc.shouldMatch, matched)
+			}
+		})
 	}
 }
 
@@ -185,7 +192,7 @@ func TestMatchGreater(t *testing.T) {
 	tt := []struct {
 		track       library.Track
 		shouldMatch bool
-		rules       []Rule
+		rules       rules
 	}{
 		{
 			track: library.Track{
@@ -228,14 +235,16 @@ func TestMatchGreater(t *testing.T) {
 			},
 		},
 	}
-	for i, tc := range tt {
-		f, err := BuildFilter(tc.rules)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
-			t.Fatalf("unexpected result for test case %d: matched=%t", i, matched)
-		}
+	for _, tc := range tt {
+		t.Run(tc.rules.String(), func(t *testing.T) {
+			f, err := BuildFilter(tc.rules)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, matched := f.Filter(tc.track); matched != tc.shouldMatch {
+				t.Fatalf("unexpected result: exp %v, got %v", tc.shouldMatch, matched)
+			}
+		})
 	}
 }
 
@@ -250,4 +259,14 @@ func TestMatchesError(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected an error on regex compilation failure")
 	}
+}
+
+type rules []Rule
+
+func (rr rules) String() string {
+	strs := make([]string, len(rr))
+	for i, rule := range rr {
+		strs[i] = rule.String()
+	}
+	return strings.Join(strs, ",")
 }
