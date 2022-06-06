@@ -8,3 +8,7 @@ updates:
     directory: /
     schedule:
       interval: monthly
+  - package-ecosystem: npm
+    directory: /src/handler/webui
+    schedule:
+      interval: monthly
