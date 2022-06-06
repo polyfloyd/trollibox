@@ -4,7 +4,6 @@ const CopyPlugin = require("copy-webpack-plugin");
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { VueLoaderPlugin } = require('vue-loader');
-require('babel-polyfill');
 
 
 let pages = [
@@ -22,7 +21,7 @@ module.exports = {
   entry: pages
     .map((page) => {
       let e = {};
-      e[page.chunk] = ['babel-polyfill', `${page.file}.js`];
+      e[page.chunk] = [`${page.file}.js`];
       return e;
     })
     .reduce((e, o) => { return {...e, ...o}; }, {}),

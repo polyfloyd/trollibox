@@ -8,8 +8,6 @@ module.exports = api => {
       ],
     };
   } else {
-    return {
-      plugins: ['transform-regenerator'],
-    };
+    return { };
   }
 };

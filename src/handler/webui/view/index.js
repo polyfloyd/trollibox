@@ -1,4 +1,3 @@
-import 'babel-polyfill';
 import 'bootstrap/dist/css/bootstrap.css';
 
 import '../components/css/style.css';
