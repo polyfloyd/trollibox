@@ -8,6 +8,8 @@ all: bin/trollibox
 .PHONY: dev
 dev: frontend-watch backend-watch
 
+test: frontend-test backend-test
+
 bin/trollibox: frontend-release
 	go build -ldflags "-X main.build=release -X main.version=${VERSION} -X main.versionDate=${VERSION_DATE}" -o $@ ./src
 
@@ -21,7 +23,13 @@ frontend-release: src/handler/webui/node_modules $(find src/handler/webui -not -
 frontend-watch: src/handler/webui/node_modules
 	cd src/handler/webui && npm run watch
 
+frontend-test: src/handler/webui/node_modules
+	cd src/handler/webui && npm run test
+
 .PHONY: backend-watch
 backend-watch:
 	find -name '*.go' | entr -rn \
 		go run -ldflags "-X main.build=debug -X main.version=${VERSION} -X main.versionDate=${VERSION_DATE}" ./src
+
+backend-test:
+	go test -race -cover ./src/...

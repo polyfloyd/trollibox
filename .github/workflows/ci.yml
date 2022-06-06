@@ -26,6 +26,18 @@ jobs:
 
     - run: make
 
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 17
+
+    - run: cd src/handler/webui && npm ci
+    - run: cd src/handler/webui && npm run test
+
   test-backend:
     runs-on: ubuntu-latest
 
