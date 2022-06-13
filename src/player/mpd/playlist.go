@@ -35,7 +35,7 @@ func (plist userPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 		}
 		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
-			if err := trackFromMpdSong(mpdc, &song, &tracks[i]); err != nil {
+			if err := trackFromMpdSong(mpdc, song, &tracks[i]); err != nil {
 				return err
 			}
 		}

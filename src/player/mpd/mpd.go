@@ -249,42 +249,12 @@ func (pl *Player) Library() library.Library {
 // Tracks implements the library.Library interface.
 func (pl *Player) Tracks(ctx context.Context) ([]library.Track, error) {
 	var tracks []library.Track
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
 		// The MPD listallinfo command breaks for large libraries. So we'll run
 		// individual queries for each file in the root to try to get around
 		// this weird limitiation.
-		filesInRoot, err := mpdc.ListInfo("/")
-		if err != nil {
-			return fmt.Errorf("error root MPD songs: %v", err)
-		}
-		var songs []mpd.Attrs
-		for _, rootFile := range filesInRoot {
-			var filename string
-			if f, ok := rootFile["file"]; ok {
-				filename = f
-			} else if f, ok := rootFile["directory"]; ok {
-				filename = f
-			} else {
-				continue
-			}
-			ls, err := mpdc.ListAllInfo(filename)
-			if err != nil {
-				return fmt.Errorf("error getting MPD songs: %v", err)
-			}
-			songs = append(songs, ls...)
-		}
-
-		numDirs := 0
-		tracks = make([]library.Track, len(songs))
-		for i, song := range songs {
-			if _, ok := song["directory"]; ok {
-				numDirs++
-			} else if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
-				return fmt.Errorf("error mapping MPD song to track: %v", err)
-			}
-		}
-		tracks = tracks[:len(tracks)-numDirs]
-		return nil
+		tracks, err = tracksInDirectory(ctx, mpdc, "/")
+		return
 	})
 	return tracks, err
 }
@@ -333,7 +303,7 @@ func (pl *Player) TrackInfo(ctx context.Context, identities ...string) ([]librar
 			if _, ok := song["directory"]; ok {
 				numDirs++
 			} else if song != nil {
-				if err := trackFromMpdSong(mpdc, &song, &tracks[i-numDirs]); err != nil {
+				if err := trackFromMpdSong(mpdc, song, &tracks[i-numDirs]); err != nil {
 					return err
 				}
 			}
@@ -631,7 +601,7 @@ func (plist mpdPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 		}
 		tracks = make([]library.Track, len(songs))
 		for i, song := range songs {
-			if err := trackFromMpdSong(mpdc, &song, &tracks[i]); err != nil {
+			if err := trackFromMpdSong(mpdc, song, &tracks[i]); err != nil {
 				return err
 			}
 		}
@@ -659,32 +629,61 @@ func playlistLength(mpdc *mpd.Client) (int, bool) {
 	return statusAttrInt(status, "playlistlength")
 }
 
-// Initializes a track from an MPD hash. The hash should be gotten using
+func tracksInDirectory(ctx context.Context, mpdc *mpd.Client, path string) ([]library.Track, error) {
+	info, err := mpdc.ListInfo(path)
+	if err != nil {
+		return nil, fmt.Errorf("mpd list info %q: %v", path, err)
+	}
+
+	tracks := make([]library.Track, 0, len(info))
+	for _, info := range info {
+		if _, ok := info["file"]; ok {
+			var track library.Track
+			if err := trackFromMpdSong(mpdc, info, &track); err != nil {
+				return nil, fmt.Errorf("error mapping MPD song to track: %v", err)
+			}
+			tracks = append(tracks, track)
+		} else if dir, ok := info["directory"]; ok {
+			tt, err := tracksInDirectory(ctx, mpdc, dir)
+			if err != nil {
+				return nil, err
+			}
+			tracks = append(tracks, tt...)
+		}
+		// TODO: key "playlist"
+	}
+	return tracks, nil
+}
+
+// trackFromMpdSong initializes a track from an MPD hash. The hash should be gotten using
 // ListAllInfo().
-//
-// ListAllInfo() and ListInfo() look very much the same but they don't return
-// the same thing. Why capitals and lowercase are mixed is beyond me.
-func trackFromMpdSong(mpdc *mpd.Client, song *mpd.Attrs, track *library.Track) error {
-	if _, ok := (*song)["directory"]; ok {
+func trackFromMpdSong(mpdc *mpd.Client, song mpd.Attrs, track *library.Track) error {
+	// ListAllInfo() and ListInfo() look very much the same but they don't return the same thing.
+	// Why capitals and lowercase are mixed is beyond me.
+	for k, v := range song {
+		song[strings.ToLower(k)] = v
+	}
+
+	if _, ok := song["directory"]; ok {
 		return fmt.Errorf("tried to read a directory as local file")
 	}
 
-	track.URI = mpdToURI((*song)["file"])
-	track.Artist = (*song)["Artist"]
-	track.Title = (*song)["Title"]
-	track.Genre = (*song)["Genre"]
-	track.Album = (*song)["Album"]
-	track.AlbumArtist = (*song)["AlbumArtist"]
-	track.AlbumDisc = (*song)["Disc"]
-	track.AlbumTrack = (*song)["Track"]
-	modTime, err := time.Parse(time.RFC3339, (*song)["Last-Modified"])
+	track.URI = mpdToURI(song["file"])
+	track.Artist = song["artist"]
+	track.Title = song["title"]
+	track.Genre = song["genre"]
+	track.Album = song["album"]
+	track.AlbumArtist = song["albumartist"]
+	track.AlbumDisc = song["disc"]
+	track.AlbumTrack = song["track"]
+	modTime, err := time.Parse(time.RFC3339, song["last-modified"])
 	if err != nil {
-		log.Warnf("Could not parse track mod time: %v", err)
+		log.WithField("song", song).Warn(err)
 	} else {
 		track.ModTime = modTime
 	}
 
-	if timeStr := (*song)["Time"]; timeStr != "" {
+	if timeStr := song["time"]; timeStr != "" {
 		duration, err := strconv.ParseInt(timeStr, 10, 32)
 		if err != nil {
 			return err
