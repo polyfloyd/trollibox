@@ -1,6 +1,7 @@
 package player
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -9,6 +10,8 @@ import (
 // ValidListName may be used to check whether the name of a player list entry
 // is valid.
 var ValidListName = regexp.MustCompile(`^\w+$`)
+
+var ErrPlayerNotFound = errors.New("player not found")
 
 // A List is an immutable collection of named players.
 type List interface {
@@ -23,8 +26,7 @@ type List interface {
 	// An error is returned if something goes wrong while looking up the
 	// specified player.
 	//
-	// If no player with the specified name is found, nil is returned without
-	// any error.
+	// If no player with the specified name is found, ErrPlayerNotFound is returned.
 	PlayerByName(name string) (Player, error)
 }
 
@@ -55,12 +57,12 @@ func (sl SimpleList) PlayerNames() ([]string, error) {
 // PlayerByName implements the player.List interface.
 func (sl SimpleList) PlayerByName(name string) (Player, error) {
 	if sl == nil {
-		return nil, nil
+		return nil, fmt.Errorf("%w, list is empty", ErrPlayerNotFound)
 	}
 	if pl, ok := sl[name]; ok {
 		return pl, nil
 	}
-	return nil, fmt.Errorf("no player with name %q in %v", name, sl)
+	return nil, fmt.Errorf("%w, no player with name %q in %v", ErrPlayerNotFound, name, sl)
 }
 
 func (sl SimpleList) String() string {
@@ -90,7 +92,7 @@ func (mp MultiList) PlayerNames() ([]string, error) {
 // PlayerByName implements the player.List interface.
 func (mp MultiList) PlayerByName(name string) (Player, error) {
 	if len(mp) == 0 {
-		return nil, fmt.Errorf("could not look up player by name %q, no player lists", name)
+		return nil, fmt.Errorf("%w, list is empty", ErrPlayerNotFound)
 	}
 	var errors []error
 	for _, list := range mp {
@@ -106,7 +108,7 @@ func (mp MultiList) PlayerByName(name string) (Player, error) {
 	if len(errors) > 0 {
 		return nil, errors[0]
 	}
-	return nil, fmt.Errorf("no player with name %q in %v", name, mp)
+	return nil, fmt.Errorf("%w, no player with name %q in %v", ErrPlayerNotFound, name, mp)
 }
 
 func (mp MultiList) String() string {

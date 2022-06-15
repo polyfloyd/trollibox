@@ -2,6 +2,7 @@ package jukebox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"time"
@@ -14,9 +15,13 @@ import (
 	"trollibox/src/util"
 )
 
-// ErrPlayerUnavailable is returned from functions that operate on player state
-// when a player is registered but unreachable for any reason.
-var ErrPlayerUnavailable = player.ErrUnavailable
+var (
+	// ErrPlayerUnavailable is returned from functions that operate on player state
+	// when a player is registered but unreachable for any reason.
+	ErrPlayerUnavailable = player.ErrUnavailable
+
+	ErrPlayerNotFound = player.ErrPlayerNotFound
+)
 
 // Jukebox augments one or more players with with filters, streams and other
 // functionality.
@@ -42,7 +47,11 @@ func (jb *Jukebox) Players(ctx context.Context) ([]string, error) {
 
 func (jb *Jukebox) DefaultPlayer(ctx context.Context) (string, error) {
 	if jb.defaultPlayer != "" {
-		if pl, err := jb.players.PlayerByName(jb.defaultPlayer); err == nil && pl != nil {
+		if _, err := jb.players.PlayerByName(jb.defaultPlayer); errors.Is(err, player.ErrPlayerNotFound) {
+			// Fallthrough.
+		} else if err != nil {
+			return "", err
+		} else {
 			return jb.defaultPlayer, nil
 		}
 	}
