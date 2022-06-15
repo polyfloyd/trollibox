@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path"
 	"strings"
@@ -156,6 +157,9 @@ func main() {
 
 	service := web.New(build, version, config.Colors, config.URLRoot, jukebox)
 
+	if build == "debug" {
+		service.Get("/debug/pprof/*", pprof.Index)
+	}
 	log.Infof("Now accepting HTTP connections on %v", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
