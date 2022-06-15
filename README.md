@@ -18,26 +18,8 @@ Features:
 * Free Open Source Software (GPLv3)
 
 ## Installing
-The following tools are required to build Trollibox:
-* Golang
-* NodeJS
-
-To build:
-```sh
-# Download Trollibox
-git clone https://github.com/polyfloyd/trollibox.git
-cd trollibox
-
-# Build a release version of Trollibox containing all of its assets.
-make
-
-# Copy and edit the configuration
-cp config.example.yaml config.yaml
-vim config.yaml
-
-# Let's go!
-./bin/trollibox -conf config.yaml
-```
+You can get the [latest pre-built binary](https://github.com/polyfloyd/trollibox/releases/latest)
+from the Github Releases.
 
 ### Configuring
 Copy the [example configuration](config.example.yaml) to config.yaml, its
@@ -48,6 +30,15 @@ trollibox -conf /etc/trollibox.yaml
 ```
 
 Inside the configuration file, you will find some options you may need to change.
+
+### Hacking
+Clone the repository like you normally would. Make sure you have Go>1.18 installed along with
+NodeJS/NPM.
+
+You can start Trollibox with processes to automatically recompile the source like this:
+```
+$ make dev -j2
+```
 
 
 ## For Users
