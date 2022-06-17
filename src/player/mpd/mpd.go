@@ -247,27 +247,25 @@ func (pl *Player) Library() library.Library {
 }
 
 // Tracks implements the library.Library interface.
-func (pl *Player) Tracks(ctx context.Context) ([]library.Track, error) {
-	var tracks []library.Track
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
+func (pl *Player) Tracks(ctx context.Context) (tracks []library.Track, err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
 		// The MPD listallinfo command breaks for large libraries. So we'll run
 		// individual queries for each file in the root to try to get around
 		// this weird limitiation.
 		tracks, err = tracksInDirectory(ctx, mpdc, "/")
 		return
 	})
-	return tracks, err
+	return
 }
 
 // TrackInfo implements the library.Library interface.
-func (pl *Player) TrackInfo(ctx context.Context, identities ...string) ([]library.Track, error) {
-	var tracks []library.Track
-	currentTrackURI := ""
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+func (pl *Player) TrackInfo(ctx context.Context, identities ...string) (tracks []library.Track, err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		current, err := mpdc.CurrentSong()
 		if err != nil {
 			return err
 		}
+		currentTrackURI := ""
 		if file, ok := current["file"]; ok {
 			currentTrackURI = mpdToURI(file)
 		}
@@ -311,17 +309,17 @@ func (pl *Player) TrackInfo(ctx context.Context, identities ...string) ([]librar
 		tracks = tracks[:len(tracks)-numDirs]
 		return nil
 	})
-	return tracks, err
+	return
 }
 
 // Lists implements the player.Player interface.
-func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist[library.Track], error) {
-	playlists := map[string]player.Playlist[library.Track]{}
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+func (pl *Player) Lists(ctx context.Context) (playlists map[string]player.Playlist[library.Track], err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		plAttrs, err := mpdc.ListPlaylists()
 		if err != nil {
 			return err
 		}
+		playlists = map[string]player.Playlist[library.Track]{}
 		for _, attr := range plAttrs {
 			playlists[attr["playlist"]] = userPlaylist{
 				player: pl,
@@ -330,13 +328,12 @@ func (pl *Player) Lists(ctx context.Context) (map[string]player.Playlist[library
 		}
 		return nil
 	})
-	return playlists, err
+	return
 }
 
 // Time implements the player.Player interface.
-func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
-	var offset time.Duration
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
+func (pl *Player) Time(ctx context.Context) (offset time.Duration, err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
 		status, err := mpdc.Status()
 		if err != nil {
 			return err
@@ -345,7 +342,7 @@ func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
 		offset = time.Duration(timef) * time.Second
 		return
 	})
-	return offset, err
+	return
 }
 
 // SetTime implements the player.Player interface.
@@ -399,9 +396,8 @@ func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
 }
 
 // State implements the player.Player interface.
-func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
-	state := player.PlayStateInvalid
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+func (pl *Player) State(ctx context.Context) (state player.PlayState, err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		s, err := mpdc.Status()
 		if err != nil {
 			return err
@@ -414,7 +410,7 @@ func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
 		}[s["state"]]
 		return nil
 	})
-	return state, err
+	return
 }
 
 // SetState implements the player.Player interface.
@@ -457,9 +453,8 @@ func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 }
 
 // Volume implements the player.Player interface.
-func (pl *Player) Volume(ctx context.Context) (int, error) {
-	var vol int
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+func (pl *Player) Volume(ctx context.Context) (vol int, err error) {
+	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		status, err := mpdc.Status()
 		if err != nil {
 			return err
@@ -476,7 +471,7 @@ func (pl *Player) Volume(ctx context.Context) (int, error) {
 		vol = volInt
 		return nil
 	})
-	return vol, err
+	return
 }
 
 // SetVolume implements the player.Player interface.
@@ -592,9 +587,8 @@ func (plist mpdPlaylist) Remove(ctx context.Context, positions ...int) error {
 	})
 }
 
-func (plist mpdPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
-	var tracks []library.Track
-	err := plist.player.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
+func (plist mpdPlaylist) Tracks(ctx context.Context) (tracks []library.Track, err error) {
+	err = plist.player.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		songs, err := mpdc.PlaylistInfo(-1, -1)
 		if err != nil {
 			return err
@@ -607,10 +601,7 @@ func (plist mpdPlaylist) Tracks(ctx context.Context) ([]library.Track, error) {
 		}
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
-	return tracks, nil
+	return
 }
 
 func (plist mpdPlaylist) Len(ctx context.Context) (length int, err error) {
