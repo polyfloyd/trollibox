@@ -7,7 +7,7 @@
 			<template v-for="em in title">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
 		</span>
 		<span class="track-duration">{{ durationToString(track.duration) }}</span>
-		<span class="track-album" @click.stop="$emit('click:album')">
+		<span class="track-album" @click="clickAlbum">
 			<template v-for="em in album">{{ em.head }}<em>{{ em.body }}</em>{{ em.tail }}</template>
 		</span>
 		<span class="glyphicon glyphicon-plus"></span>
@@ -23,13 +23,14 @@
 			track: {required: true, type: Object},
 			matches: {required: true, type: Object},
 		},
+		emits: ['click:album'],
 		computed: {
-			artist: function() { return this.highlight('artist'); },
-			title: function() { return this.highlight('title'); },
-			album: function() { return this.highlight('album'); },
+			artist() { return this.highlight('artist'); },
+			title() { return this.highlight('title'); },
+			album() { return this.highlight('album'); },
 		},
 		methods: {
-			highlight: function(property) {
+			highlight(property) {
 				let {sections, head} = [].concat(this.matches[property] || [])
 					.sort((a, b) => a.start - b.end)
 					// Ensure that matches don't overlap each other.
@@ -54,6 +55,12 @@
 						return {head: nextHead, sections};
 					}, {head: this.track[property], sections: []});
 				return [{tail: head}].concat(sections.reverse());
+			},
+			clickAlbum(event) {
+				if (this.track.album) {
+					this.$emit('click:album');
+					event.stopPropagation();
+				}
 			},
 		},
 	}
