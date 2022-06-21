@@ -150,7 +150,16 @@ func (jb *Jukebox) TrackArt(ctx context.Context, playerName, uri string) (*libra
 	if err != nil {
 		return nil, err
 	}
-	return pl.Library().TrackArt(ctx, uri)
+	libs := []library.Library{jb.streamdb, pl.Library()}
+
+	var art *library.Art
+	for _, lib := range libs {
+		art, err = lib.TrackArt(ctx, uri)
+		if err == nil {
+			break
+		}
+	}
+	return art, err
 }
 
 func (jb *Jukebox) SearchTracks(ctx context.Context, playerName, query string, untagged []string) ([]filter.SearchResult, error) {
@@ -179,7 +188,8 @@ func (jb *Jukebox) PlayerPlaylist(ctx context.Context, playerName string) (playe
 	if err != nil {
 		return nil, err
 	}
-	return pl.Playlist(), nil
+	libs := []library.Library{pl.Library(), jb.streamdb}
+	return playerPlaylist{libraries: libs, Playlist: pl.Playlist()}, nil
 }
 
 func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at string, pos int, tracks []player.MetaTrack) error {
@@ -231,4 +241,29 @@ func (jb *Jukebox) FilterDB() *filter.DB {
 
 func (jb *Jukebox) StreamDB() *stream.DB {
 	return jb.streamdb
+}
+
+type playerPlaylist struct {
+	libraries []library.Library
+	player.Playlist[player.MetaTrack]
+}
+
+func (pl playerPlaylist) Tracks(ctx context.Context) ([]player.MetaTrack, error) {
+	tracks, err := pl.Playlist.Tracks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	uris := make([]string, len(tracks))
+	for i, t := range tracks {
+		uris[i] = t.URI
+	}
+
+	freshTracks, err := library.AllTrackInfo(ctx, pl.libraries, uris...)
+	if err != nil {
+		return nil, err
+	}
+	for i, ft := range freshTracks {
+		tracks[i].Track = ft
+	}
+	return tracks, nil
 }

@@ -5,16 +5,16 @@ import (
 )
 
 func TestInterpolateMissingFields(t *testing.T) {
-	// Streams should be left as is.
+	// Streams should use the URL as title.
 	track := Track{URI: "http://example.com/"}
 	InterpolateMissingFields(&track)
-	if track.Artist != "" || track.Title != "" {
-		t.Fatalf("The artist or title of a HTTP track was changed")
+	if track.Artist != "" || track.Title != "http://example.com/" {
+		t.Fatalf("Artist should be the stream URL")
 	}
 	track = Track{URI: "https://example.com/"}
 	InterpolateMissingFields(&track)
-	if track.Artist != "" || track.Title != "" {
-		t.Fatalf("The artist or title of a HTTP track was changed")
+	if track.Artist != "" || track.Title != "https://example.com/" {
+		t.Fatalf("Artist should be the stream URL")
 	}
 
 	// When the artist or title are already set, the track should be left as is.

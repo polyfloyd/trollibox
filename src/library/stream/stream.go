@@ -303,6 +303,9 @@ func (db *DB) TrackInfo(ctx context.Context, uris ...string) ([]library.Track, e
 
 // TrackArt implements the library.Library interface.
 func (db *DB) TrackArt(ctx context.Context, track string) (*library.Art, error) {
+	if !strings.HasPrefix(track, "http") {
+		return nil, fmt.Errorf("%w: not a stream URL", library.ErrNoArt)
+	}
 	stream, err := db.streamByURL(track)
 	if stream == nil {
 		return nil, fmt.Errorf("%w: no such stream", library.ErrNoArt)

@@ -67,22 +67,10 @@ func jsonTracks(inList []library.Track) []interface{} {
 	return outList
 }
 
-func jsonPlaylistTracks(ctx context.Context, inList []player.MetaTrack, libs []library.Library) ([]interface{}, error) {
-	uris := make([]string, len(inList))
-	for i, tr := range inList {
-		uris[i] = tr.URI
-	}
-	tracks, err := library.AllTrackInfo(ctx, libs, uris...)
-	if err != nil {
-		return nil, err
-	}
-
-	outList := make([]interface{}, len(inList))
+func jsonPlaylistTracks(tracks []player.MetaTrack) ([]interface{}, error) {
+	outList := make([]interface{}, len(tracks))
 	for i, tr := range tracks {
-		outList[i] = jsonMetaTrack(&player.MetaTrack{
-			Track:    tr,
-			QueuedBy: inList[i].QueuedBy,
-		})
+		outList[i] = jsonMetaTrack(&tr)
 	}
 	return outList, nil
 }
@@ -204,11 +192,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 	if api.mapError(w, r, err) {
 		return
 	}
-	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
-	if api.mapError(w, r, err) {
-		return
-	}
-	trJSON, err := jsonPlaylistTracks(r.Context(), tracks, libs)
+	trJSON, err := jsonPlaylistTracks(tracks)
 	if api.mapError(w, r, err) {
 		return
 	}
@@ -305,18 +289,7 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 	playerName := chi.URLParam(r, "playerName")
 	uri := r.FormValue("track")
 
-	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
-	if api.mapError(w, r, err) {
-		return
-	}
-
-	var art *library.Art
-	for _, lib := range libs {
-		art, err = lib.TrackArt(r.Context(), uri)
-		if err == nil {
-			break
-		}
-	}
+	art, err := api.jukebox.TrackArt(r.Context(), playerName, uri)
 	if errors.Is(err, library.ErrNoArt) {
 		http.NotFound(w, r)
 		return
@@ -363,11 +336,6 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 	listener := emitter.Listen()
 	defer emitter.Unlisten(listener)
 
-	libs, err := api.jukebox.PlayerLibraries(r.Context(), playerName)
-	if err != nil {
-		log.Errorf("%v", err)
-		return
-	}
 	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
 	if err != nil {
 		log.Errorf("%v", err)
@@ -385,7 +353,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 		return
 	}
-	playlistTracks, err := jsonPlaylistTracks(r.Context(), tracks, libs)
+	playlistTracks, err := jsonPlaylistTracks(tracks)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
@@ -426,7 +394,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 				log.Errorf("%v", err)
 				return
 			}
-			playlistTracks, err := jsonPlaylistTracks(r.Context(), tracks, libs)
+			playlistTracks, err := jsonPlaylistTracks(tracks)
 			if err != nil {
 				log.Errorf("%v", err)
 				return
