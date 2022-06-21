@@ -79,6 +79,9 @@ func InterpolateMissingFields(track *Track) {
 		return
 	}
 	if strings.HasPrefix(track.URI, "http") {
+		if track.Title == "" {
+			track.Title = track.URI
+		}
 		return
 	}
 
