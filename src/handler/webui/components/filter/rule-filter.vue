@@ -143,14 +143,8 @@
 					return str.match(/(\d+)/g).reduce((time, num, i, arr) => {
 						return time + Math.pow(60, (arr.length - i - 1)) * parseInt(num, 10);
 					}, 0);
-				} else if (str.match(/^0b[01]+$/)) { // Binary
-					return parseInt(str.match(/^0b([01]+)$/)[1], 2);
-				} else if (str.match(/^0[0-7]+$/)) { // Octal
-					return parseInt(str.match(/^0([0-7]+)$/)[1], 8);
 				} else if (str.match(/^\d+$/)) { // Decimal
 					return parseInt(str, 10);
-				} else if (str.match(/^(0x)?[0-9a-f]+$/i)) { // Hexadecimal
-					return parseInt(str.match(/^(0x)?0*([0-9a-f]+)$/i)[2], 16);
 				}
 				throw new Error('Bad number format');
 			},
