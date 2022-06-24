@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -76,13 +75,17 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 		return
 	}
+	es.EventJSON("list", map[string]interface{}{"filters": names})
 	for _, name := range names {
 		filter, err := api.jukebox.FilterDB().Get(name)
 		if err != nil {
 			log.Errorf("%v", err)
 			return
 		}
-		es.EventJSON(fmt.Sprintf("filter:%s", name), map[string]interface{}{"filter": filter})
+		es.EventJSON("update", map[string]interface{}{
+			"name":   name,
+			"filter": filter,
+		})
 	}
 
 	for {
@@ -94,8 +97,13 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch t := event.(type) {
+		case filter.ListEvent:
+			es.EventJSON("list", map[string]interface{}{"filters": t.Names})
 		case filter.UpdateEvent:
-			es.EventJSON(fmt.Sprintf("filter:%s", t.Name), map[string]interface{}{"filter": t.Filter})
+			es.EventJSON("update", map[string]interface{}{
+				"name":   t.Name,
+				"filter": t.Filter,
+			})
 
 		default:
 			log.Debugf("Unmapped filter db event %#v", event)

@@ -147,13 +147,23 @@ func TestDBEvents(t *testing.T) {
 	}
 
 	updateFilter := &dummyFilter{Foo: "foo"}
-	util.TestEventEmission(t, db, UpdateEvent{Name: "filter", Filter: updateFilter}, func() {
-		if err := db.Set("filter", updateFilter); err != nil {
+	util.TestEventEmission(t, db, UpdateEvent{Name: "filter1", Filter: updateFilter}, func() {
+		if err := db.Set("filter1", updateFilter); err != nil {
 			t.Fatal(err)
 		}
 	})
-	util.TestEventEmission(t, db, UpdateEvent{Name: "filter", Filter: nil}, func() {
-		if err := db.Remove("filter"); err != nil {
+	util.TestEventEmission(t, db, ListEvent{Names: []string{"filter1", "filter2"}}, func() {
+		if err := db.Set("filter2", updateFilter); err != nil {
+			t.Fatal(err)
+		}
+	})
+	util.TestEventEmission(t, db, ListEvent{Names: []string{"filter1"}}, func() {
+		if err := db.Remove("filter2"); err != nil {
+			t.Fatal(err)
+		}
+	})
+	util.TestEventEmission(t, db, UpdateEvent{Name: "filter1", Filter: nil}, func() {
+		if err := db.Remove("filter1"); err != nil {
 			t.Fatal(err)
 		}
 	})

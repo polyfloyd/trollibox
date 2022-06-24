@@ -25,8 +25,11 @@
 		},
 		mounted() {
 			this._ev = new EventSource(`${this.urlroot}data/filters/events`);
-			this._ev.addEventListener(`filter:${this.filterName}`, async event => {
-				let { filter } = JSON.parse(event.data);
+			this._ev.addEventListener(`update`, async event => {
+				let { filter, name } = JSON.parse(event.data);
+				if (name != this.filterName) {
+					return;
+				}
 				if (filter.type != 'ruled') {
 					console.warning(`Unexpected type for queuer filter: ${filter.type}`);
 					return;

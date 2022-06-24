@@ -17,6 +17,11 @@ import (
 
 var ErrNotFound = errors.New("filter not found")
 
+// A ListEvent is emitted when a filter is removed or added.
+type ListEvent struct {
+	Names []string
+}
+
 // An UpdateEvent is emitted when the database has changed.
 type UpdateEvent struct {
 	Name   string
@@ -74,23 +79,30 @@ func NewDB(directory string) (*DB, error) {
 
 // Names lists all filters that this DB has stored.
 func (db *DB) Names() ([]string, error) {
-	fd, err := os.Open(db.directory)
-	if err != nil {
-		return nil, err
-	}
-	defer fd.Close()
+	names := []string{}
+	db.cache.Range(func(k, v any) bool {
+		names = append(names, k.(string))
+		return true
+	})
 
-	files, err := fd.Readdir(0)
+	files, err := os.ReadDir(db.directory)
 	if err != nil {
 		return nil, err
 	}
-	names := make([]string, 0, len(files))
+outer:
 	for _, file := range files {
-		if path.Ext(file.Name()) == ".json" {
-			name := strings.TrimSuffix(path.Base(file.Name()), path.Ext(file.Name()))
-			names = append(names, name)
+		if file.IsDir() || path.Ext(file.Name()) != ".json" {
+			continue
 		}
+		name := strings.TrimSuffix(path.Base(file.Name()), path.Ext(file.Name()))
+		for _, n := range names { // Deduplicate entries found in the cache.
+			if n == name {
+				continue outer
+			}
+		}
+		names = append(names, name)
 	}
+
 	sort.Strings(names)
 	return names, nil
 }
@@ -121,9 +133,21 @@ func (db *DB) Set(name string, filter Filter) error {
 	}
 
 	db.cache.Store(name, filter)
+
+	filename := db.filterFile(name)
+	// Emit a ListEvent if the target file does not exist yet.
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		names, err := db.Names()
+		if err != nil {
+			db.cache.Delete(name)
+			return err
+		}
+		defer db.Emit(ListEvent{Names: names})
+	}
+
 	defer db.Emit(UpdateEvent{Name: name, Filter: filter})
 
-	fd, err := os.Create(db.filterFile(name))
+	fd, err := os.Create(filename)
 	if err != nil {
 		log.Errorf("%v", err)
 		return nil
@@ -146,7 +170,15 @@ func (db *DB) Remove(name string) error {
 	} else if err != nil {
 		return err
 	}
+
 	defer db.Emit(UpdateEvent{Name: name, Filter: nil})
+
+	names, err := db.Names()
+	if err != nil {
+		return err
+	}
+	defer db.Emit(ListEvent{Names: names})
+
 	return nil
 }
 
