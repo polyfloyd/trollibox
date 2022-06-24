@@ -23,7 +23,7 @@
 				filter: {rules: [], type: 'ruled'},
 			};
 		},
-		created() {
+		mounted() {
 			this._ev = new EventSource(`${this.urlroot}data/filters/events`);
 			this._ev.addEventListener(`filter:${this.filterName}`, async event => {
 				let { filter } = JSON.parse(event.data);
@@ -34,7 +34,7 @@
 				this.filter = filter;
 			});
 		},
-		destroyed() {
+		unmounted() {
 			this._ev.close();
 		},
 		computed: {

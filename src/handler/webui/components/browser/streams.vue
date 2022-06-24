@@ -56,14 +56,14 @@
 		components: {
 			TrackArt,
 		},
-		data: function() {
+		data() {
 			return {
 				streams: [],
 				editStream: null,
 				editError: '',
 			};
 		},
-		created: function() {
+		mounted() {
 			this._ev = new EventSource(`${this.urlroot}data/streams/events`);
 			this._ev.addEventListener('streams', async event => {
 				this.streams = JSON.parse(event.data).streams
@@ -71,18 +71,18 @@
 					.sort((a, b) => stringCompareCaseInsensitive(a.title, b.title));
 			});
 		},
-		destroyed: function() {
+		unmounted() {
 			this._ev.close();
 		},
 		methods: {
-			removeStream: async function(stream) {
+			async removeStream(stream) {
 				let url = `${this.urlroot}data/streams?filename=${encodeURIComponent(stream.filename)}`;
 				let response = await fetch(url, {method: 'DELETE'});
 				if (!response.ok) {
 					throw new Error('Unable to remove stream');
 				}
 			},
-			addStream: async function(stream) {
+			async addStream(stream) {
 				let response = await fetch(`${this.urlroot}data/streams`, {
 					method: 'POST',
 					headers: {'Content-Type': 'application/json'},

@@ -92,17 +92,13 @@
 				connectionState: 'disconnected',
 			};
 		},
-		created: function() {
-			this.reconnect();
-		},
-		destroyed: function() {
-			this.ev.close();
-		},
 		mounted: function() {
+			this.reconnect();
 			document.body.addEventListener('keypress', this.onKey);
 		},
-		beforeDestroy: function() {
+		unmounted: function() {
 			document.body.removeEventListener('keypress', this.onKey);
+			this.ev.close();
 		},
 		computed: {
 			pastPlaylist: {
