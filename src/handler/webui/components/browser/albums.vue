@@ -1,8 +1,8 @@
 <template>
-	<div class="browser-albums view tab-view">
-		<div class="tab tab-name-list">
+	<tab-view class="browser-albums" :tabs="!detailAlbum ? ['list'] : ['list', 'detail']" @pop="tabPop">
+		<template #list>
 			<h2>Albums</h2>
-			<div class="grid-list">
+			<div class="grid-list album-list">
 				<div class="grid-item" v-for="(album, i) in albums" :key="i"
 					:title="album.artist+' - '+album.title+' ('+durationToString(album.duration)+')'"
 					@click="showAlbumByIndex(i)">
@@ -11,11 +11,9 @@
 					<span class="album-title">{{ album.title }}</span>
 				</div>
 			</div>
-		</div>
-
-		<div class="tab tab-name-album" v-if="detailAlbum">
-			<track-art :urlroot="urlroot" :selected-player="selectedPlayer" :track="detailAlbum.tracks[0]" />
-				<a class="glyphicon glyphicon-arrow-left do-pop-tab" @click="closeAlbumDetail()"></a>
+		</template>
+		<template #detail>
+			<track-art class="album-art-background" :urlroot="urlroot" :selected-player="selectedPlayer" :track="detailAlbum.tracks[0]" />
 			<p class="album-info" @click="appendToPlaylist(detailAlbum.tracks, $event)">
 				<span class="album-title">{{ detailAlbum.title }}</span>
 				<span class="album-duration track-duration">{{ durationToString(detailAlbum.duration) }}</span>
@@ -35,12 +33,13 @@
 					</ul>
 				</template>
 			</div>
-		</div>
-	</div>
+		</template>
+	</tab-view>
 </template>
 
 <script>
 	import PlaylistMixin from '../mixins/playlist.js';
+	import TabView from './tab-view.vue';
 	import TrackArt from '../track-art.vue';
 	import TrackMixin from '../mixins/track.js';
 	import { stringCompareCaseInsensitive } from '../mixins/util.js';
@@ -48,13 +47,14 @@
 	export default {
 		mixins: [TrackMixin, PlaylistMixin],
 		components: {
+			TabView,
 			TrackArt,
 		},
 		props: {
 			showAlbumByTrack: {type: Object},
 			library: {required: true, type: Array},
 		},
-		data: function() {
+		data() {
 			return {detailSelector: this.showAlbumByTrack};
 		},
 		computed: {
@@ -143,13 +143,8 @@
 				return {...album, discs};
 			},
 		},
-		watch: {
-			showAlbumByTrack(track) {
-				this.reloadShowAlbumByTrack();
-			},
-		},
 		methods: {
-			closeAlbumDetail() {
+			tabPop() {
 				this.detailSelector = null;
 			},
 			showAlbumByIndex(i) {
@@ -159,132 +154,120 @@
 	}
 </script>
 
-<style>
-.browser-albums .tab {
-	width: 50%;
-	display: flex;
-	flex-direction: column;
-}
+<style lang="scss">
+	.browser-albums .tab-list {
+		.tab > h2 {
+			margin-top: 0;
+		}
 
-.browser-albums.tab-view .do-pop-tab {
-	margin-bottom: 0.4em;
-	font-size: 20px;
-}
+		.grid-item {
+			cursor: pointer;
+		}
 
-.browser-albums .tab-name-list h2 {
-	flex-shrink: 0;
-}
+		.grid-item > .album-artist,
+		.grid-item > .album-title {
+			position: absolute;
+			padding: 0 0.2em;
+			opacity: 0;
+			overflow: hidden;
+			background-color: var(--color-bg);
+		}
 
-.browser-albums .tab-name-list .grid-item {
-	cursor: pointer;
-}
+		.grid-item > .track-art.placeholder ~ *,
+		.grid-item:hover > * {
+			opacity: 1;
+		}
 
-.browser-albums .tab-name-list .grid-item > .album-artist,
-.browser-albums .tab-name-list .grid-item > .album-title {
-	position: absolute;
-	padding: 0 0.2em;
-	opacity: 0;
-	overflow: hidden;
-	background-color: var(--color-bg);
-}
+		.grid-item > .album-title {
+			top: 0;
+			left: 0;
+			right: 0;
+		}
 
-.browser-albums .tab-name-list .grid-item > .track-art.placeholder ~ *,
-.browser-albums .tab-name-list .grid-item:hover > * {
-	opacity: 1;
-}
+		.grid-item > .album-artist {
+			left: 0;
+			right: 0;
+			bottom: 0;
+		}
+	}
 
-.browser-albums .tab-name-list .grid-item > .album-title {
-	top: 0;
-	left: 0;
-	right: 0;
-}
+	.browser-albums .tab-detail {
+		position: relative;
+		padding: 15px;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
 
-.browser-albums .tab-name-list .grid-item > .album-artist {
-	left: 0;
-	right: 0;
-	bottom: 0;
-}
+		.album-info {
+			margin: 0;
+			flex-shrink: 0;
+			cursor: pointer;
+		}
 
-.browser-albums .tab.tab-name-album {
-	position: relative;
-	padding: 15px;
-	overflow: hidden;
-}
+		.album-content {
+			overflow-y: auto;
+		}
 
-.browser-albums .tab-name-album {
-	display: flex;
-	flex-direction: column;
-}
+		.album-disc-title {
+			margin: 0.4em 0 0 0;
+			font-size: 1.2em;
+			cursor: pointer;
+		}
 
-.browser-albums .tab-name-album .album-info {
-	margin: 0;
-	flex-shrink: 0;
-	cursor: pointer;
-}
+		.album-info,
+		.album-disc-title,
+		.result-list {
+			padding: 0.5em;
+		}
 
-.browser-albums .tab-name-album .album-content {
-	overflow-y: auto;
-}
+		.album-info:hover,
+		.album-info:hover + .album-content,
+		.album-disc-title:hover,
+		.album-disc-title:hover + .result-list,
+		.result-list li:hover {
+			background-color: var(--color-bg);
+		}
 
-.browser-albums .tab-name-album .album-disc-title {
-	margin: 0.4em 0 0 0;
-	font-size: 1.2em;
-	cursor: pointer;
-}
+		.album-info:hover + .album-content .result-list > li > .glyphicon,
+		.album-disc-title:hover + .result-list > li > .glyphicon {
+			opacity: 1;
+		}
 
-.browser-albums .tab-name-album .album-info,
-.browser-albums .tab-name-album .album-disc-title,
-.browser-albums .tab-name-album .result-list {
-	padding: 0.5em;
-}
+		.album-disc-title:before {
+			content: "Disc";
+			margin-right: 0.3em;
+		}
 
-.browser-albums .tab-name-album .album-info:hover,
-.browser-albums .tab-name-album .album-info:hover + .album-content,
-.browser-albums .tab-name-album .album-disc-title:hover,
-.browser-albums .tab-name-album .album-disc-title:hover + .result-list,
-.browser-albums .tab-name-album .result-list li:hover {
-	background-color: var(--color-bg);
-}
+		.album-title {
+			font-size: 1.4em;
+		}
 
-.browser-albums .tab-name-album .album-info:hover + .album-content .result-list > li > .glyphicon,
-.browser-albums .tab-name-album .album-disc-title:hover + .result-list > li > .glyphicon {
-	opacity: 1;
-}
+		.album-duration {
+			margin: 0.3em;
+		}
 
-.browser-albums .tab-name-album .album-disc-title:before {
-	content: "Disc";
-	margin-right: 0.3em;
-}
+		.album-artist {
+			display: block;
+		}
 
-.browser-albums .tab-name-album .album-title {
-	font-size: 1.4em;
-}
+		.album-art-background {
+			position: absolute;
+			top: -4px;
+			left: -4px;;
+			right: -4px;
+			bottom: -4px;
+			z-index: 0;
+			opacity: 0.4;
+			background-position: 50%;
+			background-size: cover;
+			background-repeat: no-repeat;
+			-webkit-filter: blur(4px);
+			-moz-filter: blur(4px);
+			filter: blur(4px);
+		}
 
-.browser-albums .tab-name-album .album-duration {
-	margin: 0.3em;
-}
-
-.browser-albums .tab-name-album .album-artist {
-	display: block;
-}
-
-.browser-albums .tab-name-album .track-art {
-	position: absolute;
-	top: -4px;
-	left: -4px;;
-	right: -4px;
-	bottom: -4px;
-	z-index: 0;
-	opacity: 0.4;
-	background-position: 50%;
-	background-size: cover;
-	background-repeat: no-repeat;
-	-webkit-filter: blur(4px);
-	-moz-filter: blur(4px);
-	filter: blur(4px);
-}
-
-.browser-albums .tab-name-album .track-art ~ * {
-	z-index: 10;
-}
+		.album-art-background ~ * {
+			z-index: 10;
+		}
+	}
 </style>

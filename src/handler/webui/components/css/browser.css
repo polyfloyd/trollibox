@@ -40,13 +40,6 @@
 	background-color: var(--color-bg-elem);
 }
 
-.views-container .tab-view {
-	height: 100%;
-	padding: 0;
-	background-color: transparent;
-	overflow: hidden; /* Hide the overflowing :after */
-}
-
 .views-container .tab-view:after {
 	background-color: var(--color-bg-elem);
 	margin-right: -15px;
@@ -56,26 +49,6 @@
 	margin-right: 15px;
 	padding: 15px;
 	background-color: var(--color-bg-elem);
-}
-
-@media (max-width: 991px) {
-
-	.views-container .tab-view > .tab:not(:nth-last-child(-n+1)) {
-		display: none !important;
-	}
-
-}
-
-@media (min-width: 992px) {
-
-	.views-container .tab-view > .tab:not(:nth-last-child(-n+3)) {
-		display: none !important;
-	}
-
-	.views-container .tab-view > .tab:not(:nth-last-child(3)) .do-pop-tab {
-		display: none !important;
-	}
-
 }
 
 .browser.expand-player .views-container {
@@ -109,9 +82,6 @@
 		right: 0;
 	}
 
-}
-
-@media (min-width: 992px) {
 }
 
 .browser-player .player {

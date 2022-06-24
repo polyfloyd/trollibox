@@ -1,8 +1,7 @@
 <template>
-	<div class="browser-files view tab-view">
-		<div v-for="node in shownDirs" class="tab">
+	<tab-view class="browser-files" :tabs="tabs" @pop="popTab">
+		<template v-for="(node, index) in shownDirs" #[index]>
 			<div class="browser-files-header">
-				<a v-if="path != '/'" class="glyphicon glyphicon-arrow-left do-pop-tab" @click="pop()"></a>
 				<h2 @click="appendNodeToPlaylist(node, $event)">{{ node.name }}/</h2>
 			</div>
 			<ul class="result-list">
@@ -24,27 +23,29 @@
 					</li>
 				</template>
 			</ul>
-		</div>
-	</div>
+		</template>
+	</tab-view>
 </template>
 
 <script>
 	import ApiMixin from '../mixins/api.js';
 	import PlaylistMixin from '../mixins/playlist.js';
+	import TabView from './tab-view.vue';
 	import TrackMixin from '../mixins/track.js';
 
 	export default {
 		mixins: [ApiMixin, TrackMixin, PlaylistMixin],
+		components: {
+			TabView,
+		},
 		props: {
 			library: {required: true, type: Array},
 		},
-		data: function() {
+		data() {
 			return {path: '/'};
 		},
-		template: `
-	`,
 		computed: {
-			commonPath: function() {
+			commonPath() {
 				if (this.library.length == 0) return '';
 				return this.library.reduce((commonPath, track) => {
 					for (let i = 0; i < commonPath.length; i++) {
@@ -55,7 +56,7 @@
 					return commonPath;
 				}, this.library[0].uri);
 			},
-			tree: function() {
+			tree() {
 				// This property has been moved out of loop body so we can allow
 				// the browser to make the loop tighter.
 				let commonPath = this.commonPath;
@@ -80,7 +81,7 @@
 					return tree;
 				}, { path: '/', files: {} });
 			},
-			shownDirs: function() {
+			shownDirs() {
 				if (this.path == '/') return [this.tree];
 				let pathParts = ['/'].concat(this.path.split('/').slice(1));
 				return pathParts
@@ -90,20 +91,23 @@
 					})
 					.map((path) => this.nodeByPath(path));
 			},
+			tabs() {
+				return this.shownDirs.map((_, i) => i);
+			},
 		},
 		methods: {
-			pop: function() {
+			popTab() {
 				if (this.path == '/') return;
 				this.path = this.path.replace(/\/[^\/]+$/, '');
 			},
-			nodeByPath: function(path) {
+			nodeByPath(path) {
 				if (path === '/') return this.tree;
 				let node = this.trimSlashes(path).split('/')
 					.reduce((node, pathPart) => node ? node.files[pathPart] : null, this.tree);
 				if (!node) throw new Error(`no such node: ${path}`);
 				return node;
 			},
-			appendNodeToPlaylist: function(node, event) {
+			appendNodeToPlaylist(node, event) {
 				if (node.track) {
 					this.appendToPlaylist(node.track, event);
 					return;
@@ -118,10 +122,10 @@
 				this.appendToPlaylist(tracks, event);
 			},
 
-			join: function(parts) {
+			join(parts) {
 				return this.trimSlashes(Array.prototype.join.call(parts, '/'));
 			},
-			trimSlashes: function(path) {
+			trimSlashes(path) {
 				if (path[0] == '/') path = path.substring(1);
 				if (path[path.length - 1] == '/') path = path.substring(0, path.length - 1);
 				return path
@@ -130,24 +134,26 @@
 	}
 </script>
 
-<style>
-.browser-files .tab {
-	width: calc(100% / 3);
-	display: flex;
-	flex-direction: column;
-}
+<style lang="scss">
+	.browser-files {
+		.tab {
+			width: calc(100% / 3);
+			display: flex;
+			flex-direction: column;
+		}
 
-.browser-files-header {
-	display: flex;
-}
+		.browser-files-header {
+			display: flex;
+		}
 
-.browser-files-header h2 {
-	flex-grow: 1;
-	margin-top: 0;
-	cursor: pointer;
-}
+		h2 {
+			flex-grow: 1;
+			margin-top: 0;
+			cursor: pointer;
 
-.browser-files h2:hover {
-	background-color: var(--color-bg);
-}
+			&:hover {
+				background-color: var(--color-bg);
+			}
+		}
+	}
 </style>

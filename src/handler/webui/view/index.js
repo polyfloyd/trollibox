@@ -2,7 +2,6 @@ import 'bootstrap/dist/css/bootstrap.css';
 
 import '../components/css/style.css';
 import '../components/css/browser.css';
-import '../components/css/tabview.css';
 import '../components/css/track.css';
 
 import { createApp } from 'vue';
