@@ -12,3 +12,5 @@ updates:
     directory: /src/handler/webui
     schedule:
       interval: monthly
+    allow:
+    - dependency-type: all
