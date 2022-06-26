@@ -31,7 +31,7 @@
 			SearchResult,
 		},
 		mixins: [ApiMixin, PlaylistMixin],
-		data: function() {
+		data() {
 			return {
 				untagged: ['artist', 'title', 'album'],
 				query: '',
@@ -40,11 +40,11 @@
 			};
 		},
 		emits: ['show:album'],
-		mounted: function() {
+		mounted() {
 			this.$el.querySelector('input').focus();
 		},
 		watch: {
-			query: async function() {
+			async query() {
 				if (this.ctx) {
 					this.ctx.abort();
 					this.ctx = null;
@@ -68,10 +68,11 @@
 					this.results = tracks.slice(0, 200); // TODO: Remove subslice?
 					this.ctx = null;
 
-				} catch (AbortError) {
-					// Do not unset ctx, it has been overwritten by a new search
-					// query.
-					return;
+				} catch (err) {
+					if (err.name === "AbortError") {
+						return;
+					}
+					console.error(err);
 				}
 			},
 		},
