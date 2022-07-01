@@ -9,7 +9,7 @@
     "watch": "webpack --config webpack.dev.js --watch"
   },
   "devDependencies": {
-    "@babel/core": "^7.18.5",
+    "@babel/core": "^7.18.6",
     "@babel/preset-env": "^7.18.0",
     "@vue/test-utils": "^2.0.1",
     "@vue/vue3-jest": "^27.0.0",
