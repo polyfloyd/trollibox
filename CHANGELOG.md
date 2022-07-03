@@ -1,3 +1,28 @@
+## v0.4.0 (2022-07-03)
+
+### Refactor
+
+- **filters/db**: Reimplement events
+- Make browser tab logic reusable
+- **rule-filter**: Extract queuer editor into its own component
+- Move stream metadata loading to the jukebox package
+- **mpd**: Simplify some withMpd invocations
+- Use a sentinel error for PlayerByName
+
+### Fix
+
+- Ensure eventsource connections terminate
+- **search**: Fix adding a track without album
+
+### Feat
+
+- **rule-filter**: Remove hidden number formats for duration input
+- Default to the stream URL for unset stream titles
+
+### Perf
+
+- Enable pprof on debug builds
+
 ## v0.3.0 (2022-06-13)
 
 ### Fix
