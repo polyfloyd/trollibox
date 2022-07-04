@@ -1,3 +1,9 @@
+## v0.4.1 (2022-07-04)
+
+### Fix
+
+- **rule-filter**: Fix string value not being saved
+
 ## v0.4.0 (2022-07-03)
 
 ### Refactor
