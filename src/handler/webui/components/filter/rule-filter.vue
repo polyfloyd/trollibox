@@ -19,7 +19,7 @@
 				--><div class="input-group">
 					<input v-if="attrForRule(rule).type == 'string'"
 						:value="rule.value"
-						@change="setRuleValue(i, $event.target.value)"
+						@change="setValue(i, $event.target.value)"
 						class="form-control rule-value" type="text" placeholder="value" />
 					<input v-else-if="attrForRule(rule).type == 'number'"
 						:value="durationToString(rule.value)"
