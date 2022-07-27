@@ -58,7 +58,7 @@ var eventTranslations = []struct {
 		Exp: regexp.MustCompile(`^\S+ prefset server currentSong (\d+)`),
 		Event: func(pl *Player, m []string) (player.Event, error) {
 			index, _ := strconv.Atoi(m[1])
-			return player.PlaylistEvent{Index: index}, nil
+			return player.PlaylistEvent{TrackIndex: index}, nil
 		},
 	},
 	{
@@ -70,11 +70,11 @@ var eventTranslations = []struct {
 	{
 		Exp: regexp.MustCompile(`^\S+ playlist (?:delete|newsong)`),
 		Event: func(pl *Player, m []string) (player.Event, error) {
-			index, err := pl.TrackIndex(context.Background())
+			status, err := pl.Status(context.Background())
 			if err != nil {
 				return nil, err
 			}
-			return player.PlaylistEvent{Index: index}, nil
+			return player.PlaylistEvent{TrackIndex: status.TrackIndex}, nil
 		},
 	},
 	{
@@ -229,21 +229,70 @@ func (pl *Player) TrackInfo(ctx context.Context, uris ...string) ([]library.Trac
 	return tracks, nil
 }
 
-// Time implements the player.Player interface.
-func (pl *Player) Time(ctx context.Context) (time.Duration, error) {
+// Status implements the player.Player interface.
+func (pl *Player) Status(ctx context.Context) (*player.Status, error) {
 	if err := pl.requireAvailable(ctx); err != nil {
-		return 0, err
+		return nil, err
 	}
 
-	res, err := pl.Serv.request(pl.ID, "time", "?")
+	status := &player.Status{}
+
+	res, err := pl.Serv.request(pl.ID, "mode", "?")
 	if err != nil {
-		return 0, err
+		return nil, err
+	}
+	switch res[2] {
+	case "play":
+		status.PlayState = player.PlayStatePlaying
+	case "pause":
+		status.PlayState = player.PlayStatePaused
+	case "stop":
+		status.PlayState = player.PlayStateStopped
+	default:
+		return nil, fmt.Errorf("server returned an invalid playstate: %q", res[2])
+	}
+
+	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
+	if err != nil {
+		return nil, err
+	} else if numTrackRes[3] == "0" {
+		status.TrackIndex = -1
+	} else {
+		if status.PlayState == player.PlayStateStopped {
+			status.TrackIndex = -1
+		} else {
+			res, err := pl.Serv.request(pl.ID, "playlist", "index", "?")
+			if err != nil {
+				return nil, err
+			}
+			trackIndex, err := strconv.Atoi(res[3])
+			if err != nil {
+				return nil, err
+			}
+			status.TrackIndex = trackIndex
+		}
+	}
+
+	res, err = pl.Serv.request(pl.ID, "time", "?")
+	if err != nil {
+		return nil, err
 	}
 	d, err := strconv.ParseFloat(res[2], 64)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return time.Duration(d) * time.Second, nil
+	status.Time = time.Duration(d) * time.Second
+
+	res, err = pl.Serv.request(pl.ID, "mixer", "volume", "?")
+	if err != nil {
+		return nil, err
+	}
+	status.Volume, _ = strconv.Atoi(res[3])
+	if status.Volume < 0 {
+		status.Volume = 0 // The volume is negative if the player is muted.
+	}
+
+	return status, nil
 }
 
 // SetTime implements the player.Player interface.
@@ -254,27 +303,6 @@ func (pl *Player) SetTime(ctx context.Context, offset time.Duration) error {
 
 	_, err := pl.Serv.request(pl.ID, "time", strconv.Itoa(int(offset/time.Second)))
 	return err
-}
-
-// TrackIndex implements the player.Player interface.
-func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
-	if err := pl.requireAvailable(ctx); err != nil {
-		return -1, err
-	}
-
-	numTrackRes, err := pl.Serv.request(pl.ID, "playlist", "tracks", "?")
-	if err != nil || numTrackRes[3] == "0" {
-		return -1, err
-	}
-	state, err := pl.State(ctx)
-	if err != nil || state == player.PlayStateStopped {
-		return -1, err
-	}
-	res, err := pl.Serv.request(pl.ID, "playlist", "index", "?")
-	if err != nil {
-		return -1, err
-	}
-	return strconv.Atoi(res[3])
 }
 
 // SetTrackIndex implements the player.Player interface.
@@ -290,28 +318,6 @@ func (pl *Player) SetTrackIndex(ctx context.Context, trackIndex int) error {
 	}
 	_, err := pl.Serv.request(pl.ID, "playlist", "index", strconv.Itoa(trackIndex))
 	return err
-}
-
-// State implements the player.Player interface.
-func (pl *Player) State(ctx context.Context) (player.PlayState, error) {
-	if err := pl.requireAvailable(ctx); err != nil {
-		return player.PlayStateInvalid, err
-	}
-
-	res, err := pl.Serv.request(pl.ID, "mode", "?")
-	if err != nil {
-		return player.PlayStateInvalid, err
-	}
-	switch res[2] {
-	case "play":
-		return player.PlayStatePlaying, nil
-	case "pause":
-		return player.PlayStatePaused, nil
-	case "stop":
-		return player.PlayStateStopped, nil
-	default:
-		return player.PlayStateInvalid, fmt.Errorf("server returned an invalid playstate: %q", res[2])
-	}
 }
 
 // SetState implements the player.Player interface.
@@ -360,24 +366,6 @@ func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 		return err
 	}
 	return <-ack
-}
-
-// Volume implements the player.Player interface.
-func (pl *Player) Volume(ctx context.Context) (int, error) {
-	if err := pl.requireAvailable(ctx); err != nil {
-		return 0, err
-	}
-
-	res, err := pl.Serv.request(pl.ID, "mixer", "volume", "?")
-	if err != nil {
-		return 0, err
-	}
-	vol, _ := strconv.Atoi(res[3])
-	if vol < 0 {
-		// The volume is negative if the player is muted.
-		return 0, nil
-	}
-	return vol, nil
 }
 
 // SetVolume implements the player.Player interface.

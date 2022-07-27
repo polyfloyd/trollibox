@@ -82,10 +82,10 @@ func testTime(ctx context.Context, t *testing.T, pl Player) {
 	if err := pl.SetTime(ctx, timeA); err != nil {
 		t.Fatal(err)
 	}
-	if curTime, err := pl.Time(ctx); err != nil {
+	if status, err := pl.Status(ctx); err != nil {
 		t.Fatal(err)
-	} else if curTime != timeA {
-		t.Fatalf("Unexpected time: %v != %v", timeA, curTime)
+	} else if status.Time != timeA {
+		t.Fatalf("Unexpected time: %v != %v", timeA, status.Time)
 	}
 }
 
@@ -105,38 +105,43 @@ func testTrackIndex(ctx context.Context, t *testing.T, pl Player) {
 	if err := pl.SetTrackIndex(ctx, 0); err != nil {
 		t.Fatal(err)
 	}
-	if index, err := pl.TrackIndex(ctx); err != nil {
+
+	status, err := pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if index != 0 {
-		t.Fatalf("Unexpected track index: %v != %v", 0, index)
 	}
-	if state, err := pl.State(ctx); err != nil {
-		t.Fatal(err)
-	} else if state != PlayStatePlaying {
-		t.Fatalf("Unexpected state: %v", state)
+	if status.TrackIndex != 0 {
+		t.Fatalf("Unexpected track index: %v != %v", 0, status.TrackIndex)
+	}
+	if status.PlayState != PlayStatePlaying {
+		t.Fatalf("Unexpected state: %v", status.PlayState)
 	}
 
 	if err := pl.SetTrackIndex(ctx, 1); err != nil {
 		t.Fatal(err)
 	}
-	if index, err := pl.TrackIndex(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if index != 1 {
-		t.Fatalf("Unexpected track index: %v != %v", 1, index)
+	}
+	if status.TrackIndex != 1 {
+		t.Fatalf("Unexpected track index: %v != %v", 1, status.TrackIndex)
 	}
 
 	if err := pl.SetTrackIndex(ctx, 99); err != nil {
 		t.Fatal(err)
 	}
-	if state, err := pl.State(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if state != PlayStateStopped {
-		t.Fatalf("Unexpected state: %v", state)
+	}
+	if status.PlayState != PlayStateStopped {
+		t.Fatalf("Unexpected state: %v", status.PlayState)
 	}
 }
 
 func testTrackIndexEvent(ctx context.Context, t *testing.T, pl Player) {
-	util.TestEventEmission(t, pl, PlaylistEvent{Index: 1}, func() {
+	util.TestEventEmission(t, pl, PlaylistEvent{TrackIndex: 1}, func() {
 		if err := pl.SetTrackIndex(ctx, 1); err != nil {
 			t.Fatal(err)
 		}
@@ -147,28 +152,34 @@ func testPlayState(ctx context.Context, t *testing.T, pl Player) {
 	if err := pl.SetState(ctx, PlayStatePlaying); err != nil {
 		t.Fatal(err)
 	}
-	if state, err := pl.State(ctx); err != nil {
+	status, err := pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if state != PlayStatePlaying {
-		t.Fatalf("Unexpected state: %v", state)
+	}
+	if status.PlayState != PlayStatePlaying {
+		t.Fatalf("Unexpected state: %v", status.PlayState)
 	}
 
 	if err := pl.SetState(ctx, PlayStatePaused); err != nil {
 		t.Fatal(err)
 	}
-	if state, err := pl.State(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if state != PlayStatePaused {
-		t.Fatalf("Unexpected state: %v", state)
+	}
+	if status.PlayState != PlayStatePaused {
+		t.Fatalf("Unexpected state: %v", status.PlayState)
 	}
 
 	if err := pl.SetState(ctx, PlayStateStopped); err != nil {
 		t.Fatal(err)
 	}
-	if state, err := pl.State(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if state != PlayStateStopped {
-		t.Fatalf("Unexpected state: %v", state)
+	}
+	if status.PlayState != PlayStateStopped {
+		t.Fatalf("Unexpected state: %v", status.PlayState)
 	}
 }
 
@@ -192,10 +203,12 @@ func testVolume(ctx context.Context, t *testing.T, pl Player) {
 	if err := pl.SetVolume(ctx, volA); err != nil {
 		t.Fatal(err)
 	}
-	if vol, err := pl.Volume(ctx); err != nil {
+	status, err := pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if vol != volA {
-		t.Fatalf("Volume does not match expected value, %v != %v", volA, vol)
+	}
+	if status.Volume != volA {
+		t.Fatalf("Volume does not match expected value, %v != %v", volA, status.Volume)
 	}
 
 	if err := pl.SetState(ctx, PlayStateStopped); err != nil {
@@ -204,28 +217,34 @@ func testVolume(ctx context.Context, t *testing.T, pl Player) {
 	if err := pl.SetVolume(ctx, volB); err != nil {
 		t.Fatal(err)
 	}
-	if vol, err := pl.Volume(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if vol != volB {
-		t.Fatalf("Volume does not match expected value, %v != %v", volB, vol)
+	}
+	if status.Volume != volB {
+		t.Fatalf("Volume does not match expected value, %v != %v", volB, status.Volume)
 	}
 
 	if err := pl.SetVolume(ctx, 200); err != nil {
 		t.Fatal(err)
 	}
-	if vol, err := pl.Volume(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if vol != 100 {
-		t.Fatalf("Volume was not clamped: %v", vol)
+	}
+	if status.Volume != 100 {
+		t.Fatalf("Volume was not clamped: %v", status.Volume)
 	}
 
 	if err := pl.SetVolume(ctx, -100); err != nil {
 		t.Fatal(err)
 	}
-	if vol, err := pl.Volume(ctx); err != nil {
+	status, err = pl.Status(ctx)
+	if err != nil {
 		t.Fatal(err)
-	} else if vol != 0 {
-		t.Fatalf("Volume was not clamped: %v", vol)
+	}
+	if status.Volume != 0 {
+		t.Fatalf("Volume was not clamped: %v", status.Volume)
 	}
 }
 

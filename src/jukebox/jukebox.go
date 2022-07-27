@@ -66,12 +66,12 @@ func (jb *Jukebox) DefaultPlayer(ctx context.Context) (string, error) {
 	return names[0], nil
 }
 
-func (jb *Jukebox) PlayerTrackIndex(ctx context.Context, playerName string) (int, error) {
+func (jb *Jukebox) PlayerStatus(ctx context.Context, playerName string) (*player.Status, error) {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {
-		return -1, err
+		return nil, err
 	}
-	return pl.TrackIndex(ctx)
+	return pl.Status(ctx)
 }
 
 func (jb *Jukebox) SetPlayerTrackIndex(ctx context.Context, playerName string, index int, relative bool) error {
@@ -80,21 +80,13 @@ func (jb *Jukebox) SetPlayerTrackIndex(ctx context.Context, playerName string, i
 		return err
 	}
 	if relative {
-		cur, err := pl.TrackIndex(ctx)
+		status, err := pl.Status(ctx)
 		if err != nil {
 			return err
 		}
-		index += cur
+		index += status.TrackIndex
 	}
 	return pl.SetTrackIndex(ctx, index)
-}
-
-func (jb *Jukebox) PlayerTime(ctx context.Context, playerName string) (time.Duration, error) {
-	pl, err := jb.players.PlayerByName(playerName)
-	if err != nil {
-		return 0, err
-	}
-	return pl.Time(ctx)
 }
 
 func (jb *Jukebox) SetPlayerTime(ctx context.Context, playerName string, t time.Duration) error {
@@ -105,28 +97,12 @@ func (jb *Jukebox) SetPlayerTime(ctx context.Context, playerName string, t time.
 	return pl.SetTime(ctx, t)
 }
 
-func (jb *Jukebox) PlayerState(ctx context.Context, playerName string) (player.PlayState, error) {
-	pl, err := jb.players.PlayerByName(playerName)
-	if err != nil {
-		return player.PlayStateInvalid, err
-	}
-	return pl.State(ctx)
-}
-
 func (jb *Jukebox) SetPlayerState(ctx context.Context, playerName string, state player.PlayState) error {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {
 		return err
 	}
 	return pl.SetState(ctx, state)
-}
-
-func (jb *Jukebox) PlayerVolume(ctx context.Context, playerName string) (int, error) {
-	pl, err := jb.players.PlayerByName(playerName)
-	if err != nil {
-		return 0, err
-	}
-	return pl.Volume(ctx)
 }
 
 func (jb *Jukebox) SetPlayerVolume(ctx context.Context, playerName string, vol int) error {
@@ -199,11 +175,11 @@ func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at st
 	}
 
 	if at == "Next" {
-		index, err := pl.TrackIndex(ctx)
+		status, err := pl.Status(ctx)
 		if err != nil {
 			return err
 		}
-		pos = index + 1
+		pos = status.TrackIndex + 1
 	} else if at == "End" {
 		pos = -1
 	}

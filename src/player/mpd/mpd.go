@@ -197,31 +197,30 @@ func (pl *Player) mainLoop() {
 		}
 		switch mpdEvent {
 		case PlayerEvent:
-			if state, err := pl.State(context.Background()); err != nil {
+			status, err := pl.Status(context.Background())
+			if err != nil {
 				log.Error(err)
-			} else {
-				dedupEmit(player.PlayStateEvent{State: state}, state)
+				continue
 			}
-			if time, err := pl.Time(context.Background()); err != nil {
-				log.Error(err)
-			} else {
-				dedupEmit(player.TimeEvent{Time: time}, time)
-			}
+			dedupEmit(player.PlayStateEvent{State: status.PlayState}, status.PlayState)
+			dedupEmit(player.TimeEvent{Time: status.Time}, status.Time)
 			fallthrough
 
 		case playlistEvent:
-			if index, err := pl.TrackIndex(context.Background()); err != nil {
+			status, err := pl.Status(context.Background())
+			if err != nil {
 				log.Error(err)
-			} else {
-				pl.Emit(player.PlaylistEvent{Index: index})
+				continue
 			}
+			pl.Emit(player.PlaylistEvent{TrackIndex: status.TrackIndex})
 
 		case mixerEvent:
-			if volume, err := pl.Volume(context.Background()); err != nil {
+			status, err := pl.Status(context.Background())
+			if err != nil {
 				log.Error(err)
-			} else {
-				dedupEmit(player.VolumeEvent{Volume: volume}, volume)
+				continue
 			}
+			dedupEmit(player.VolumeEvent{Volume: status.Volume}, status.Volume)
 
 		case updateEvent:
 			err := pl.withMpd(context.Background(), func(ctx context.Context, mpdc *mpd.Client) error {
@@ -331,15 +330,37 @@ func (pl *Player) Lists(ctx context.Context) (playlists map[string]player.Playli
 	return
 }
 
-// Time implements the player.Player interface.
-func (pl *Player) Time(ctx context.Context) (offset time.Duration, err error) {
+// Status implements the player.Player interface.
+func (pl *Player) Status(ctx context.Context) (status *player.Status, err error) {
 	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) (err error) {
-		status, err := mpdc.Status()
+		mpdStatus, err := mpdc.Status()
 		if err != nil {
 			return err
 		}
-		timef, _ := strconv.ParseFloat(status["elapsed"], 32)
-		offset = time.Duration(timef) * time.Second
+		timef, _ := strconv.ParseFloat(mpdStatus["elapsed"], 32)
+
+		trackIndex, _ := statusAttrInt(mpdStatus, "song")
+
+		playState := map[string]player.PlayState{
+			"play":  player.PlayStatePlaying,
+			"pause": player.PlayStatePaused,
+			"stop":  player.PlayStateStopped,
+		}[mpdStatus["state"]]
+
+		volume, ok := statusAttrInt(mpdStatus, "volume")
+		if !ok || volume < 0 {
+			// Volume is not present when the playback is stopped.
+			pl.lastVolumeLock.Lock()
+			defer pl.lastVolumeLock.Unlock()
+			volume = pl.lastVolume
+		}
+
+		status = &player.Status{
+			TrackIndex: trackIndex,
+			Time:       time.Duration(timef) * time.Second,
+			PlayState:  playState,
+			Volume:     volume,
+		}
 		return
 	})
 	return
@@ -351,14 +372,14 @@ func (pl *Player) SetTime(ctx context.Context, offset time.Duration) error {
 		if offset < 0 {
 			return fmt.Errorf("error setting time: negative offset")
 		}
-		index, err := pl.TrackIndex(ctx)
+		status, err := pl.Status(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting index for setting time: %v", err)
 		}
-		if index < 0 {
+		if status.TrackIndex < 0 {
 			return fmt.Errorf("error setting time: negative track index (is any playback happening?)")
 		}
-		if err := mpdc.Seek(index, int(offset/time.Second)); err != nil {
+		if err := mpdc.Seek(status.TrackIndex, int(offset/time.Second)); err != nil {
 			return fmt.Errorf("error setting time: %v", err)
 		}
 		return nil
@@ -375,42 +396,6 @@ func (pl *Player) SetTrackIndex(ctx context.Context, trackIndex int) error {
 		}
 		return mpdc.Play(trackIndex)
 	})
-}
-
-// TrackIndex implements the player.Player interface.
-func (pl *Player) TrackIndex(ctx context.Context) (int, error) {
-	status := -1
-	err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
-		s, err := mpdc.Status()
-		if err != nil {
-			return err
-		}
-		cur, ok := statusAttrInt(s, "song")
-		if !ok {
-			return nil
-		}
-		status = cur
-		return nil
-	})
-	return status, err
-}
-
-// State implements the player.Player interface.
-func (pl *Player) State(ctx context.Context) (state player.PlayState, err error) {
-	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
-		s, err := mpdc.Status()
-		if err != nil {
-			return err
-		}
-
-		state = map[string]player.PlayState{
-			"play":  player.PlayStatePlaying,
-			"pause": player.PlayStatePaused,
-			"stop":  player.PlayStateStopped,
-		}[s["state"]]
-		return nil
-	})
-	return
 }
 
 // SetState implements the player.Player interface.
@@ -450,28 +435,6 @@ func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 		return nil
 	})
 	return err
-}
-
-// Volume implements the player.Player interface.
-func (pl *Player) Volume(ctx context.Context) (vol int, err error) {
-	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
-		status, err := mpdc.Status()
-		if err != nil {
-			return err
-		}
-
-		volInt, ok := statusAttrInt(status, "volume")
-		if !ok || volInt < 0 {
-			// Volume is not present when the playback is stopped.
-			pl.lastVolumeLock.Lock()
-			defer pl.lastVolumeLock.Unlock()
-			vol = pl.lastVolume
-			return nil
-		}
-		vol = volInt
-		return nil
-	})
-	return
 }
 
 // SetVolume implements the player.Player interface.

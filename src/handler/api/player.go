@@ -118,24 +118,24 @@ func (api *API) playerSetTime(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) playerGetTime(w http.ResponseWriter, r *http.Request) {
-	tim, err := api.jukebox.PlayerTime(r.Context(), chi.URLParam(r, "playerName"))
+	status, err := api.jukebox.PlayerStatus(r.Context(), chi.URLParam(r, "playerName"))
 	if api.mapError(w, r, err) {
 		return
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"time": int(tim / time.Second),
+		"time": int(status.Time / time.Second),
 	})
 }
 
 func (api *API) playerGetPlaystate(w http.ResponseWriter, r *http.Request) {
-	playstate, err := api.jukebox.PlayerState(r.Context(), chi.URLParam(r, "playerName"))
+	status, err := api.jukebox.PlayerStatus(r.Context(), chi.URLParam(r, "playerName"))
 	if api.mapError(w, r, err) {
 		return
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"playstate": playstate,
+		"playstate": status.PlayState,
 	})
 }
 
@@ -154,13 +154,13 @@ func (api *API) playerSetPlaystate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *API) playerGetVolume(w http.ResponseWriter, r *http.Request) {
-	volume, err := api.jukebox.PlayerVolume(r.Context(), chi.URLParam(r, "playerName"))
+	status, err := api.jukebox.PlayerStatus(r.Context(), chi.URLParam(r, "playerName"))
 	if api.mapError(w, r, err) {
 		return
 	}
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
-		"volume": float32(volume) / 100.0,
+		"volume": float32(status.Volume) / 100.0,
 	})
 }
 
@@ -188,7 +188,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 	if api.mapError(w, r, err) {
 		return
 	}
-	trackIndex, err := api.jukebox.PlayerTrackIndex(r.Context(), playerName)
+	status, err := api.jukebox.PlayerStatus(r.Context(), playerName)
 	if api.mapError(w, r, err) {
 		return
 	}
@@ -198,7 +198,7 @@ func (api *API) playlistContents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = json.NewEncoder(w).Encode(map[string]interface{}{
-		"current": trackIndex,
+		"current": status.TrackIndex,
 		"tracks":  trJSON,
 	})
 	if api.mapError(w, r, err) {
@@ -342,12 +342,11 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	index, err := api.jukebox.PlayerTrackIndex(r.Context(), playerName)
+	status, err := api.jukebox.PlayerStatus(r.Context(), playerName)
 	if err != nil {
 		log.Errorf("%v", err)
 		return
 	}
-
 	tracks, err := plist.Tracks(r.Context())
 	if err != nil {
 		log.Errorf("%v", err)
@@ -358,26 +357,9 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 		return
 	}
-	cTime, err := api.jukebox.PlayerTime(r.Context(), playerName)
-	if err != nil {
-		log.Errorf("%v", err)
-		return
-	}
-	es.EventJSON("playlist", map[string]interface{}{"index": index, "tracks": playlistTracks, "time": cTime / time.Second})
-
-	state, err := api.jukebox.PlayerState(r.Context(), playerName)
-	if err != nil {
-		log.Errorf("%v", err)
-		return
-	}
-	es.EventJSON("state", map[string]interface{}{"state": state})
-
-	volume, err := api.jukebox.PlayerVolume(r.Context(), playerName)
-	if err != nil {
-		log.Errorf("%v", err)
-		return
-	}
-	es.EventJSON("volume", map[string]interface{}{"volume": volume})
+	es.EventJSON("playlist", map[string]interface{}{"index": status.TrackIndex, "tracks": playlistTracks, "time": status.Time / time.Second})
+	es.EventJSON("state", map[string]interface{}{"state": status.PlayState})
+	es.EventJSON("volume", map[string]interface{}{"volume": status.Volume})
 
 	for {
 		var event interface{}
@@ -399,12 +381,12 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 				log.Errorf("%v", err)
 				return
 			}
-			cTime, err := api.jukebox.PlayerTime(r.Context(), playerName)
+			status, err := api.jukebox.PlayerStatus(r.Context(), playerName)
 			if err != nil {
 				log.Errorf("%v", err)
 				return
 			}
-			es.EventJSON("playlist", map[string]interface{}{"index": t.Index, "tracks": playlistTracks, "time": cTime / time.Second})
+			es.EventJSON("playlist", map[string]interface{}{"index": t.TrackIndex, "tracks": playlistTracks, "time": status.Time / time.Second})
 		case player.PlayStateEvent:
 			es.EventJSON("state", map[string]interface{}{"state": t.State})
 		case player.TimeEvent:

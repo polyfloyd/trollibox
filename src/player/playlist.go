@@ -77,17 +77,12 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 				}
 
 				plist := pl.Playlist()
-				trackIndex, err := pl.TrackIndex(ctx)
+				status, err := pl.Status(ctx)
 				if err != nil {
 					errc <- err
 					return
 				}
-				state, err := pl.State(ctx)
-				if err != nil {
-					errc <- err
-					return
-				}
-				if state != PlayStateStopped && trackIndex != -1 {
+				if status.PlayState != PlayStateStopped && status.TrackIndex != -1 {
 					continue
 				}
 

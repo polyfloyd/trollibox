@@ -36,7 +36,7 @@ type (
 	// PlaylistEvent is emitted after the playlist or the current playlist was
 	// changed.
 	PlaylistEvent struct {
-		Index int
+		TrackIndex int
 	}
 	// PlayStateEvent is emitted after the playstate was changed.
 	PlayStateEvent struct {
@@ -72,31 +72,20 @@ type Player interface {
 	// Returns the currently playing playlist.
 	Playlist() Playlist[MetaTrack]
 
-	// Gets the time offset into the currently playing track. 0 if no track is
-	// being played.
-	Time(context.Context) (time.Duration, error)
+	Status(context.Context) (*Status, error)
 
 	// SetTime Seeks to the absolute point in time of the current track. This is a
 	// no-op if player has been stopped.
 	SetTime(context.Context, time.Duration) error
-
-	// Returns absolute index into the players' playlist.
-	TrackIndex(context.Context) (int, error)
 
 	// Jumps to the specified track in the players' playlist. If the index is
 	// bigger than the length of the playlist, the playlist is ended and the
 	// state is setted to stopped.
 	SetTrackIndex(context.Context, int) error
 
-	// Returns the current playstate of the player.
-	State(context.Context) (PlayState, error)
-
 	// Signal the player to start/resume, stop or pause playback. If the
 	// playlist is empty, a playlist-end event is emitted.
 	SetState(context.Context, PlayState) error
-
-	// Gets the set volume as a value between 0 and 100.
-	Volume(context.Context) (int, error)
 
 	// Sets the volume of the player. The volume should be updated even when
 	// nothing is playing. The value is clamped between 0 and 100.
@@ -105,4 +94,15 @@ type Player interface {
 	// Retrieves the custom finite playlists that are stored by the player and
 	// maps them by their unique name.
 	Lists(context.Context) (map[string]Playlist[library.Track], error)
+}
+
+type Status struct {
+	// The absolute index into the players' playlist.
+	TrackIndex int
+	// The time offset into the currently playing track. 0 if no track is being played.
+	Time time.Duration
+	// The current playstate of the player.
+	PlayState PlayState
+	// The set volume as a value between 0 and 100.
+	Volume int
 }
