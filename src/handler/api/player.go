@@ -271,11 +271,7 @@ func (api *API) playlistRemove(w http.ResponseWriter, r *http.Request) {
 
 func (api *API) playerTracks(w http.ResponseWriter, r *http.Request) {
 	playerName := chi.URLParam(r, "playerName")
-	lib, err := api.jukebox.PlayerLibrary(r.Context(), playerName)
-	if api.mapError(w, r, err) {
-		return
-	}
-	tracks, err := lib.Tracks(r.Context())
+	tracks, err := api.jukebox.Tracks(r.Context(), playerName)
 	if api.mapError(w, r, err) {
 		return
 	}

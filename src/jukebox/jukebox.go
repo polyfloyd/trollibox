@@ -187,22 +187,6 @@ func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at st
 	return pl.Playlist().Insert(ctx, pos, tracks...)
 }
 
-func (jb *Jukebox) PlayerLibraries(ctx context.Context, playerName string) ([]library.Library, error) {
-	pl, err := jb.players.PlayerByName(playerName)
-	if err != nil {
-		return nil, err
-	}
-	return []library.Library{jb.streamdb, pl.Library()}, nil
-}
-
-func (jb *Jukebox) PlayerLibrary(ctx context.Context, playerName string) (library.Library, error) {
-	pl, err := jb.players.PlayerByName(playerName)
-	if err != nil {
-		return nil, err
-	}
-	return pl.Library(), nil
-}
-
 func (jb *Jukebox) PlayerEvents(ctx context.Context, playerName string) (*util.Emitter, error) {
 	pl, err := jb.players.PlayerByName(playerName)
 	if err != nil {
