@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -15,7 +14,8 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"trollibox/src/filter"
-	"trollibox/src/filter/ruled"
+	_ "trollibox/src/filter/keyed"
+	_ "trollibox/src/filter/ruled"
 	"trollibox/src/handler/web"
 	"trollibox/src/jukebox"
 	"trollibox/src/library/stream"
@@ -148,12 +148,6 @@ func main() {
 		}
 	}
 
-	if config.AutoQueue {
-		// TODO: Currently, only players which are active at startup attached
-		// to a queuer.
-		attachAutoQueuer(players, filterdb)
-	}
-
 	jukebox := jukebox.NewJukebox(players, filterdb, streamdb, config.DefaultPlayer)
 
 	service := web.New(build, version, config.Colors, config.URLRoot, jukebox)
@@ -170,44 +164,6 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 	log.Fatalf("Error running webserver: %v", server.ListenAndServe())
-}
-
-func attachAutoQueuer(players player.List, filterdb *filter.DB) {
-	names, err := players.PlayerNames()
-	if err != nil {
-		log.Errorf("error attaching autoqueuer: %v", err)
-		return
-	}
-	for _, name := range names {
-		pl, err := players.PlayerByName(name)
-		if err != nil {
-			log.WithField("player", name).Errorf("Error attaching autoqueuer: %v", err)
-			continue
-		}
-		go func(pl player.Player, name string) {
-			filterEvents := filterdb.Listen(context.Background())
-			for {
-				ft, _ := filterdb.Get("queuer")
-				if ft == nil {
-					// Load the default filter.
-					ft, _ = ruled.BuildFilter([]ruled.Rule{})
-					if err := filterdb.Set("queuer", ft); err != nil {
-						log.WithField("player", name).Errorf("Error while autoqueueing: %v", err)
-					}
-				}
-				cancel := make(chan struct{})
-				com := player.AutoAppend(pl, filter.RandomIterator(ft), cancel)
-				select {
-				case err := <-com:
-					if err != nil {
-						log.WithField("player", name).Errorf("Error while autoqueueing: %v", err)
-					}
-				case <-filterEvents:
-				}
-				close(cancel)
-			}
-		}(pl, name)
-	}
 }
 
 func connectToPlayers(config *config) (player.List, error) {

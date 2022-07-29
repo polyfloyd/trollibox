@@ -35,6 +35,7 @@ func InitRouter(r chi.Router, jukebox *jukebox.Jukebox) {
 		r.Get("/tracks", api.playerTracks)
 		r.Get("/tracks/search", api.playerTrackSearch)
 		r.Get("/tracks/art", api.playerTrackArt)
+		r.Post("/autoqueuer", api.playerSetAutoQueuer)
 		r.Get("/events", api.playerEvents)
 	})
 

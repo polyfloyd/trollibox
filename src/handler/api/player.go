@@ -297,6 +297,23 @@ func (api *API) playerTrackArt(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, path.Base(uri), art.ModTime, bytes.NewReader(art.ImageData))
 }
 
+func (api *API) playerSetAutoQueuer(w http.ResponseWriter, r *http.Request) {
+	playerName := chi.URLParam(r, "playerName")
+	var data struct {
+		Filter string `json:"filter"`
+	}
+	if receiveJSONForm(w, r, &data) {
+		return
+	}
+
+	err := api.jukebox.SetPlayerAutoQueuerFilter(r.Context(), playerName, data.Filter)
+	if api.mapError(w, r, err) {
+		return
+	}
+
+	_, _ = w.Write([]byte("{}"))
+}
+
 func (api *API) playerTrackSearch(w http.ResponseWriter, r *http.Request) {
 	playerName := chi.URLParam(r, "playerName")
 	untaggedFields := strings.Split(r.FormValue("untagged"), ",")

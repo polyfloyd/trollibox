@@ -5,7 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/filter"
 	"trollibox/src/filter/keyed"
@@ -23,13 +26,22 @@ var (
 	ErrPlayerNotFound = player.ErrPlayerNotFound
 )
 
+type PlayerAutoQueuerEvent struct {
+	PlayerName string
+	FilterName string
+}
+
 // Jukebox augments one or more players with with filters, streams and other
 // functionality.
 type Jukebox struct {
+	util.Emitter
+
 	players       player.List
 	filterdb      *filter.DB
 	streamdb      *stream.DB
 	defaultPlayer string
+
+	autoQueuers sync.Map // map[string]*autoQueuer
 }
 
 func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB, defaultPlayer string) *Jukebox {
@@ -185,6 +197,47 @@ func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at st
 	}
 
 	return pl.Playlist().Insert(ctx, pos, tracks...)
+}
+
+func (jb *Jukebox) PlayerAutoQueuerFilters(ctx context.Context) map[string]string {
+	playerFilters := map[string]string{}
+	jb.autoQueuers.Range(func(k, v interface{}) bool {
+		playerFilters[k.(string)] = v.(*autoQueuer).filterName
+		return true
+	})
+	return playerFilters
+}
+
+func (jb *Jukebox) SetPlayerAutoQueuerFilter(ctx context.Context, playerName, filterName string) error {
+	pl, err := jb.players.PlayerByName(playerName)
+	if err != nil {
+		return err
+	}
+
+	if aq, ok := jb.autoQueuers.LoadAndDelete(playerName); ok {
+		aq.(*autoQueuer).stop()
+		log.WithField("player", playerName).Debugf("Stopped existing auto queuer")
+	}
+
+	if filterName == "" {
+		jb.Emit(PlayerAutoQueuerEvent{PlayerName: playerName, FilterName: ""})
+		return nil
+	}
+
+	aq, err := autoQueue(pl, jb.filterdb, filterName)
+	if err != nil {
+		return err
+	}
+	go func() {
+		if err := <-aq.err; err != nil {
+			log.WithField("player", playerName).Errorf("Auto queuer: %v", err)
+		}
+	}()
+	jb.autoQueuers.Store(playerName, aq)
+	jb.Emit(PlayerAutoQueuerEvent{PlayerName: playerName, FilterName: filterName})
+	log.WithField("player", playerName).Debugf("Set auto queuer to %q", filterName)
+
+	return nil
 }
 
 func (jb *Jukebox) PlayerEvents(ctx context.Context, playerName string) (*util.Emitter, error) {
