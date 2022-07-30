@@ -42,14 +42,15 @@ func TestPlaylistImplementation(t *testing.T) {
 }
 
 func TestUpdateEvent(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	pl, err := connectForTesting()
 	if err != nil {
 		t.Skipf("%v", err)
 	}
 
-	l := pl.Events().Listen()
-	defer pl.Events().Unlisten(l)
+	l := pl.Events().Listen(ctx)
 	err = pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 		_, err := mpdc.Update("")
 		return err

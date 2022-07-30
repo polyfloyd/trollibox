@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -184,8 +185,7 @@ func attachAutoQueuer(players player.List, filterdb *filter.DB) {
 			continue
 		}
 		go func(pl player.Player, name string) {
-			filterEvents := filterdb.Listen()
-			defer filterdb.Unlisten(filterEvents)
+			filterEvents := filterdb.Listen(context.Background())
 			for {
 				ft, _ := filterdb.Get("queuer")
 				if ft == nil {

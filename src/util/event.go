@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -20,7 +21,7 @@ type Emitter struct {
 	// A zero value will disable deduplication.
 	Release time.Duration
 
-	listeners map[<-chan interface{}]chan interface{}
+	listeners map[chan<- interface{}]struct{}
 	lock      sync.RWMutex
 
 	release map[interface{}]struct{}
@@ -33,7 +34,7 @@ func (emitter *Emitter) init() {
 	if shouldInit {
 		emitter.lock.Lock()
 		if emitter.listeners == nil {
-			emitter.listeners = map[<-chan interface{}]chan interface{}{}
+			emitter.listeners = map[chan<- interface{}]struct{}{}
 			emitter.release = map[interface{}]struct{}{}
 		}
 		emitter.lock.Unlock()
@@ -43,7 +44,7 @@ func (emitter *Emitter) init() {
 func (emitter *Emitter) broadcast(event interface{}) {
 	emitter.lock.RLock()
 	defer emitter.lock.RUnlock()
-	for _, listener := range emitter.listeners {
+	for listener := range emitter.listeners {
 		select {
 		case listener <- event:
 		default:
@@ -88,26 +89,23 @@ func (emitter *Emitter) Emit(event interface{}) {
 
 // Listen registers a new channel at this emitter.
 //
-// The returned channel should be freed with Unlisten.
-func (emitter *Emitter) Listen() <-chan interface{} {
+// The returned channel remains open until the specified context is cancelled.
+func (emitter *Emitter) Listen(ctx context.Context) <-chan interface{} {
 	emitter.init()
 
 	emitter.lock.Lock()
 	defer emitter.lock.Unlock()
 
 	ch := make(chan interface{}, chanBufferSize)
-	emitter.listeners[ch] = ch
+	emitter.listeners[ch] = struct{}{}
+
+	go func() {
+		<-ctx.Done()
+		emitter.lock.Lock()
+		defer emitter.lock.Unlock()
+		close(ch)
+		delete(emitter.listeners, ch)
+	}()
+
 	return ch
-}
-
-// Unlisten unregisters a channel previously obtained by Listen and closes it.
-func (emitter *Emitter) Unlisten(ch <-chan interface{}) {
-	emitter.init()
-
-	emitter.lock.Lock()
-	defer emitter.lock.Unlock()
-
-	// Ok, now clean up everything.
-	close(emitter.listeners[ch])
-	delete(emitter.listeners, ch)
 }

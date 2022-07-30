@@ -333,8 +333,10 @@ func (pl *Player) SetState(ctx context.Context, state player.PlayState) error {
 	// called immediately after SetState. Wait for the playstate event to be
 	// emitted before continuing.
 	go func() {
-		events := pl.Listen()
-		defer pl.Unlisten(events)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		events := pl.Listen(ctx)
 		timeout := time.After(time.Second * 8)
 	outer:
 		for {

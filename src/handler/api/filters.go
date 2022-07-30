@@ -67,8 +67,7 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 	if api.mapError(w, r, err) {
 		return
 	}
-	listener := api.jukebox.FilterDB().Listen()
-	defer api.jukebox.FilterDB().Unlisten(listener)
+	listener := api.jukebox.FilterDB().Listen(r.Context())
 
 	names, err := api.jukebox.FilterDB().Names()
 	if err != nil {
@@ -88,14 +87,7 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	for {
-		var event interface{}
-		select {
-		case event = <-listener:
-		case <-r.Context().Done():
-			return
-		}
-
+	for event := range listener {
 		switch t := event.(type) {
 		case filter.ListEvent:
 			es.EventJSON("list", map[string]interface{}{"filters": t.Names})

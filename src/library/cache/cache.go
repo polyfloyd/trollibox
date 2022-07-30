@@ -88,8 +88,8 @@ func (cache *Cache) Events() *util.Emitter {
 }
 
 func (cache *Cache) run() {
-	listener := cache.Library.Events().Listen()
-	defer cache.Library.Events().Unlisten(listener)
+	ctx := context.Background()
+	listener := cache.Library.Events().Listen(ctx)
 
 	// Reload tracks on startup.
 	cache.lock.Lock()

@@ -59,12 +59,12 @@ type TrackIterator interface {
 // Sending a value over the returned channel interrupts the operation.
 // Receiving from the channel blocks until no more tracks are available from
 // the iterator or an error is encountered.
-func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan error {
-	ctx := context.Background()
+func AutoAppend(pl Player, iter TrackIterator, cancelAppend <-chan struct{}) <-chan error {
 	errc := make(chan error, 1)
 	go func() {
-		events := pl.Events().Listen()
-		defer pl.Events().Unlisten(events)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		events := pl.Events().Listen(ctx)
 		defer close(errc)
 	outer:
 		for {
@@ -108,7 +108,7 @@ func AutoAppend(pl Player, iter TrackIterator, cancel <-chan struct{}) <-chan er
 					return
 				}
 
-			case <-cancel:
+			case <-cancelAppend:
 				break outer
 			}
 		}

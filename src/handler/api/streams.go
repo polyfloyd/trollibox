@@ -72,8 +72,7 @@ func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {
 	if api.mapError(w, r, err) {
 		return
 	}
-	listener := api.jukebox.StreamDB().Listen()
-	defer api.jukebox.StreamDB().Unlisten(listener)
+	listener := api.jukebox.StreamDB().Listen(r.Context())
 
 	streams, err := api.jukebox.StreamDB().Streams()
 	if err != nil {
@@ -82,14 +81,7 @@ func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	es.EventJSON("streams", map[string]interface{}{"streams": jsonStreams(streams)})
 
-	for {
-		var event interface{}
-		select {
-		case event = <-listener:
-		case <-r.Context().Done():
-			return
-		}
-
+	for event := range listener {
 		switch event.(type) {
 		case library.UpdateEvent:
 			streams, err := api.jukebox.StreamDB().Streams()

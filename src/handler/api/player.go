@@ -329,8 +329,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 		return
 	}
-	listener := emitter.Listen()
-	defer emitter.Unlisten(listener)
+	listener := emitter.Listen(r.Context())
 
 	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
 	if err != nil {
@@ -357,14 +356,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 	es.EventJSON("state", map[string]interface{}{"state": status.PlayState})
 	es.EventJSON("volume", map[string]interface{}{"volume": status.Volume})
 
-	for {
-		var event interface{}
-		select {
-		case event = <-listener:
-		case <-r.Context().Done():
-			return
-		}
-
+	for event := range listener {
 		switch t := event.(type) {
 		case player.PlaylistEvent:
 			tracks, err := plist.Tracks(r.Context())

@@ -175,8 +175,8 @@ func (pl *Player) eventLoop() {
 }
 
 func (pl *Player) mainLoop() {
-	listener := pl.Listen()
-	defer pl.Unlisten(listener)
+	ctx := context.Background()
+	listener := pl.Listen(ctx)
 
 	// Helper function to prevent emitting events when an associated value has
 	// not changed.
@@ -197,7 +197,7 @@ func (pl *Player) mainLoop() {
 		}
 		switch mpdEvent {
 		case PlayerEvent:
-			status, err := pl.Status(context.Background())
+			status, err := pl.Status(ctx)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -207,7 +207,7 @@ func (pl *Player) mainLoop() {
 			fallthrough
 
 		case playlistEvent:
-			status, err := pl.Status(context.Background())
+			status, err := pl.Status(ctx)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -215,7 +215,7 @@ func (pl *Player) mainLoop() {
 			pl.Emit(player.PlaylistEvent{TrackIndex: status.TrackIndex})
 
 		case mixerEvent:
-			status, err := pl.Status(context.Background())
+			status, err := pl.Status(ctx)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -223,7 +223,7 @@ func (pl *Player) mainLoop() {
 			dedupEmit(player.VolumeEvent{Volume: status.Volume}, status.Volume)
 
 		case updateEvent:
-			err := pl.withMpd(context.Background(), func(ctx context.Context, mpdc *mpd.Client) error {
+			err := pl.withMpd(ctx, func(ctx context.Context, mpdc *mpd.Client) error {
 				status, err := mpdc.Status()
 				if err != nil {
 					return err

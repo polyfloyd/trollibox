@@ -1,6 +1,7 @@
 package util
 
 import (
+	"context"
 	"reflect"
 	"testing"
 	"time"
@@ -10,8 +11,10 @@ import (
 // causes an event to be emitted.
 func TestEventEmission(t *testing.T, ev Eventer, event interface{}, trigger func()) {
 	t.Helper()
-	l := ev.Events().Listen()
-	defer ev.Events().Unlisten(l)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	l := ev.Events().Listen(ctx)
 	trigger()
 	for {
 		select {

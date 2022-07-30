@@ -1,15 +1,18 @@
 package util
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestEmission(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var em Emitter
 
-	l := em.Listen()
-	defer em.Unlisten(l)
+	l := em.Listen(ctx)
 	em.Emit("test")
 
 	select {
@@ -24,13 +27,15 @@ func TestEmission(t *testing.T) {
 }
 
 func TestBufferedEmission(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	var em Emitter
 	em.Release = time.Millisecond * 50
 
 	const REPEAT = 3
 
-	l := em.Listen()
-	defer em.Unlisten(l)
+	l := em.Listen(ctx)
 	for i := 0; i < REPEAT; i++ {
 		em.Emit("test")
 	}
