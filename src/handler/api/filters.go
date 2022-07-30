@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/filter"
+	"trollibox/src/jukebox"
 	"trollibox/src/util/eventsource"
 )
 
@@ -67,7 +68,8 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 	if api.mapError(w, r, err) {
 		return
 	}
-	listener := api.jukebox.FilterDB().Listen(r.Context())
+	filterListener := api.jukebox.FilterDB().Listen(r.Context())
+	jukeboxListener := api.jukebox.Listen(r.Context())
 
 	names, err := api.jukebox.FilterDB().Names()
 	if err != nil {
@@ -86,19 +88,42 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 			"filter": filter,
 		})
 	}
+	playerFilters := api.jukebox.PlayerAutoQueuerFilters(r.Context())
+	for playerName, filterName := range playerFilters {
+		es.EventJSON("autoqueuer", map[string]interface{}{
+			"player": playerName,
+			"filter": filterName,
+		})
+	}
 
-	for event := range listener {
-		switch t := event.(type) {
-		case filter.ListEvent:
-			es.EventJSON("list", map[string]interface{}{"filters": t.Names})
-		case filter.UpdateEvent:
-			es.EventJSON("update", map[string]interface{}{
-				"name":   t.Name,
-				"filter": t.Filter,
-			})
+	for {
+		select {
+		case event := <-filterListener:
+			switch t := event.(type) {
+			case filter.ListEvent:
+				es.EventJSON("list", map[string]interface{}{"filters": t.Names})
+			case filter.UpdateEvent:
+				es.EventJSON("update", map[string]interface{}{
+					"name":   t.Name,
+					"filter": t.Filter,
+				})
+			default:
+				log.Debugf("Unmapped filter db event %#v", event)
+			}
 
-		default:
-			log.Debugf("Unmapped filter db event %#v", event)
+		case event := <-jukeboxListener:
+			switch t := event.(type) {
+			case jukebox.PlayerAutoQueuerEvent:
+				es.EventJSON("autoqueuer", map[string]interface{}{
+					"player": t.PlayerName,
+					"filter": t.FilterName,
+				})
+			default:
+				log.Debugf("Unmapped jukebox event %#v", event)
+			}
+
+		case <-r.Context().Done():
+			return
 		}
 	}
 }

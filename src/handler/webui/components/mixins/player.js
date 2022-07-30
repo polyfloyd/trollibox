@@ -4,7 +4,7 @@ import PlaylistMixin from './playlist.js';
 export default {
 	mixins: [ApiMixin, PlaylistMixin],
 	methods: {
-		setIndex: async function(position, relative) {
+		async setIndex(position, relative) {
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/current`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -14,7 +14,7 @@ export default {
 				throw new Error('could not set current track index');
 			}
 		},
-		setTime: async function(seconds) {
+		async setTime(seconds) {
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/time`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -24,7 +24,7 @@ export default {
 				throw new Error('could not set time');
 			}
 		},
-		setState: async function(state) {
+		async setState(state) {
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/playstate`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -34,7 +34,7 @@ export default {
 				throw new Error('could not set state');
 			}
 		},
-		setVolume: async function(volume) {
+		async setVolume(volume) {
 			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/volume`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
@@ -42,6 +42,16 @@ export default {
 			});
 			if (res.status >= 400) {
 				throw new Error('could not set volume');
+			}
+		},
+		async setAutoQueuerFilter(filter) {
+			let res = await fetch(`${this.urlroot}data/player/${this.selectedPlayer}/autoqueuer`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ filter }),
+			});
+			if (res.status >= 400) {
+				throw new Error('could not set autoqueuer filter');
 			}
 		},
 	},
