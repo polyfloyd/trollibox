@@ -53,7 +53,9 @@
 			</div>
 			<div v-else class="player-controls">
 				<button class="btn btn-default glyphicon glyphicon-refresh" title="Reconnect"
-					:disabled="connectionState == 'connecting'" @click="reconnect"></button>
+					:disabled="connectionState == 'connecting'" @click="reconnect">
+					<span class="reconnect-countdown">{{ reconnectCountdown }}</span>
+				</button>
 			</div>
 		</div>
 
@@ -82,76 +84,95 @@
 			PlayerPlaylistTrack,
 		},
 		emits: ['update:tracks'],
-		data: function() {
+		data() {
 			return {
 				playlist: [],
 				currentIndex: -1,
 				state: 'stopped',
 				time: 0,
 				volume: 0,
+
 				connectionState: 'disconnected',
+				reconnectInterval: null,
+				reconnectCountdown: 0,
 			};
 		},
-		mounted: function() {
+		mounted() {
 			this.reconnect();
 			document.body.addEventListener('keypress', this.onKey);
 		},
-		unmounted: function() {
+		unmounted() {
 			document.body.removeEventListener('keypress', this.onKey);
 			this.ev.close();
 		},
 		computed: {
 			pastPlaylist: {
-				get: function() {
+				get() {
 					if (this.currentIndex == -1) return [];
 					return this.playlist.slice(0, this.currentIndex);
 				},
 				set: function() {}, // Implemented by dragEnd.
 			},
 			futurePlaylist: {
-				get: function() {
+				get() {
 					if (this.currentIndex == -1) return this.playlist;
 					return this.playlist.slice(this.currentIndex + 1);
 				},
-				set: function() {}, // Implemented by dragEnd.
+				set() {}, // Implemented by dragEnd.
 			},
-			currentTrack: function() {
+			currentTrack() {
 				if (this.currentIndex == -1) return null;
 				return this.playlist[this.currentIndex];
 			},
 		},
 		watch: {
-			playlist: function() {
+			connectionState(v) {
+				if (this.reconnectInterval) {
+					clearInterval(this.reconnectInterval);
+					this.reconnectInterval = null;
+				}
+
+				if (v != 'disconnected') return;
+
+				this.reconnectCountdown = 10;
+				this.reconnectInterval = setInterval(() => {
+					this.reconnectCountdown -= 1;
+					if (this.reconnectCountdown == 0) {
+						this.reconnect();
+					}
+				}, 1000);
+			},
+			playlist() {
 				// Scroll to the current track so it is aligned to the top of the
 				// container. But only if the player is the initialy selected view.
 				if (window.innerWidth >= 992 && this.$el) {
 					this.$el.querySelector('.player-current').scrollIntoView();
 				}
 			},
-			state: function() { this.reloadProgressUpdater(); },
-			time: function() { this.reloadProgressUpdater(); },
-			currentIndex: function() { this.reloadProgressUpdater(); },
+			state() { this.reloadProgressUpdater(); },
+			time() { this.reloadProgressUpdater(); },
+			currentIndex() { this.reloadProgressUpdater(); },
 		},
 		methods: {
-			reloadProgressUpdater: function() {
+			reloadProgressUpdater() {
 				clearInterval(this.timeUpdater);
 				if (this.currentIndex != -1 && this.state === 'playing') {
 					this.timeUpdater = setInterval(() => { this.time += 1; }, 1000);
 				}
 			},
-			dragEnd: function(event) {
+			dragEnd(event) {
 				let fromFuture = event.from.classList.contains('player-future');
 				let toFuture = event.to.classList.contains('player-future');
 				let from = event.oldIndex + (fromFuture ? this.pastPlaylist.length+1 : 0);
 				let to = event.newIndex + (toFuture ? this.pastPlaylist.length+1 : 0);
 				this.moveInPlaylist(from, to);
 			},
-			reconnect: function() {
+			reconnect() {
+				this.connectionState = 'connecting';
 				if (this.ev) this.ev.close();
 				this.ev = new EventSource(`${this.urlroot}data/player/${this.selectedPlayer}/events`);
 				this.ev.addEventListener('error', () => { this.connectionState = 'disconnected'; });
 				this.ev.addEventListener('open', () => { this.connectionState = 'connected'; });
-				this.connectionState = 'connecting';
 				this.ev.addEventListener('playlist', async event => {
 					let { index, tracks, time } = JSON.parse(event.data);
 					this.currentIndex = index;
@@ -184,7 +205,7 @@
 				this.$emit('update:tracks', tracks);
 			},
 
-			onKey: function(event) {
+			onKey(event) {
 				if (event.target != document.body) return;
 				event.preventDefault();
 				switch (event.key) {
@@ -316,6 +337,14 @@
 
 	.player-controls > * {
 		flex-grow: 1;
+	}
+
+	.player-controls .reconnect-countdown {
+		color: inherit;
+		position: absolute;
+		top: 0;
+		left: 0.2em;
+		font-size: 0.7em;
 	}
 
 	.player.player-playing .do-play,
