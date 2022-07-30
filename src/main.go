@@ -15,7 +15,7 @@ import (
 
 	"trollibox/src/filter"
 	_ "trollibox/src/filter/keyed"
-	_ "trollibox/src/filter/ruled"
+	"trollibox/src/filter/ruled"
 	"trollibox/src/handler/web"
 	"trollibox/src/jukebox"
 	"trollibox/src/library/stream"
@@ -132,6 +132,13 @@ func main() {
 	filterdb, err := filter.NewDB(path.Join(storeDir, "filters"))
 	if err != nil {
 		log.Fatalf("Unable to create filterdb: %v", err)
+	}
+
+	if ft, _ := filterdb.Get("Default"); ft == nil {
+		ft, _ = ruled.BuildFilter([]ruled.Rule{})
+		if err := filterdb.Set("Default", ft); err != nil {
+			log.Errorf("Error creating default filter: %v", err)
+		}
 	}
 
 	players, err := connectToPlayers(config)
