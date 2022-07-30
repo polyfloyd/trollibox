@@ -117,6 +117,10 @@ h2:first-child {
 	font-size: 20px;
 }
 
+.btn > .glyphicon {
+	color: var(--color-bg-elem);
+}
+
 .btn.btn-default:hover,
 .btn.btn-default:active {
 	background-color: var(--color-bg);
