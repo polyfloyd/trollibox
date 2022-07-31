@@ -1,3 +1,20 @@
+## v0.5.0 (2022-07-31)
+
+### Feat
+
+- **autoqueuer**: Persist state between restarts
+- Manage multiple auto queuer filters from the UI
+- Ensure there is always a 'Default' auto queuer filter
+- **autoqueuer**: Make the autoqueuer toggleable from the UI
+- **queuer**: Set queuer filters through an API
+- **player**: Automatically reconnect with visible countdown
+
+### Refactor
+
+- **events**: Close event listeners by context cancellation
+- Remove unused PlayerLibrary functions
+- **player**: Combine status calls into 1 function
+
 ## v0.4.1 (2022-07-04)
 
 ### Fix
