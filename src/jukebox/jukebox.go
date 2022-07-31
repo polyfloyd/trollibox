@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"trollibox/src/filter"
 	"trollibox/src/filter/keyed"
@@ -41,16 +43,29 @@ type Jukebox struct {
 	streamdb      *stream.DB
 	defaultPlayer string
 
-	autoQueuers sync.Map // map[string]*autoQueuer
+	autoQueuers         sync.Map // map[string]*autoQueuer
+	autoQueuerStateFile string
 }
 
-func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB, defaultPlayer string) *Jukebox {
-	return &Jukebox{
-		players:       players,
-		filterdb:      filterdb,
-		streamdb:      streamdb,
-		defaultPlayer: defaultPlayer,
+func NewJukebox(players player.List, filterdb *filter.DB, streamdb *stream.DB, defaultPlayer, autoQueuerStateFile string) *Jukebox {
+	jb := &Jukebox{
+		players:             players,
+		filterdb:            filterdb,
+		streamdb:            streamdb,
+		defaultPlayer:       defaultPlayer,
+		autoQueuerStateFile: autoQueuerStateFile,
 	}
+
+	if b, err := os.ReadFile(autoQueuerStateFile); err == nil {
+		var autoQueuerState map[string]string
+		if err := yaml.Unmarshal(b, &autoQueuerState); err == nil {
+			for player, filter := range autoQueuerState {
+				_ = jb.SetPlayerAutoQueuerFilter(context.Background(), player, filter)
+			}
+		}
+	}
+
+	return jb
 }
 
 func (jb *Jukebox) Players(ctx context.Context) ([]string, error) {
@@ -220,6 +235,7 @@ func (jb *Jukebox) SetPlayerAutoQueuerFilter(ctx context.Context, playerName, fi
 	}
 
 	if filterName == "" {
+		jb.saveAutoQueuerState()
 		jb.Emit(PlayerAutoQueuerEvent{PlayerName: playerName, FilterName: ""})
 		return nil
 	}
@@ -234,6 +250,7 @@ func (jb *Jukebox) SetPlayerAutoQueuerFilter(ctx context.Context, playerName, fi
 		}
 	}()
 	jb.autoQueuers.Store(playerName, aq)
+	jb.saveAutoQueuerState()
 	jb.Emit(PlayerAutoQueuerEvent{PlayerName: playerName, FilterName: filterName})
 	log.WithField("player", playerName).Debugf("Set auto queuer to %q", filterName)
 
@@ -254,6 +271,18 @@ func (jb *Jukebox) FilterDB() *filter.DB {
 
 func (jb *Jukebox) StreamDB() *stream.DB {
 	return jb.streamdb
+}
+
+func (jb *Jukebox) saveAutoQueuerState() {
+	state := jb.PlayerAutoQueuerFilters(context.Background())
+	b, err := yaml.Marshal(state)
+	if err != nil {
+		log.Warnf("Unable to marshal auto queuer state")
+		return
+	}
+	if err := os.WriteFile(jb.autoQueuerStateFile, b, 0o644); err != nil {
+		log.WithField("file", jb.autoQueuerStateFile).Warnf("Unable to save auto queuer state file")
+	}
 }
 
 type playerPlaylist struct {

@@ -155,7 +155,13 @@ func main() {
 		}
 	}
 
-	jukebox := jukebox.NewJukebox(players, filterdb, streamdb, config.DefaultPlayer)
+	jukebox := jukebox.NewJukebox(
+		players,
+		filterdb,
+		streamdb,
+		config.DefaultPlayer,
+		path.Join(storeDir, "auto-queuer.yaml"),
+	)
 
 	service := web.New(build, version, config.Colors, config.URLRoot, jukebox)
 
