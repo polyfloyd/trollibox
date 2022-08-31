@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
@@ -140,7 +139,7 @@ func (stream *Stream) art() (*library.Art, error) {
 	if len(match) == 0 {
 		return nil, fmt.Errorf("stream %v: malformed stream art", stream.Title)
 	}
-	imageData, err := ioutil.ReadAll(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2])))
+	imageData, err := io.ReadAll(base64.NewDecoder(base64.StdEncoding, strings.NewReader(match[2])))
 	if err != nil {
 		return nil, err
 	}

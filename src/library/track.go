@@ -33,15 +33,16 @@ func (t Track) GetURI() string {
 }
 
 // Attr gets an attribute of a track by its name. Accepted names are:
-//   "uri"
-//   "artist"
-//   "title"
-//   "genre"
-//   "album"
-//   "albumartist"
-//   "albumtrack"
-//   "albumdisc"
-//   "duration"
+//
+//	"uri"
+//	"artist"
+//	"title"
+//	"genre"
+//	"album"
+//	"albumartist"
+//	"albumtrack"
+//	"albumdisc"
+//	"duration"
 func (track *Track) Attr(attr string) interface{} {
 	switch attr {
 	case "uri":

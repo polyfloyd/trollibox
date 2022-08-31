@@ -230,7 +230,8 @@ type (
 // tracks.
 //
 // The query is made up of keywords of the following format:
-//   [property:]<value>
+//
+//	[property:]<value>
 //
 // A track should contain all the keywords to pass selection. If no property is
 // set, the value is searched for in the fields specified by untaggedFields.
@@ -239,7 +240,8 @@ type (
 // A literal whitespace character may be specified by a leading backslash.
 //
 // The query could look something like this:
-//   foo bar baz title:something album:one\ two artist:foo*ar
+//
+//	foo bar baz title:something album:one\ two artist:foo*ar
 func CompileQuery(query string, untaggedFields []string) (*Query, error) {
 	v, r := parser(untaggedFields)(query)
 	if r < 0 {
