@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "bootstrap": "^3.3.7",
-    "vue": "^3.2.37",
+    "vue": "^3.2.38",
     "vuedraggable": "^4.1.0"
   },
   "jest": {
