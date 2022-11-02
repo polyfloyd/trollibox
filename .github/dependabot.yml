@@ -14,3 +14,5 @@ updates:
       interval: monthly
     allow:
     - dependency-type: direct
+    ignore:
+    - dependency-name: bootstrap
