@@ -14,7 +14,7 @@
     "@vue/test-utils": "^2.2.8",
     "@vue/vue3-jest": "^27.0.0",
     "babel-jest": "^27.5.1",
-    "babel-loader": "^9.0.1",
+    "babel-loader": "^9.1.2",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.2",
     "html-webpack-plugin": "^5.5.0",
