@@ -2,7 +2,7 @@ module trollibox
 
 require (
 	github.com/fhs/gompd/v2 v2.3.0
-	github.com/go-chi/chi/v5 v5.0.8
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/sirupsen/logrus v1.9.3
 	gopkg.in/yaml.v3 v3.0.1
 )
