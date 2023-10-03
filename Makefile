@@ -28,7 +28,7 @@ frontend-test: src/handler/webui/node_modules
 
 .PHONY: backend-watch
 backend-watch:
-	find -name '*.go' | entr -rn \
+	(find -name '*.go'; echo config.yaml) | entr -rn \
 		go run -ldflags "-X main.build=debug -X main.version=${VERSION} -X main.versionDate=${VERSION_DATE}" ./src
 
 backend-test:
