@@ -1,3 +1,9 @@
+## v0.5.1 (2023-10-03)
+
+### Fix
+
+- **auto-queuer**: Shuffle instead of random pick the next track
+
 ## v0.5.0 (2022-07-31)
 
 ### Feat
