@@ -3,27 +3,50 @@ package jukebox
 import (
 	"context"
 	"math/rand"
-	"time"
+
 	"trollibox/src/filter"
 	"trollibox/src/library"
 	"trollibox/src/player"
 )
 
-// A TrackIterator is a type that produces a finite or infinite stream of tracks.
-//
-// Used by AutoAppend.
-type TrackIterator interface {
-	// Returns the next track from the iterator. If the bool flag is false, the
-	// iterator has reached the end. The player that is requesting the next
-	// track is specified.
-	NextTrack(ctx context.Context, lib library.Library) (player.MetaTrack, bool)
+type autoQueuerQueue struct {
+	tracks []library.Track
+	index  int
+}
+
+func newQueue(ctx context.Context, pl player.Player, ft filter.Filter) (*autoQueuerQueue, error) {
+	tracks, err := pl.Library().Tracks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	results, err := filter.Tracks(ctx, ft, tracks)
+	if err != nil {
+		return nil, err
+	}
+
+	shuffledTracks := make([]library.Track, len(results))
+	for i, t := range results {
+		shuffledTracks[i] = t.Track
+	}
+	rand.Shuffle(len(shuffledTracks), func(i, j int) {
+		shuffledTracks[i], shuffledTracks[j] = shuffledTracks[j], shuffledTracks[i]
+	})
+
+	return &autoQueuerQueue{tracks: shuffledTracks, index: 0}, nil
+}
+
+func (q *autoQueuerQueue) nextTrack() (player.MetaTrack, bool) {
+	if len(q.tracks) == 0 {
+		return player.MetaTrack{}, false
+	}
+	track := q.tracks[q.index]
+	q.index = (q.index + 1) % len(q.tracks)
+	return player.MetaTrack{Track: track, QueuedBy: "system"}, true
 }
 
 type autoQueuer struct {
-	player     player.Player
-	filter     filter.Filter
+	queue      *autoQueuerQueue
 	filterName string
-	rand       *rand.Rand
 
 	cancel chan struct{}
 	err    chan error
@@ -45,11 +68,14 @@ func autoQueue(pl player.Player, filterdb *filter.DB, filterName string) (*autoQ
 		return nil, err
 	}
 
+	queue, err := newQueue(context.Background(), pl, ft)
+	if err != nil {
+		return nil, err
+	}
+
 	aq := &autoQueuer{
-		player:     pl,
-		filter:     ft,
 		filterName: filterName,
-		rand:       rand.New(rand.NewSource(time.Now().Unix())),
+		queue:      queue,
 		cancel:     make(chan struct{}),
 		err:        make(chan error, 1),
 	}
@@ -65,7 +91,12 @@ func autoQueue(pl player.Player, filterdb *filter.DB, filterName string) (*autoQ
 			select {
 			case event := <-filterDBEvents:
 				if uev, ok := event.(filter.UpdateEvent); ok && uev.Name == filterName {
-					aq.filter = uev.Filter
+					queue, err := newQueue(ctx, pl, uev.Filter)
+					if err != nil {
+						aq.err <- err
+						return
+					}
+					aq.queue = queue
 				}
 			case event := <-playerEvents:
 				_, okA := event.(player.PlayStateEvent)
@@ -84,7 +115,7 @@ func autoQueue(pl player.Player, filterdb *filter.DB, filterName string) (*autoQ
 					continue
 				}
 
-				metaTrack, ok := aq.nextTrack(ctx)
+				metaTrack, ok := aq.queue.nextTrack()
 				if !ok {
 					break outer
 				}
@@ -112,20 +143,4 @@ func autoQueue(pl player.Player, filterdb *filter.DB, filterName string) (*autoQ
 		}
 	}()
 	return aq, nil
-}
-
-func (aq *autoQueuer) nextTrack(ctx context.Context) (player.MetaTrack, bool) {
-	tracks, err := aq.player.Library().Tracks(ctx)
-	if err != nil {
-		return player.MetaTrack{}, false
-	}
-
-	results, _ := filter.Tracks(ctx, aq.filter, tracks)
-	if len(results) == 0 {
-		return player.MetaTrack{}, false
-	}
-	return player.MetaTrack{
-		Track:    results[aq.rand.Intn(len(results))].Track,
-		QueuedBy: "system",
-	}, true
 }
