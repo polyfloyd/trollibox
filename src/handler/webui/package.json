@@ -20,7 +20,7 @@
     "html-webpack-plugin": "^5.5.3",
     "jest": "^27.5.1",
     "mini-css-extract-plugin": "^2.7.6",
-    "sass": "^1.68.0",
+    "sass": "^1.69.5",
     "sass-loader": "^13.3.2",
     "vue-loader": "^17.2.2",
     "vue-template-compiler": "^2.7.14",
