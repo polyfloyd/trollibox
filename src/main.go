@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
+	"log/slog"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -10,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
 	"trollibox/src/filter"
@@ -86,22 +87,21 @@ func LoadConfig(filename string) (*config, error) {
 }
 
 func main() {
-	defaultLogLevel := "warn"
+	defaultLogLevel := slog.LevelWarn
 	if build == "debug" {
-		defaultLogLevel = "debug"
+		defaultLogLevel = slog.LevelDebug
 	}
 
 	configFile := flag.String("conf", confFile, "Path to the configuration file")
 	printVersion := flag.Bool("version", false, "Print version information and exit")
-	logLevel := flag.String("log", defaultLogLevel, "Sets the log level. [debug, info, warn, error]")
+	var logLevel slog.Level
+	flag.TextVar(&logLevel, "log", defaultLogLevel, "Sets the log level. [debug, info, warn, error]")
 	flag.Parse()
 
-	if ll, err := log.ParseLevel(*logLevel); err != nil {
-		log.Fatalf("Could not parse log level: %v", err)
-	} else {
-		log.SetLevel(ll)
-	}
-	log.SetReportCaller(true)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+	slog.SetDefault(logger)
 
 	if *printVersion {
 		fmt.Printf("Version: %v (%v)\n", version, versionDate)
@@ -109,7 +109,7 @@ func main() {
 		return
 	}
 
-	log.Infof("Version: %v (%v)\n", version, build)
+	slog.Info("Hello!\n", "version", version, "build", build)
 	config, err := LoadConfig(*configFile)
 	if err != nil {
 		log.Fatalf("Could not load config: %v", err)
@@ -122,7 +122,7 @@ func main() {
 	if err := os.MkdirAll(storeDir, 0755); err != nil {
 		log.Fatalf("Unable to create config dir: %v", err)
 	}
-	log.Infof("Using %q for storage", storeDir)
+	slog.Info("Configured storage dir", "path", storeDir)
 
 	streamdb, err := stream.NewDB(path.Join(storeDir, "streams"))
 	if err != nil {
@@ -137,7 +137,7 @@ func main() {
 	if ft, _ := filterdb.Get("Default"); ft == nil {
 		ft, _ = ruled.BuildFilter([]ruled.Rule{})
 		if err := filterdb.Set("Default", ft); err != nil {
-			log.Errorf("Error creating default filter: %v", err)
+			slog.Error("Error creating default filter", "error", err)
 		}
 	}
 
@@ -151,7 +151,7 @@ func main() {
 		log.Fatal("No players configured or available")
 	} else {
 		for _, name := range names {
-			log.Infof("Found player %q", name)
+			slog.Info("Found player", "name", name)
 		}
 	}
 
@@ -168,7 +168,7 @@ func main() {
 	if build == "debug" {
 		service.Get("/debug/pprof/*", pprof.Index)
 	}
-	log.Infof("Now accepting HTTP connections on %v", config.Address)
+	slog.Info("Now accepting HTTP connections", "addr", config.Address)
 	server := &http.Server{
 		Addr:           config.Address,
 		Handler:        service,

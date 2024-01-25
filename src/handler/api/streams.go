@@ -2,13 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"trollibox/src/library"
 	"trollibox/src/library/stream"
 	"trollibox/src/util/eventsource"
-
-	log "github.com/sirupsen/logrus"
 )
 
 func jsonStream(stream stream.Stream) interface{} {
@@ -76,7 +75,7 @@ func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {
 
 	streams, err := api.jukebox.StreamDB().Streams()
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not list streams", "error", err)
 		return
 	}
 	es.EventJSON("streams", map[string]interface{}{"streams": jsonStreams(streams)})
@@ -86,13 +85,13 @@ func (api *API) streamEvents(w http.ResponseWriter, r *http.Request) {
 		case library.UpdateEvent:
 			streams, err := api.jukebox.StreamDB().Streams()
 			if err != nil {
-				log.Errorf("%v", err)
+				slog.Error("Could not list streams", "error", err)
 				return
 			}
 			es.EventJSON("streams", map[string]interface{}{"streams": jsonStreams(streams)})
 
 		default:
-			log.Debugf("Unmapped stream db event %#v", event)
+			slog.Debug("Unmapped stream db event", "event", event)
 		}
 	}
 }

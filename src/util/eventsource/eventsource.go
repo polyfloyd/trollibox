@@ -3,10 +3,9 @@ package eventsource
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type EventSource struct {
@@ -45,7 +44,7 @@ func (es *EventSource) Event(event, body string) {
 func (es *EventSource) EventJSON(event string, body interface{}) {
 	b, err := json.Marshal(body)
 	if err != nil {
-		log.Errorf("Could not marshal event %q: %v", event, err)
+		slog.Error("Could not marshal event", "event", event, "error", err)
 		return
 	}
 	es.Event(event, string(b))

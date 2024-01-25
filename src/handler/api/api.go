@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/filter"
 	"trollibox/src/jukebox"
@@ -78,9 +78,9 @@ func respondError(w http.ResponseWriter, r *http.Request, status int, err error)
 	w.WriteHeader(status)
 
 	if status >= 500 {
-		log.Errorf("Error serving %s: %v", r.RemoteAddr, err)
+		slog.Error("API error", "addr", r.RemoteAddr, "error", err)
 	} else {
-		log.Warnf("Error serving %s: %v", r.RemoteAddr, err)
+		slog.Warn("API error", "addr", r.RemoteAddr, "error", err)
 	}
 
 	data, _ := json.Marshal(err)

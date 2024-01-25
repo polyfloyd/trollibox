@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/jukebox"
 	"trollibox/src/library"
@@ -343,30 +343,30 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 	}
 	emitter, err := api.jukebox.PlayerEvents(context.Background(), playerName)
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not get player events", "error", err)
 		return
 	}
 	listener := emitter.Listen(r.Context())
 
 	plist, err := api.jukebox.PlayerPlaylist(r.Context(), playerName)
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not get player playlist", "error", err)
 		return
 	}
 
 	status, err := api.jukebox.PlayerStatus(r.Context(), playerName)
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not get player status", "error", err)
 		return
 	}
 	tracks, err := plist.Tracks(r.Context())
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not get playlist tracks", "error", err)
 		return
 	}
 	playlistTracks, err := jsonPlaylistTracks(tracks)
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not encode tracks", "error", err)
 		return
 	}
 	es.EventJSON("playlist", map[string]interface{}{"index": status.TrackIndex, "tracks": playlistTracks, "time": status.Time / time.Second})
@@ -378,17 +378,17 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		case player.PlaylistEvent:
 			tracks, err := plist.Tracks(r.Context())
 			if err != nil {
-				log.Errorf("%v", err)
+				slog.Error("Could not get playlist tracks", "error", err)
 				return
 			}
 			playlistTracks, err := jsonPlaylistTracks(tracks)
 			if err != nil {
-				log.Errorf("%v", err)
+				slog.Error("Could not encode tracks", "error", err)
 				return
 			}
 			status, err := api.jukebox.PlayerStatus(r.Context(), playerName)
 			if err != nil {
-				log.Errorf("%v", err)
+				slog.Error("Could not get player status", "error", err)
 				return
 			}
 			es.EventJSON("playlist", map[string]interface{}{"index": t.TrackIndex, "tracks": playlistTracks, "time": status.Time / time.Second})
@@ -401,7 +401,7 @@ func (api *API) playerEvents(w http.ResponseWriter, r *http.Request) {
 		case library.UpdateEvent:
 			es.EventJSON("library", "")
 		default:
-			log.Debugf("Unmapped filter db event %#v", event)
+			slog.Debug("Unmapped filter db event", "event", event)
 		}
 	}
 }

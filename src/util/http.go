@@ -2,14 +2,11 @@ package util
 
 import (
 	"bufio"
+	"log/slog"
 	"net"
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
-// LogHandler provides middleware that logs all requests and response codes
-// using logrus.
 func LogHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rwi := &rwInterceptor{ResponseWriter: w}
@@ -17,11 +14,11 @@ func LogHandler(next http.Handler) http.Handler {
 		code := rwi.statusCode
 
 		if code >= 500 {
-			log.Errorf("%s %s -> %d", r.Method, r.URL.Path, rwi.statusCode)
+			slog.Error("Request handled", "method", r.Method, "path", r.URL.Path, "status", rwi.statusCode)
 		} else if code >= 400 {
-			log.Warnf("%s %s -> %d", r.Method, r.URL.Path, rwi.statusCode)
+			slog.Warn("Request handled", "method", r.Method, "path", r.URL.Path, "status", rwi.statusCode)
 		} else {
-			log.Debugf("%s %s -> %d", r.Method, r.URL.Path, rwi.statusCode)
+			slog.Debug("Request handled", "method", r.Method, "path", r.URL.Path, "status", rwi.statusCode)
 		}
 	})
 }

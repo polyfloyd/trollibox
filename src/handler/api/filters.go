@@ -2,10 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/filter"
 	"trollibox/src/jukebox"
@@ -73,14 +73,14 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 
 	names, err := api.jukebox.FilterDB().Names()
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not list filter names", "error", err)
 		return
 	}
 	es.EventJSON("list", map[string]interface{}{"filters": names})
 	for _, name := range names {
 		filter, err := api.jukebox.FilterDB().Get(name)
 		if err != nil {
-			log.Errorf("%v", err)
+			slog.Error("Could get filter", "error", err, "name", name)
 			return
 		}
 		es.EventJSON("update", map[string]interface{}{
@@ -108,7 +108,7 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 					"filter": t.Filter,
 				})
 			default:
-				log.Debugf("Unmapped filter db event %#v", event)
+				slog.Debug("Unmapped filter db event", "event", event)
 			}
 
 		case event := <-jukeboxListener:
@@ -119,7 +119,7 @@ func (api *API) filterEvents(w http.ResponseWriter, r *http.Request) {
 					"filter": t.FilterName,
 				})
 			default:
-				log.Debugf("Unmapped jukebox event %#v", event)
+				slog.Debug("Unmapped jukebox event", "event", event)
 			}
 
 		case <-r.Context().Done():

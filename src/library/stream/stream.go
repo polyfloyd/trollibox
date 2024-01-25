@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path"
@@ -15,8 +16,6 @@ import (
 	"strings"
 	"text/template"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/library"
 	"trollibox/src/util"
@@ -192,7 +191,7 @@ func (db *DB) Streams() ([]Stream, error) {
 		if path.Ext(file.Name()) == ".m3u" {
 			stream, err := db.StreamByFilename(file.Name())
 			if err != nil {
-				log.Errorf("Unable to load stream from %q: %v", file.Name(), err)
+				slog.Error("Unable to load stream", "path", file.Name(), "error", err)
 				continue
 			}
 			streams = append(streams, *stream)

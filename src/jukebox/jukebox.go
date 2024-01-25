@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"sort"
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 
 	"trollibox/src/filter"
@@ -231,7 +231,7 @@ func (jb *Jukebox) SetPlayerAutoQueuerFilter(ctx context.Context, playerName, fi
 
 	if aq, ok := jb.autoQueuers.LoadAndDelete(playerName); ok {
 		aq.(*autoQueuer).stop()
-		log.WithField("player", playerName).Debugf("Stopped existing auto queuer")
+		slog.Debug("Stopped existing auto queuer", "player", playerName)
 	}
 
 	if filterName == "" {
@@ -246,13 +246,13 @@ func (jb *Jukebox) SetPlayerAutoQueuerFilter(ctx context.Context, playerName, fi
 	}
 	go func() {
 		if err := <-aq.err; err != nil {
-			log.WithField("player", playerName).Errorf("Auto queuer: %v", err)
+			slog.Error("Auto queuer error", "error", err, "player", playerName)
 		}
 	}()
 	jb.autoQueuers.Store(playerName, aq)
 	jb.saveAutoQueuerState()
 	jb.Emit(PlayerAutoQueuerEvent{PlayerName: playerName, FilterName: filterName})
-	log.WithField("player", playerName).Debugf("Set auto queuer to %q", filterName)
+	slog.Debug("Set auto queuer", "filter", filterName, "player", playerName)
 
 	return nil
 }
@@ -277,11 +277,11 @@ func (jb *Jukebox) saveAutoQueuerState() {
 	state := jb.PlayerAutoQueuerFilters(context.Background())
 	b, err := yaml.Marshal(state)
 	if err != nil {
-		log.Warnf("Unable to marshal auto queuer state")
+		slog.Warn("Unable to marshal auto queuer state", "error", err)
 		return
 	}
 	if err := os.WriteFile(jb.autoQueuerStateFile, b, 0o644); err != nil {
-		log.WithField("file", jb.autoQueuerStateFile).Warnf("Unable to save auto queuer state file")
+		slog.Warn("Unable to save auto queuer state file", "file", jb.autoQueuerStateFile)
 	}
 }
 

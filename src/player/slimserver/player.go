@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -12,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/library"
 	"trollibox/src/library/cache"
@@ -128,7 +127,7 @@ func (pl *Player) eventLoop() {
 	for {
 		conn, _, err := pl.Serv.requestRaw("listen", "1")
 		if err != nil {
-			log.Debugf("Could not start event loop: %v", err)
+			slog.Debug("Could not start event loop", "error", err)
 			time.Sleep(time.Second)
 			continue
 		}
@@ -137,8 +136,7 @@ func (pl *Player) eventLoop() {
 		for scanner.Scan() {
 			line, err := url.QueryUnescape(scanner.Text())
 			if err != nil {
-				log.WithField("line", scanner.Text()).
-					Errorf("Could not parse line from event loop: %v", err)
+				slog.Error("Could not parse line from event loop", "error", err, "line", scanner.Text())
 				continue
 			} else if len(line) == 0 {
 				continue
@@ -151,8 +149,7 @@ func (pl *Player) eventLoop() {
 				if m := evtr.Exp.FindStringSubmatch(line); m != nil {
 					event, err := evtr.Event(pl, m)
 					if err != nil {
-						log.WithField("line", scanner.Text()).
-							Errorf("Could build event: %v", err)
+						slog.Error("Could build event", "error", err, "line", scanner.Text())
 						break
 					}
 					pl.Emit(event)
@@ -160,7 +157,7 @@ func (pl *Player) eventLoop() {
 			}
 		}
 		if err := scanner.Err(); err != nil {
-			log.Errorf("Could not scan event loop: %v", err)
+			slog.Error("Could not scan event loop", "error", err)
 		}
 	}
 }

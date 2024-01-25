@@ -3,6 +3,7 @@ package mpd
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"reflect"
 	"sort"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/fhs/gompd/v2/mpd"
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/library"
 	"trollibox/src/library/cache"
@@ -155,7 +155,7 @@ func (pl *Player) eventLoop() {
 	for {
 		watcher, err := mpd.NewWatcher(pl.network, pl.address, pl.passwd)
 		if err != nil {
-			log.Debugf("Could not start watcher: %v", err)
+			slog.Debug("Could not start watcher", "error", err)
 			// Limit the number of reconnection attempts to one per second.
 			time.Sleep(time.Second)
 			continue
@@ -199,7 +199,7 @@ func (pl *Player) mainLoop() {
 		case PlayerEvent:
 			status, err := pl.Status(ctx)
 			if err != nil {
-				log.Error(err)
+				slog.Error("Could not get MPD status", "error", err)
 				continue
 			}
 			dedupEmit(player.PlayStateEvent{State: status.PlayState}, status.PlayState)
@@ -209,7 +209,7 @@ func (pl *Player) mainLoop() {
 		case playlistEvent:
 			status, err := pl.Status(ctx)
 			if err != nil {
-				log.Error(err)
+				slog.Error("Could not get MPD status", "error", err)
 				continue
 			}
 			pl.Emit(player.PlaylistEvent{TrackIndex: status.TrackIndex})
@@ -217,7 +217,7 @@ func (pl *Player) mainLoop() {
 		case mixerEvent:
 			status, err := pl.Status(ctx)
 			if err != nil {
-				log.Error(err)
+				slog.Error("Could not get MPD status", "error", err)
 				continue
 			}
 			dedupEmit(player.VolumeEvent{Volume: status.Volume}, status.Volume)
@@ -234,7 +234,7 @@ func (pl *Player) mainLoop() {
 				return nil
 			})
 			if err != nil {
-				log.Error(err)
+				slog.Error("Could not get MPD status", "error", err)
 			}
 		}
 	}
@@ -632,7 +632,7 @@ func trackFromMpdSong(mpdc *mpd.Client, song mpd.Attrs, track *library.Track) er
 	track.AlbumTrack = song["track"]
 	modTime, err := time.Parse(time.RFC3339, song["last-modified"])
 	if err != nil {
-		log.WithField("song", song).Warn(err)
+		slog.Warn("Could not parse song time", "error", err, "song", song)
 	} else {
 		track.ModTime = modTime
 	}

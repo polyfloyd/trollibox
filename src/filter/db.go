@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"sort"
 	"strings"
 	"sync"
-
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/util"
 )
@@ -149,12 +148,12 @@ func (db *DB) Set(name string, filter Filter) error {
 
 	fd, err := os.Create(filename)
 	if err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not create filter db file", "error", err, "path", filename)
 		return nil
 	}
 	defer fd.Close()
 	if err := json.NewEncoder(fd).Encode(filter); err != nil {
-		log.Errorf("%v", err)
+		slog.Error("Could not read filter db", "error", err)
 		return nil
 	}
 	return nil

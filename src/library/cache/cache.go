@@ -3,9 +3,8 @@ package cache
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
-
-	log "github.com/sirupsen/logrus"
 
 	"trollibox/src/library"
 	"trollibox/src/util"
@@ -108,7 +107,7 @@ func (cache *Cache) run() {
 }
 
 func (cache *Cache) reloadTracks(ctx context.Context) {
-	log.Infof("%v: Reloading tracks", cache)
+	slog.Info("Reloading tracks", "cache", cache)
 
 	tracks, err := cache.Library.Tracks(ctx)
 	if err != nil {
@@ -122,7 +121,7 @@ func (cache *Cache) reloadTracks(ctx context.Context) {
 		cache.index[track.URI] = &cache.tracks[i]
 	}
 
-	log.Infof("%v: Done reloading tracks", cache)
+	slog.Info("Done reloading tracks", "cache", cache)
 }
 
 func (cache *Cache) String() string {
