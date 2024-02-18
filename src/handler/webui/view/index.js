@@ -33,8 +33,25 @@ let app = createApp({
 			...initialData,
 		};
 	},
+	mounted() {
+		document.body.addEventListener('keypress', event => {
+			if (event.target != document.body) return;
+			// Map number keys to views.
+			let views = ['search', 'albums', 'genres', 'files', 'streams', 'queuer', 'player'];
+			let i = Object.keys(views).indexOf((event.key - 1)+'');
+			if (i != -1) {
+				this.currentView = views[i];
+			}
+		});
+		document.onkeydown = event => {
+			if (event.ctrlKey && event.key == 'k') {
+				event.preventDefault();
+				this.currentView = 'search';
+			}
+		};
+	},
 	watch: {
-		currentView: function(view) {
+		currentView(view) {
 			this.showNavbar = false;
 
 			let url = `${this.urlroot}player/${this.selectedPlayer}?view=${view}`;
@@ -43,13 +60,3 @@ let app = createApp({
 	},
 });
 app.mount('#app');
-
-document.body.addEventListener('keypress', event => {
-	if (event.target != document.body) return;
-	// Map number keys to views.
-	let views = ['search', 'albums', 'genres', 'files', 'streams', 'queuer', 'player'];
-	let i = Object.keys(views).indexOf((event.key - 1)+'');
-	if (i != -1) {
-		app.currentView = views[i];
-	}
-});
