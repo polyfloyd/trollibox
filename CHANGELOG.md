@@ -1,3 +1,13 @@
+## v0.6.0 (2024-02-18)
+
+### Feat
+
+- Bind Ctrl+K to the search prompt
+
+### Refactor
+
+- logrus -> log/slog
+
 ## v0.5.1 (2023-10-03)
 
 ### Fix
