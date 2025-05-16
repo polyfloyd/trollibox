@@ -82,7 +82,7 @@ jobs:
       - run: gofmt -s -d ./src/
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
 
   conventional-commits:
     runs-on: ubuntu-latest
