@@ -1,6 +1,5 @@
 Trollibox
 =========
-[![Build Status](https://github.com/polyfloyd/trollibox/workflows/CI/badge.svg)](https://github.com/polyfloyd/trollibox/actions)
 
 The hackerspace friendly ~~MPD~~ music player web client.
 
