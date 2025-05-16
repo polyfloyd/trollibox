@@ -67,7 +67,7 @@ func (rule Rule) MatchFunc() (func(library.Track) ([]filter.SearchMatch, bool), 
 	// Prevent type errors further down.
 	typeVal := reflect.ValueOf(rule.Value).Kind()
 	typeTrack := reflect.ValueOf((&library.Track{}).Attr(rule.Attribute)).Kind()
-	if typeVal != typeTrack && !(typeVal == reflect.Float64 && typeTrack == reflect.Int64) {
+	if typeVal != typeTrack && (typeVal != reflect.Float64 || typeTrack != reflect.Int64) {
 		return nil, fmt.Errorf("value and attribute types do not match (%v, %v)", typeVal, typeTrack)
 	}
 

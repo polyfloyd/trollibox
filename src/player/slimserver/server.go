@@ -345,7 +345,7 @@ func queryEscape(str string) string {
 		"%3F": "?",
 	}
 	for r, n := range replace {
-		str = strings.Replace(str, r, n, -1)
+		str = strings.ReplaceAll(str, r, n)
 	}
 	return str
 }

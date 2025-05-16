@@ -135,7 +135,7 @@ func (web *webUI) defaultAlbumArt() http.HandlerFunc {
 	if err != nil {
 		panic(err)
 	}
-	recolored := bytes.Replace(svg, []byte("#ffffff"), []byte(web.colorConfig.Accent), -1)
+	recolored := bytes.ReplaceAll(svg, []byte("#ffffff"), []byte(web.colorConfig.Accent))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "image/svg+xml")

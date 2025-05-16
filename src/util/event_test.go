@@ -58,7 +58,7 @@ outer:
 		}
 	}
 
-	if 1 != numReceived {
+	if numReceived != 1 {
 		t.Errorf("Event was repeated too many times: %v", numReceived)
 		return
 	}

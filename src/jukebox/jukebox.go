@@ -201,14 +201,16 @@ func (jb *Jukebox) PlayerPlaylistInsertAt(ctx context.Context, playerName, at st
 		return err
 	}
 
-	if at == "Next" {
+	switch at {
+	case "Next":
 		status, err := pl.Status(ctx)
 		if err != nil {
 			return err
 		}
 		pos = status.TrackIndex + 1
-	} else if at == "End" {
+	case "End":
 		pos = -1
+	default:
 	}
 
 	return pl.Playlist().Insert(ctx, pos, tracks...)
