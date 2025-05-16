@@ -25,11 +25,8 @@ jobs:
         - x86_64
         os:
         - unknown-linux-gnu
-        - unknown-linux-musl
         include:
         - os: unknown-linux-gnu
-          goos: linux
-        - os: unknown-linux-musl
           goos: linux
         - arch: aarch64
           goarch: arm64
@@ -48,22 +45,7 @@ jobs:
       with:
         node-version: 17
 
-    - uses: jirutka/setup-alpine@v1
-      if: matrix.os == 'unknown-linux-musl'
-      with:
-        branch: v3.21
-        packages: >
-          go
-
     - run: make
-      if: matrix.os != 'unknown-linux-musl'
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-      shell: alpine.sh {0}
-
-    - run: make
-      if: matrix.os == 'unknown-linux-musl'
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
