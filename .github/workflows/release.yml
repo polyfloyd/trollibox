@@ -5,46 +5,36 @@ on:
     tags:
     - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
 
   release:
     runs-on: ubuntu-latest
     steps:
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: false
-        prerelease: false
+      - name: Create release
+        uses: softprops/action-gh-release@v2
 
   build:
     strategy:
       fail-fast: false
       matrix:
-        target:
-        - linux-amd64
-        - linux-arm6
-        - linux-arm7
-        - linux-arm64
+        arch:
+        - aarch64
+        - x86_64
+        os:
+        - unknown-linux-gnu
+        - unknown-linux-musl
         include:
-        - target: linux-amd64
-          goarch: amd64
+        - os: unknown-linux-gnu
           goos: linux
-        - target: linux-arm6
-          goarch: arm
+        - os: unknown-linux-musl
           goos: linux
-          goarm: 6
-        - target: linux-arm7
-          goarch: arm
-          goos: linux
-          goarm: 7
-        - target: linux-arm64
+        - arch: aarch64
           goarch: arm64
-          goos: linux
+        - arch: x86_64
+          goarch: amd64
 
     needs:
     - release
@@ -58,16 +48,29 @@ jobs:
       with:
         node-version: 17
 
+    - uses: jirutka/setup-alpine@v1
+      if: matrix.os == 'unknown-linux-musl'
+      with:
+        branch: v3.21
+        packages: >
+          go
+
     - run: make
+      if: matrix.os != 'unknown-linux-musl'
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        GOARM: ${{ matrix.goarm }}
-    - run: tar -czf trollibox-${{ matrix.target }}.tar.gz -C ./bin trollibox ../config.example.yaml
+      shell: alpine.sh {0}
+
+    - run: make
+      if: matrix.os == 'unknown-linux-musl'
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - run: tar -czf trollibox-${{ matrix.arch }}-${{ matrix.os}}.tar.gz -C ./bin trollibox ../config.example.yaml
 
     - name: Upload binary to release
-      uses: svenstaro/upload-release-action@v2
+      uses: softprops/action-gh-release@v2
       with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: trollibox-${{ matrix.target }}.tar.gz
-        tag: ${{ github.ref }}
+        files: trollibox-${{ matrix.arch }}-${{ matrix.os}}.tar.gz
