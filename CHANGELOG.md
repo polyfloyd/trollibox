@@ -1,3 +1,9 @@
+## v0.6.1 (2025-05-16)
+
+### Fix
+
+- Minor release for all dependency updates over the past period
+
 ## v0.6.0 (2024-02-18)
 
 ### Feat
