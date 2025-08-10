@@ -5,24 +5,29 @@ on:
 
 jobs:
 
-  ci:
-    uses: ./.github/workflows/ci.yml
+  test:
+    uses: ./.github/workflows/test.yml
 
   bump:
     runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
 
     needs:
-      - ci
+      - test
 
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         ssh-key: "${{ secrets.DEPLOY_SSH_KEY }}"
-    - run: pip3 install Commitizen==2.27.1
+    - name: Populate /nix/store
+      run: echo done
 
-    - run: git config --local user.email "github-actions@users.noreply.github.com"
-    - run: git config --local user.name "github-actions"
+    - name: Git Identity
+      run: |
+        git config --local user.email "github-actions@users.noreply.github.com"
+        git config --local user.name "github-actions"
 
     - run: cz bump --changelog
 

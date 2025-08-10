@@ -1,0 +1,94 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+defaults:
+  run:
+    shell: nix develop --command {0}
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Populate /nix/store
+      run: echo done
+    - run: make
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Populate /nix/store
+      run: echo done
+    - run: npm ci
+      working-directory: src/handler/webui
+    - run: npm run test
+      working-directory: src/handler/webui
+
+  test-backend:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Populate /nix/store
+      run: echo done
+    - run: install -D `mktemp` src/handler/webui/build/release/NOFILES
+    - run: cp -vr ./testdata /tmp/music
+    - name: Configure MPD
+      run: |
+        cat <<EOF | tee -a mpd.conf
+          music_directory: "/tmp/music"
+          max_connections "100"
+          audio_output {
+              type "null"
+              name "My Null Output"
+              mixer_type "software"
+          }
+        EOF
+    - name: go test
+      run: |
+        # Start MPD and wait for it to come online.
+        mpd mpd.conf # Forks
+        while ! nc -z localhost 6600; do sleep .1; done
+        mpc update --wait
+        go test -race -cover ./src/...
+
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Populate /nix/store
+        run: echo done
+      - run: install -D `mktemp` src/handler/webui/build/release/NOFILES
+      - run: gofmt -s -d ./src/
+      - run: golangci-lint run
+
+  conventional-commits:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Populate /nix/store
+        run: echo done
+      - run: cz check --rev-range origin/${{ github.base_ref }}..HEAD

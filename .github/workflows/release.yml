@@ -5,6 +5,10 @@ on:
     tags:
     - 'v*'
 
+defaults:
+  run:
+    shell: nix develop --command {0}
+
 permissions:
   contents: write
 
@@ -12,11 +16,20 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
     steps:
       - name: Create release
         uses: softprops/action-gh-release@v2
 
   build:
+    runs-on: ubuntu-latest
+    container:
+      image: codeberg.org/polyfloyd/nix-ci:latest
+
+    needs:
+      - release
     strategy:
       fail-fast: false
       matrix:
@@ -33,17 +46,10 @@ jobs:
         - arch: x86_64
           goarch: amd64
 
-    needs:
-    - release
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-go@v5
-      with:
-        go-version: stable
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 17
+    - name: Populate /nix/store
+      run: echo done
 
     - run: make
       env:

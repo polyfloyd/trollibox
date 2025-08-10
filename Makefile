@@ -1,4 +1,3 @@
-SHELL=/bin/bash
 VERSION=$(shell git describe --always --dirty --tags)
 VERSION_DATE=$(shell date --date="@$$(git show -s --format='%ct' HEAD)" '+%F')
 
